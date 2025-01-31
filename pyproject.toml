@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "x64dbg_automate_pyclient"
+version = "0.1.0"
+description = ""
+authors = ["Darius Houle <darius@x64.ooo>"]
+readme = "README.md"
+
+
+
+[tool.poetry.dependencies]
+python = "^3.13"
+pyzmq = "^26.2.0"
+msgpack = "^1.1.0"
+pytest = "^8.3.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
