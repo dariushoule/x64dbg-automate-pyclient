@@ -12,6 +12,8 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_DBG_CMD_EXEC_DIRECT = "XAUTO_REQ_DBG_CMD_EXEC_DIRECT"
     XAUTO_REQ_DBG_IS_RUNNING = "XAUTO_REQ_DBG_IS_RUNNING"
     XAUTO_REQ_DBG_IS_DEBUGGING = "XAUTO_REQ_DBG_IS_DEBUGGING"
+    XAUTO_REQ_DBG_IS_ELEVATED = "XAUTO_REQ_DBG_IS_ELEVATED"
+    XAUTO_REQ_DEBUGGER_VERSION = "XAUTO_REQ_DEBUGGER_VERSION"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -20,6 +22,9 @@ class XAutoCommandsMixin(XAutoClientBase):
     
     def get_xauto_compat_version(self) -> str:
         return self._send_request(XAutoCommand.XAUTO_REQ_COMPAT_VERSION)[0]
+    
+    def get_debugger_version(self) -> int:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DEBUGGER_VERSION)[0]
     
     def dbg_terminate_session(self):
         assert self._send_request(XAutoCommand.XAUTO_REQ_QUIT) == "OK_QUITTING", "Failed to terminate x64dbg session"
@@ -42,6 +47,9 @@ class XAutoCommandsMixin(XAutoClientBase):
     
     def get_dbg_is_debugging(self) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_DEBUGGING)[0]
+    
+    def get_dbg_is_elevated(self) -> bool:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_ELEVATED)[0]
     
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0
