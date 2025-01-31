@@ -4,8 +4,7 @@ import time
 import msgpack
 import zmq
 
-from x64dbg_automate_pyclient.client_base import XAutoClientBase
-from x64dbg_automate_pyclient.commands_xauto import XAutoCommandsMixin
+from x64dbg_automate_pyclient.hla_xauto import XAutoHighLevelCommandAbstractionMixin
 
 
 COMPAT_VERSION = "bitter_oyster" # TODO: externalize
@@ -13,7 +12,7 @@ K32 = ctypes.windll.kernel32
 SYNCHRONIZE = 0x00100000
 
 
-class X64DbgClient(XAutoCommandsMixin, XAutoClientBase):
+class X64DbgClient(XAutoHighLevelCommandAbstractionMixin):
     def __init__(self, x64dbg_path: str | None = None, xauto_session_id: int | None = None):
         self.x64dbg_path = x64dbg_path
         self.xauto_session_id = xauto_session_id
@@ -43,9 +42,9 @@ class X64DbgClient(XAutoCommandsMixin, XAutoClientBase):
     def _send_request(self, request_type: str, *args) -> tuple:
         self.socket.send(msgpack.packb((request_type, *args)))
         msg = msgpack.unpackb(self.socket.recv())
-        if len(msg) == 0:
+        if msg is None:
             raise RuntimeError("Empty response from x64dbg")
-        if len(msg) == 2 and isinstance(msg[0], str) and msg[0].startswith("XERROR_"):
+        if isinstance(msg, list) and len(msg) == 2 and isinstance(msg[0], str) and msg[0].startswith("XERROR_"):
             raise RuntimeError(msg)
         return msg
 
@@ -55,7 +54,7 @@ class X64DbgClient(XAutoCommandsMixin, XAutoClientBase):
         
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
         visited_sessions = set(self.list_sessions())
-        self.proc = subprocess.Popen([self.x64dbg_path, target_exe, cmdline, current_dir], executable=self.x64dbg_path)
+        self.proc = subprocess.Popen([self.x64dbg_path, target_exe.strip(), cmdline, current_dir], executable=self.x64dbg_path)
 
         for _ in range(100):
             if self.xauto_session_id is not None:
@@ -77,6 +76,9 @@ class X64DbgClient(XAutoCommandsMixin, XAutoClientBase):
         if self.xauto_session_id is None:
             raise TimeoutError("Session did not start in a reasonable amount of time")
         self._assert_connection_compat()
+
+        if target_exe.strip() != "":
+            self.wait_cmd_ready()
         return self.xauto_session_id
     
     def attach_session(self, xauto_session_id: int):
@@ -95,7 +97,7 @@ class X64DbgClient(XAutoCommandsMixin, XAutoClientBase):
 
     def terminate_session(self):
         sid = self.xauto_session_id
-        self.dbg_terminate_session()
+        self.xauto_terminate_session()
         self._close_connection()
         for _ in range(100):
             time.sleep(0.2)
