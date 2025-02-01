@@ -38,3 +38,12 @@ def test_ret(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
     assert client.ret(1) == True
     assert client.ret(1) == True
+
+
+def test_rw_regs(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.set_reg('rax', 0x1234567812345678)
+    assert client.get_regs().context.rax == 0x1234567812345678
+    client.set_reg('di', 0xB33F)
+    assert client.get_reg('di') == 0xB33F
+    assert client.get_regs().context.rdi & 0xFFFF == 0xB33F

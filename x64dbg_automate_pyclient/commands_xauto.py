@@ -107,11 +107,18 @@ class XAutoCommandsMixin(XAutoClientBase):
                 last_status=(raw_regs[8][0], raw_regs[8][1])
             )
     
-    def set_reg(self, reg: MutableRegister | str, val: int) -> list[MemPage]:
-        reg = MutableRegister(reg)
+    def set_reg(self, reg: MutableRegister | str, val: int) -> bool:
+        reg = MutableRegister(str(reg).lower())
         if not isinstance(val, int):
             raise TypeError("val must be an integer")
         return self.dbg_cmd_sync(f'{reg}=0x{val:X}')
+    
+    def get_reg(self, reg: MutableRegister | str) -> int:
+        reg = MutableRegister(str(reg).lower())
+        res, success = self.dbg_eval_sync(f'{reg}')
+        if not success:
+            raise ValueError(f"Failed to evaluate register {reg}")
+        return res
     
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0

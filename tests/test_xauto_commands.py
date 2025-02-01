@@ -35,9 +35,3 @@ def test_dbg_memmap(client: X64DbgClient):
 def test_gui_refresh_views(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
     assert client.gui_refresh_views() == True
-
-
-def test_rw_regs(client: X64DbgClient):
-    client.start_session(r'c:\Windows\system32\winver.exe')
-    client.set_reg('rax', 0x1234567812345678)
-    assert client.get_regs().context.rax == 0x1234567812345678

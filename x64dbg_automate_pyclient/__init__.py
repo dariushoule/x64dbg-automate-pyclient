@@ -1,5 +1,6 @@
 import ctypes
 import subprocess
+import threading
 import time
 import msgpack
 import zmq
@@ -12,36 +13,67 @@ K32 = ctypes.windll.kernel32
 SYNCHRONIZE = 0x00100000
 
 
+class ClientConnectionFailedError(Exception):
+    pass
+
 class X64DbgClient(XAutoHighLevelCommandAbstractionMixin):
     def __init__(self, x64dbg_path: str | None = None, xauto_session_id: int | None = None):
         self.x64dbg_path = x64dbg_path
         self.xauto_session_id = xauto_session_id
+        self.context = None
+        self.req_socket = None
+        self.sub_socket = None
 
         if self.x64dbg_path is None and self.xauto_session_id is None:
             raise ValueError("One of x64dbg_path or x64dbg_session must be provided")
     
     @property
-    def SESS_PORT(self) -> int:
+    def SESS_REQ_REP_PORT(self) -> int:
         return 41600 + self.xauto_session_id
     
+    @property
+    def SESS_PUB_SUB_PORT(self) -> int:
+        return 51600 + self.xauto_session_id
+    
+    def _sub_thread(self):
+        try:
+            while True:
+                msg = msgpack.unpackb(self.sub_socket.recv())
+                print(f"SUB:", msg)
+        except zmq.error.ContextTerminated:
+            pass
+    
     def _init_connection(self):
-        context = zmq.Context()
-        self.socket = context.socket(zmq.REQ)
-        self.socket.setsockopt(zmq.SNDTIMEO, 5000)
-        self.socket.setsockopt(zmq.RCVTIMEO, 10000)
-        self.socket.connect(f"tcp://localhost:{self.SESS_PORT}")
-        self.socket.send(msgpack.packb("PING"))
-        assert msgpack.unpackb(self.socket.recv()) == "PONG", f"Connection to x64dbg failed on port {self.SESS_PORT}"
+        if self.context is not None:
+            self._close_connection()
+
+        self.context = zmq.Context()
+        self.req_socket = self.context.socket(zmq.REQ)
+        self.req_socket.setsockopt(zmq.SNDTIMEO, 5000)
+        self.req_socket.setsockopt(zmq.RCVTIMEO, 10000)
+        self.req_socket.connect(f"tcp://localhost:{self.SESS_REQ_REP_PORT}")
+        self.req_socket.send(msgpack.packb("PING"))
+        if msgpack.unpackb(self.req_socket.recv()) != "PONG":
+            raise ClientConnectionFailedError(f"Connection to x64dbg failed on port {self.SESS_REQ_REP_PORT}")
+        
+        self.sub_socket = self.context.socket(zmq.SUB)
+        self.sub_socket.connect(f"tcp://localhost:{self.SESS_PUB_SUB_PORT}")
+        self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+        self.sub_thread = threading.Thread(target=self._sub_thread)
+        self.sub_thread.start()
 
     def _close_connection(self):
-        self.socket.close()
-        self.socket = None
+        self.context.destroy()
+        self.context = None
+        self.req_socket = None
+        self.sub_socket = None
+        self.sub_thread.join()
         self.xauto_session_id = None
         self.proc = None
 
     def _send_request(self, request_type: str, *args) -> tuple:
-        self.socket.send(msgpack.packb((request_type, *args)))
-        msg = msgpack.unpackb(self.socket.recv())
+        self.req_socket.send(msgpack.packb((request_type, *args)))
+        msg = msgpack.unpackb(self.req_socket.recv())
         if msg is None:
             raise RuntimeError("Empty response from x64dbg")
         if isinstance(msg, list) and len(msg) == 2 and isinstance(msg[0], str) and msg[0].startswith("XERROR_"):

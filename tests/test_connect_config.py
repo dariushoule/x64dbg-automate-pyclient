@@ -7,6 +7,12 @@ def test_connect(client: X64DbgClient):
     client.start_session()
 
 
+def test_reconnect(client: X64DbgClient):
+    sid = client.start_session()
+    client.deattach_session()
+    client.attach_session(sid)
+
+
 def test_compat_version(client: X64DbgClient):
     client.start_session()
     client._assert_connection_compat()
