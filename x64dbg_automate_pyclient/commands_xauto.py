@@ -2,7 +2,8 @@ from enum import StrEnum
 import time
 
 from x64dbg_automate_pyclient.client_base import XAutoClientBase
-from x64dbg_automate_pyclient.models import MemPage
+from x64dbg_automate_pyclient.models import Context64, Context32, Flags, FpuReg, MemPage, MutableRegister, \
+    MxcsrFields, RegDump32, RegDump64, X87ControlWordFields, X87Fpu, X87StatusWordFields
 
 
 class XAutoCommand(StrEnum):
@@ -18,6 +19,7 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_DBG_GET_BITNESS = "XAUTO_REQ_DBG_GET_BITNESS"
     XAUTO_REQ_DBG_MEMMAP = "XAUTO_REQ_DBG_MEMMAP",
     XAUTO_REQ_GUI_REFRESH_VIEWS = "XAUTO_REQ_GUI_REFRESH_VIEWS"
+    XAUTO_REQ_DBG_READ_REGISTERS = "XAUTO_REQ_DBG_READ_REGISTERS"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -67,6 +69,49 @@ class XAutoCommandsMixin(XAutoClientBase):
     
     def gui_refresh_views(self) -> list[MemPage]:
         return self._send_request(XAutoCommand.XAUTO_REQ_GUI_REFRESH_VIEWS)
+    
+    def get_regs(self) -> list[MemPage]:
+        raw_regs = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_REGISTERS)
+        bitness = raw_regs[0]
+        raw_regs = raw_regs[1:]
+        if bitness == 64:
+            ctx = {k: v for k, v in zip(Context64.model_fields.keys(), raw_regs[0])}
+            ctx['x87_fpu'] = X87Fpu(**{k: v for k, v in zip(X87Fpu.model_fields.keys(), ctx['x87_fpu'])})
+            ctx['xmm_regs'] = [ctx['xmm_regs'][i:i+16] for i in range(0, len(ctx['xmm_regs']), 16)]
+            ctx['ymm_regs'] = [ctx['ymm_regs'][i:i+32] for i in range(0, len(ctx['ymm_regs']), 32)]
+            return RegDump64(
+                context=Context64(**ctx),
+                flags=Flags(**{k: v for k, v in zip(Flags.model_fields.keys(), raw_regs[1])}),
+                fpu=[FpuReg(data=raw_regs[2][i][0], st_value=raw_regs[2][i][1], tag=raw_regs[2][i][2]) for i in range(len(raw_regs[2]))],
+                mmx=raw_regs[3],
+                mxcsr_fields=MxcsrFields(**{k: v for k, v in zip(MxcsrFields.model_fields.keys(), raw_regs[4])}),
+                x87_status_word_fields=X87StatusWordFields(**{k: v for k, v in zip(X87StatusWordFields.model_fields.keys(), raw_regs[5])}),
+                x87_control_word_fields=X87ControlWordFields(**{k: v for k, v in zip(X87ControlWordFields.model_fields.keys(), raw_regs[6])}),
+                last_error=(raw_regs[7][0], raw_regs[7][1].decode().strip('\0')),
+                last_status=(raw_regs[8][0], raw_regs[8][1].decode().strip('\0'))
+            )
+        else:
+            ctx = {k: v for k, v in zip(Context64.model_fields.keys(), raw_regs[0])}
+            ctx['x87_fpu'] = X87Fpu(**{k: v for k, v in zip(X87Fpu.model_fields.keys(), ctx['x87_fpu'])})
+            ctx['xmm_regs'] = [ctx['xmm_regs'][i:i+16] for i in range(0, len(ctx['xmm_regs']), 16)]
+            ctx['ymm_regs'] = [ctx['ymm_regs'][i:i+32] for i in range(0, len(ctx['ymm_regs']), 32)]
+            return RegDump32(
+                context=Context32(**ctx),
+                flags=Flags(**{k: v for k, v in zip(Flags.model_fields.keys(), raw_regs[1])}),
+                fpu=[FpuReg(data=raw_regs[2][i][0], st_value=raw_regs[2][i][1], tag=raw_regs[2][i][2]) for i in range(len(raw_regs[2]))],
+                mmx=raw_regs[3],
+                mxcsr_fields=MxcsrFields(**{k: v for k, v in zip(MxcsrFields.model_fields.keys(), raw_regs[4])}),
+                x87_status_word_fields=X87StatusWordFields(**{k: v for k, v in zip(X87StatusWordFields.model_fields.keys(), raw_regs[5])}),
+                x87_control_word_fields=X87ControlWordFields(**{k: v for k, v in zip(X87ControlWordFields.model_fields.keys(), raw_regs[6])}),
+                last_error=(raw_regs[7][0], raw_regs[7][1]),
+                last_status=(raw_regs[8][0], raw_regs[8][1])
+            )
+    
+    def set_reg(self, reg: MutableRegister | str, val: int) -> list[MemPage]:
+        reg = MutableRegister(reg)
+        if not isinstance(val, int):
+            raise TypeError("val must be an integer")
+        return self.dbg_cmd_sync(f'{reg}=0x{val:X}')
     
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0

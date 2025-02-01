@@ -7,8 +7,8 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
     Higher-level abstractions built on top of raw XAuto command primitives
     """
 
-    def load_executable(self, wait_timeout=10) -> bool:
-        if not self.dbg_cmd_sync(r'init c:\Windows\system32\winver.exe'):
+    def load_executable(self, target_exe: str, wait_timeout=10) -> bool:
+        if not self.dbg_cmd_sync(f'init {target_exe}'):
             return False
         return self.wait_cmd_ready(wait_timeout)
 
@@ -36,8 +36,10 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             self.wait_until_stopped(wait_timeout)
         return res
     
-    def ret(self, frames = 1) -> bool:
-        return self.dbg_cmd_sync(f"rtr {frames}")
+    def ret(self, frames = 1, wait_timeout=10) -> bool:
+        if not self.dbg_cmd_sync(f"rtr {frames}"):
+            return False
+        return self.wait_cmd_ready(wait_timeout)
     
     def go(self, pass_exceptions = False, swallow_exceptions = False) -> bool:
         if pass_exceptions == True and swallow_exceptions == True:
