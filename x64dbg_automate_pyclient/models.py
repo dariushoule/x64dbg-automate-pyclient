@@ -348,3 +348,17 @@ class Breakpoint(BaseModel):
     logCondition: str
     commandText: str
     commandCondition: str
+
+
+class SymbolType(IntEnum):
+    SymImport = 0
+    SymExport = 1
+    SymSymbol = 2
+
+
+class Symbol(BaseModel):
+    addr: int
+    decoratedSymbol: str
+    undecoratedSymbol: str
+    type: int
+    ordinal: int

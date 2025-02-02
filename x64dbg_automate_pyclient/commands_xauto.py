@@ -2,8 +2,9 @@ from enum import StrEnum
 import time
 
 from x64dbg_automate_pyclient.client_base import XAutoClientBase
-from x64dbg_automate_pyclient.models import Breakpoint, BreakpointType, Context64, Context32, DisasmArgType, DisasmInstrType, Flags, FpuReg, Instruction, InstructionArg, MemPage, \
-    MxcsrFields, RegDump32, RegDump64, SegmentReg, X87ControlWordFields, X87Fpu, X87StatusWordFields
+from x64dbg_automate_pyclient.models import Breakpoint, BreakpointType, Context64, Context32, DisasmArgType, \
+    DisasmInstrType, Flags, FpuReg, Instruction, InstructionArg, MemPage, MxcsrFields, RegDump32, RegDump64, \
+    SegmentReg, Symbol, SymbolType, X87ControlWordFields, X87Fpu, X87StatusWordFields
 
 
 class XAutoCommand(StrEnum):
@@ -30,6 +31,9 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_DISASSEMBLE = "XAUTO_REQ_DISASSEMBLE"
     XAUTO_REQ_ASSEMBLE = "XAUTO_REQ_ASSEMBLE"
     XAUTO_REQ_GET_BREAKPOINTS = "XAUTO_REQ_GET_BREAKPOINTS"
+    XAUTO_REQ_GET_LABEL = "XAUTO_REQ_GET_LABEL"
+    XAUTO_REQ_GET_COMMENT = "XAUTO_REQ_GET_COMMENT"
+    XAUTO_REQ_GET_SYMBOL = "XAUTO_REQ_GET_SYMBOL"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -45,7 +49,7 @@ class XAutoCommandsMixin(XAutoClientBase):
     def xauto_terminate_session(self):
         assert self._send_request(XAutoCommand.XAUTO_REQ_QUIT) == "OK_QUITTING", "Failed to terminate x64dbg session"
     
-    def dbg_eval_sync(self, eval_str) -> list[int, bool]:
+    def eval_sync(self, eval_str) -> list[int, bool]:
         """
         Evaluates an expression that results in a numerical output
         Returns:
@@ -55,7 +59,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_EVAL, eval_str)
     
-    def dbg_cmd_sync(self, cmd_str: str) -> bool:
+    def cmd_sync(self, cmd_str: str) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC_DIRECT, cmd_str)
     
     def get_is_running(self) -> bool:
@@ -189,6 +193,30 @@ class XAutoCommandsMixin(XAutoClientBase):
             commandText=bp[16],
             commandCondition=bp[17]
         ) for bp in resp]
+    
+    def get_label_at(self, addr: int, segment_reg: SegmentReg = SegmentReg.SegDefault) -> str:
+        res, label = self._send_request(XAutoCommand.XAUTO_REQ_GET_LABEL, addr, segment_reg)
+        if not res:
+            return ""
+        return label
+    
+    def get_comment_at(self, addr: int) -> str:
+        res, comment = self._send_request(XAutoCommand.XAUTO_REQ_GET_COMMENT, addr)
+        if not res:
+            return ""
+        return comment
+    
+    def get_symbol_at(self, addr: int) -> Symbol | None:
+        res = self._send_request(XAutoCommand.XAUTO_REQ_GET_SYMBOL, addr)
+        if not res[0]:
+            return ""
+        return Symbol(
+            addr=res[1],
+            decoratedSymbol=res[2],
+            undecoratedSymbol=res[3],
+            type=SymbolType(res[4]),
+            ordinal=res[5]
+        )
     
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0

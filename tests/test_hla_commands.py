@@ -50,13 +50,8 @@ def test_rw_regs(client: X64DbgClient):
     client.set_reg('di', 0xB33F)
     assert client.get_reg('di') == 0xB33F
     assert client.get_regs().context.rdi & 0xFFFF == 0xB33F
-
-
-def test_rw_memory(client: X64DbgClient):
-    client.start_session(r'c:\Windows\system32\winver.exe')
-    rip = client.get_reg('rip')
-    assert client.write_memory(rip, b'\x90\x90\x90\x90')
-    assert client.read_memory(rip, 16).startswith(b'\x90\x90\x90\x90')
+    client.set_reg('rip', 0x1000)
+    assert client.get_reg('rip') == 0x1000
 
 
 def test_memset(client: X64DbgClient):
@@ -110,3 +105,25 @@ def test_breakpoint_ss(client: X64DbgClient):
     assert client.go()
     assert client.wait_until_stopped()
     assert client.get_reg('rip') == rip+3
+
+
+def test_label(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    rip = client.get_reg('rip')
+    client.del_label_at(rip)
+    assert client.get_label_at(rip) == ""
+    assert client.set_label_at(rip, "https://www.youtube.com/watch?v=tJ94VwZ51Wo")
+    assert client.get_label_at(rip) == "https://www.youtube.com/watch?v=tJ94VwZ51Wo"
+    assert client.del_label_at(rip)
+    assert client.get_label_at(rip) == ""
+
+
+def test_comment(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    rip = client.get_reg('rip')
+    client.del_comment_at(rip)
+    assert client.get_comment_at(rip) == ""
+    assert client.set_comment_at(rip, "https://www.youtube.com/watch?v=mNjmGuJY5OE")
+    assert client.get_comment_at(rip) == "https://www.youtube.com/watch?v=mNjmGuJY5OE"
+    assert client.del_comment_at(rip)
+    assert client.get_comment_at(rip) == ""

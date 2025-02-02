@@ -4,24 +4,24 @@ from x64dbg_automate_pyclient.models import BreakpointType, DisasmArgType, Disas
 
 def test_dbg_eval_not_debugging(client: X64DbgClient):
     client.start_session()
-    assert client.dbg_eval_sync('9*9') == [81, True]
-    assert client.dbg_eval_sync('9*') == [0, False]
+    assert client.eval_sync('9*9') == [81, True]
+    assert client.eval_sync('9*') == [0, False]
 
 
 def test_dbg_eval_debugging(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.dbg_eval_sync('9*9') == [81, True]
-    assert client.dbg_eval_sync('9*') == [0, False]
-    addr, success = client.dbg_eval_sync('GetModuleHandleA+1')
+    assert client.eval_sync('9*9') == [81, True]
+    assert client.eval_sync('9*') == [0, False]
+    addr, success = client.eval_sync('GetModuleHandleA+1')
     assert success
     assert addr > 0
 
 
 def test_dbg_command_exec_sync(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.dbg_cmd_sync('sto') == True
+    assert client.cmd_sync('sto') == True
     assert client.wait_cmd_ready() == True
-    assert client.dbg_cmd_sync('bad_command') == False
+    assert client.cmd_sync('bad_command') == False
 
 
 def test_dbg_memmap(client: X64DbgClient):
@@ -40,7 +40,7 @@ def test_gui_refresh_views(client: X64DbgClient):
 
 def test_valid_read_ptr(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    addr, success = client.dbg_eval_sync('GetModuleHandleA')
+    addr, success = client.eval_sync('GetModuleHandleA')
     assert success
     assert client.check_valid_read_ptr(addr)
     assert client.check_valid_read_ptr(0) == False
@@ -81,3 +81,16 @@ def test_get_breakpoints(client: X64DbgClient):
     assert len(bps) == 1
     assert bps[0].type == BreakpointType.BpNormal
     assert bps[0].addr == rip+3
+
+
+def test_rw_memory(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    rip = client.get_reg('rip')
+    assert client.write_memory(rip, b'\x90\x90\x90\x90')
+    assert client.read_memory(rip, 16).startswith(b'\x90\x90\x90\x90')
+
+
+def test_get_symbol_at(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    x, _ = client.eval_sync('NtQueryInformationProcess')
+    assert client.get_symbol_at(x).decoratedSymbol == 'NtQueryInformationProcess'
