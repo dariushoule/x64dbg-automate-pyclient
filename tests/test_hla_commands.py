@@ -22,6 +22,8 @@ def test_stepo(client: X64DbgClient):
 
 def test_go_and_pause(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.set_setting_int('Events', 'TlsCallbacks', 0) == True
+    assert client.set_setting_int('Events', 'TlsCallbacksSystem', 0) == True
     assert client.go() == True
     assert client.wait_until_stopped() == True
     assert client.go() == True
@@ -47,3 +49,18 @@ def test_rw_regs(client: X64DbgClient):
     client.set_reg('di', 0xB33F)
     assert client.get_reg('di') == 0xB33F
     assert client.get_regs().context.rdi & 0xFFFF == 0xB33F
+
+
+def test_rw_memory(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    rip = client.get_reg('rip')
+    assert client.write_memory(rip, b'\x90\x90\x90\x90')
+    assert client.read_memory(rip, 16).startswith(b'\x90\x90\x90\x90')
+
+
+def test_memset(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    addr = client.virt_alloc()
+    assert addr > 0
+    assert client.memset(addr, ord('Z'), 16)
+    assert client.read_memory(addr, 16) == b'Z' * 16

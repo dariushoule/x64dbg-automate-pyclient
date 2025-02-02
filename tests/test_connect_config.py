@@ -47,6 +47,16 @@ def test_dbg_is_running(client: X64DbgClient):
     assert client.get_is_running() == True
 
 
+def test_config_get_set(client: X64DbgClient):
+    client.start_session()
+    assert client.get_setting_str('Shortcuts', 'ActionFind') == 'Ctrl+F'
+    assert client.set_setting_str('Shortcuts', 'ActionFind', 'Ctrl+G') == True
+    assert client.get_setting_str('Shortcuts', 'ActionFind') == 'Ctrl+G'
+    assert client.get_setting_int('Deleted Tabs', 'BreakpointsTab') == 0
+    assert client.set_setting_int('Deleted Tabs', 'BreakpointsTab', 9000) == True
+    assert client.get_setting_int('Deleted Tabs', 'BreakpointsTab') == 9000
+
+
 def test_attach(client: X64DbgClient):
     subprocess.Popen([X64DBG_PATH])
     client.attach_session(1)

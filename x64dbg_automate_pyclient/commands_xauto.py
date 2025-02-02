@@ -2,7 +2,7 @@ from enum import StrEnum
 import time
 
 from x64dbg_automate_pyclient.client_base import XAutoClientBase
-from x64dbg_automate_pyclient.models import Context64, Context32, Flags, FpuReg, MemPage, MutableRegister, \
+from x64dbg_automate_pyclient.models import Context64, Context32, Flags, FpuReg, MemPage, \
     MxcsrFields, RegDump32, RegDump64, X87ControlWordFields, X87Fpu, X87StatusWordFields
 
 
@@ -20,6 +20,12 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_DBG_MEMMAP = "XAUTO_REQ_DBG_MEMMAP",
     XAUTO_REQ_GUI_REFRESH_VIEWS = "XAUTO_REQ_GUI_REFRESH_VIEWS"
     XAUTO_REQ_DBG_READ_REGISTERS = "XAUTO_REQ_DBG_READ_REGISTERS"
+    XAUTO_REQ_DBG_READ_MEMORY = "XAUTO_REQ_DBG_READ_MEMORY"
+    XAUTO_REQ_DBG_WRITE_MEMORY = "XAUTO_REQ_DBG_WRITE_MEMORY"
+    XAUTO_REQ_DBG_READ_SETTING_SZ = "XAUTO_REQ_DBG_READ_SETTING_SZ"
+    XAUTO_REQ_DBG_WRITE_SETTING_SZ = "XAUTO_REQ_DBG_WRITE_SETTING_SZ"
+    XAUTO_REQ_DBG_READ_SETTING_UINT = "XAUTO_REQ_DBG_READ_SETTING_UINT"
+    XAUTO_REQ_DBG_WRITE_SETTING_UINT = "XAUTO_REQ_DBG_WRITE_SETTING_UINT"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -45,7 +51,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_EVAL, eval_str)
     
-    def dbg_cmd_sync(self, cmd_str) -> bool:
+    def dbg_cmd_sync(self, cmd_str: str) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC_DIRECT, cmd_str)
     
     def get_is_running(self) -> bool:
@@ -66,6 +72,12 @@ class XAutoCommandsMixin(XAutoClientBase):
         for page in resp:
             pages.append(MemPage(**{k: v for k, v in zip(MemPage.model_fields.keys(), page)}))
         return pages
+    
+    def read_memory(self, addr: int, size: int) -> bytes:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, size)
+     
+    def write_memory(self, addr: int, data: bytes) -> bool:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_MEMORY, addr, data)
     
     def gui_refresh_views(self) -> list[MemPage]:
         return self._send_request(XAutoCommand.XAUTO_REQ_GUI_REFRESH_VIEWS)
@@ -106,19 +118,27 @@ class XAutoCommandsMixin(XAutoClientBase):
                 last_error=(raw_regs[7][0], raw_regs[7][1]),
                 last_status=(raw_regs[8][0], raw_regs[8][1])
             )
+        
+    def get_is_running(self) -> bool:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_RUNNING)
     
-    def set_reg(self, reg: MutableRegister | str, val: int) -> bool:
-        reg = MutableRegister(str(reg).lower())
-        if not isinstance(val, int):
-            raise TypeError("val must be an integer")
-        return self.dbg_cmd_sync(f'{reg}=0x{val:X}')
+    def get_setting_str(self, section: str, setting_name: str) -> str | None:
+        res, setting = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_SETTING_SZ, section, setting_name)
+        if not res:
+            return None
+        return setting
     
-    def get_reg(self, reg: MutableRegister | str) -> int:
-        reg = MutableRegister(str(reg).lower())
-        res, success = self.dbg_eval_sync(f'{reg}')
-        if not success:
-            raise ValueError(f"Failed to evaluate register {reg}")
-        return res
+    def set_setting_str(self, section: str, setting_name: str, setting_val: str) -> bool:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_SETTING_SZ, section, setting_name, setting_val)
+    
+    def get_setting_int(self, section: str, setting_name: str) -> int | None:
+        res, setting = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_SETTING_UINT, section, setting_name)
+        if not res:
+            return None
+        return setting
+    
+    def set_setting_int(self, section: str, setting_name: str, setting_val: int) -> bool:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_SETTING_UINT, section, setting_name, setting_val)
     
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0
