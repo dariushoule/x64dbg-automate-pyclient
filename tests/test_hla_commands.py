@@ -1,5 +1,6 @@
 import pytest
 from x64dbg_automate_pyclient import X64DbgClient
+from x64dbg_automate_pyclient.models import PageRightsConfiguration
 
 
 def test_stepi(client: X64DbgClient):
@@ -64,3 +65,25 @@ def test_memset(client: X64DbgClient):
     assert addr > 0
     assert client.memset(addr, ord('Z'), 16)
     assert client.read_memory(addr, 16) == b'Z' * 16
+
+
+def test_virt_query(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    rip = client.get_reg('rip')
+    page = client.virt_query(rip)
+    assert page
+    assert page.allocation_base != rip
+    assert page.allocation_base % 0x1000 == 0
+    assert page.protect == 0x20
+
+
+def test_virt_protect(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    addr = client.virt_alloc()
+    page = client.virt_query(addr)
+    assert page
+    assert page.protect == 0x40
+    assert client.virt_protect(addr, PageRightsConfiguration.NoAccess)
+    page = client.virt_query(addr)
+    assert page
+    assert page.protect == 0x1

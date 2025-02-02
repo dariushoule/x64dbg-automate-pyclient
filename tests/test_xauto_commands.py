@@ -35,3 +35,11 @@ def test_dbg_memmap(client: X64DbgClient):
 def test_gui_refresh_views(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
     assert client.gui_refresh_views() == True
+
+
+def test_valid_read_ptr(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    addr, success = client.dbg_eval_sync('GetModuleHandleA')
+    assert success
+    assert client.check_valid_read_ptr(addr)
+    assert client.check_valid_read_ptr(0) == False

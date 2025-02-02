@@ -1,6 +1,6 @@
 
 from x64dbg_automate_pyclient.commands_xauto import XAutoCommandsMixin
-from x64dbg_automate_pyclient.models import MutableRegister
+from x64dbg_automate_pyclient.models import MemPage, MutableRegister, PageRightsConfiguration
 
 
 class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
@@ -60,6 +60,21 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         if not self.dbg_cmd_sync(f"free 0x{addr:x}"):
             raise ValueError("Failed to free memory")
         return True
+    
+    def virt_protect(self, addr: int, page_rights: PageRightsConfiguration, guard = False) -> bool:
+        rights_str = str(page_rights)
+        if guard:
+            rights_str = f'G{rights_str}'
+        if not self.dbg_cmd_sync(f"setpagerights 0x{addr:x}, {rights_str}"):
+            raise ValueError("Failed to set memory protection")
+        return True
+    
+    def virt_query(self, addr: int) -> MemPage | None:
+        map = self.get_memmap()
+        for m in map:
+            if m.base_address <= addr < m.base_address + m.region_size:
+                return m
+        return None
     
     def memset(self, addr: int, byte_val: int, size: int) -> bool:
         if not self.dbg_cmd_sync(f"memset 0x{addr:x}, 0x{byte_val:x}, 0x{size:x}"):

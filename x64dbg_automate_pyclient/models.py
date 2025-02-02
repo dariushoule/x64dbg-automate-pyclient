@@ -262,3 +262,14 @@ class MutableRegister(StrEnum):
     r14b = 'r14b'
     r15b = 'r15b'
     # TODO: MM registers, these are tricker because they need to get loaded via something like: https://help.x64dbg.com/en/latest/commands/general-purpose/movdqu.html
+
+
+class PageRightsConfiguration(StrEnum):
+    Execute = "Execute"
+    ExecuteRead = "ExecuteRead"
+    ExecuteReadWrite = "ExecuteReadWrite"
+    ExecuteWriteCopy = "ExecuteWriteCopy"
+    NoAccess = "NoAccess"
+    ReadOnly = "ReadOnly"
+    ReadWrite = "ReadWrite"
+    WriteCopy = "WriteCopy"

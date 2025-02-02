@@ -26,6 +26,7 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_DBG_WRITE_SETTING_SZ = "XAUTO_REQ_DBG_WRITE_SETTING_SZ"
     XAUTO_REQ_DBG_READ_SETTING_UINT = "XAUTO_REQ_DBG_READ_SETTING_UINT"
     XAUTO_REQ_DBG_WRITE_SETTING_UINT = "XAUTO_REQ_DBG_WRITE_SETTING_UINT"
+    XAUTO_REQ_DBG_IS_VALID_READ_PTR = "XAUTO_REQ_DBG_IS_VALID_READ_PTR"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -139,6 +140,9 @@ class XAutoCommandsMixin(XAutoClientBase):
     
     def set_setting_int(self, section: str, setting_name: str, setting_val: int) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_SETTING_UINT, section, setting_name, setting_val)
+    
+    def check_valid_read_ptr(self, addr: int) -> bool:
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_VALID_READ_PTR, addr)
     
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0
