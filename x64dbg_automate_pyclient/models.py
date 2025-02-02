@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from pydantic import BaseModel
 
 
@@ -273,3 +273,78 @@ class PageRightsConfiguration(StrEnum):
     ReadOnly = "ReadOnly"
     ReadWrite = "ReadWrite"
     WriteCopy = "WriteCopy"
+
+
+class StandardBreakpointType(StrEnum):
+    SingleShotInt3 = 'ss' # CC (SingleShoot)
+    Long = 'long' # CD03
+    Ud2 = 'ud2' # 0F0B
+    Short = 'short' # CC
+
+
+class DisasmInstrType(IntEnum):
+    Normal = 0
+    Branch = 1
+    Stack = 2
+
+
+class DisasmArgType(IntEnum):
+    Normal = 0
+    Memory = 1
+
+
+class SegmentReg(IntEnum):
+    SegDefault = 0
+    SegEs = 1
+    SegDs = 2
+    SegFs = 3
+    SegGs = 4
+    SegCs = 5
+    SegSs = 6
+
+
+class InstructionArg(BaseModel):
+    mnemonic: str
+    type: DisasmArgType
+    segment: SegmentReg
+    constant: int
+    value: int
+    memvalue: int
+
+
+class Instruction(BaseModel):
+    instruction: str
+    argcount: int
+    instr_size: int
+    type: DisasmInstrType
+    arg: list[InstructionArg]
+
+
+class BreakpointType(IntEnum):
+    BpNone = 0,
+    BpNormal = 1,
+    BpHardware = 2,
+    BpMemory = 4,
+    BpDll = 8,
+    BpException = 16
+
+
+class Breakpoint(BaseModel):
+    type: BreakpointType
+    addr: int
+    enabled: bool
+    singleshoot: bool
+    active: bool
+    name: str
+    mod: str
+    slot: int
+    typeEx: int
+    hwSize: int
+    hitCount: int
+    fastResume: bool
+    silent: bool
+    breakCondition: str
+    logText: str
+    logCondition: str
+    commandText: str
+    commandCondition: str

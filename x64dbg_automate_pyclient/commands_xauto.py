@@ -2,8 +2,8 @@ from enum import StrEnum
 import time
 
 from x64dbg_automate_pyclient.client_base import XAutoClientBase
-from x64dbg_automate_pyclient.models import Context64, Context32, Flags, FpuReg, MemPage, \
-    MxcsrFields, RegDump32, RegDump64, X87ControlWordFields, X87Fpu, X87StatusWordFields
+from x64dbg_automate_pyclient.models import Breakpoint, BreakpointType, Context64, Context32, DisasmArgType, DisasmInstrType, Flags, FpuReg, Instruction, InstructionArg, MemPage, \
+    MxcsrFields, RegDump32, RegDump64, SegmentReg, X87ControlWordFields, X87Fpu, X87StatusWordFields
 
 
 class XAutoCommand(StrEnum):
@@ -27,6 +27,9 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_DBG_READ_SETTING_UINT = "XAUTO_REQ_DBG_READ_SETTING_UINT"
     XAUTO_REQ_DBG_WRITE_SETTING_UINT = "XAUTO_REQ_DBG_WRITE_SETTING_UINT"
     XAUTO_REQ_DBG_IS_VALID_READ_PTR = "XAUTO_REQ_DBG_IS_VALID_READ_PTR"
+    XAUTO_REQ_DISASSEMBLE = "XAUTO_REQ_DISASSEMBLE"
+    XAUTO_REQ_ASSEMBLE = "XAUTO_REQ_ASSEMBLE"
+    XAUTO_REQ_GET_BREAKPOINTS = "XAUTO_REQ_GET_BREAKPOINTS"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -143,6 +146,49 @@ class XAutoCommandsMixin(XAutoClientBase):
     
     def check_valid_read_ptr(self, addr: int) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_VALID_READ_PTR, addr)
+    
+    def disassemble_at(self, addr: int) -> Instruction:
+        res = self._send_request(XAutoCommand.XAUTO_REQ_DISASSEMBLE, addr)
+        return Instruction(
+            instruction=res[0],
+            argcount=res[1],
+            instr_size=res[2],
+            type=DisasmInstrType(res[3]),
+            arg=[InstructionArg(
+                    mnemonic=arg[0],
+                    type=DisasmArgType(arg[1]),
+                    segment=SegmentReg(arg[2]),
+                    constant=arg[3],
+                    value=arg[4],
+                    memvalue=arg[5],
+            ) for arg in res[4]]
+        )
+    
+    def assemble_at(self, addr: int, instr: str) -> bool:
+        return self._send_request(XAutoCommand.XAUTO_REQ_ASSEMBLE, addr, instr)
+    
+    def get_breakpoints(self, bp_type: BreakpointType) -> list[Breakpoint]:
+        resp = self._send_request(XAutoCommand.XAUTO_REQ_GET_BREAKPOINTS, bp_type)
+        return [Breakpoint(
+            type=BreakpointType(bp[0]),
+            addr=bp[1],
+            enabled=bp[2],
+            singleshoot=bp[3],
+            active=bp[4],
+            name=bp[5],
+            mod=bp[6],
+            slot=bp[7],
+            typeEx=bp[8],
+            hwSize=bp[9],
+            hitCount=bp[10],
+            fastResume=bp[11],
+            silent=bp[12],
+            breakCondition=bp[13],
+            logText=bp[14],
+            logCondition=bp[15],
+            commandText=bp[16],
+            commandCondition=bp[17]
+        ) for bp in resp]
     
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0

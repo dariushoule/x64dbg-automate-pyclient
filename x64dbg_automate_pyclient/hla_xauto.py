@@ -1,6 +1,6 @@
 
 from x64dbg_automate_pyclient.commands_xauto import XAutoCommandsMixin
-from x64dbg_automate_pyclient.models import MemPage, MutableRegister, PageRightsConfiguration
+from x64dbg_automate_pyclient.models import MemPage, MutableRegister, PageRightsConfiguration, StandardBreakpointType
 
 
 class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
@@ -96,3 +96,19 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
     
     def pause(self) -> bool:
         return self.dbg_cmd_sync(f"pause")
+    
+    def set_breakpoint(self, address: int, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot = False) -> bool:
+        name = name or f"bpx_{address:x}"
+        bp_type_str = str(bp_type).lower()
+        if singleshoot and bp_type_str != "ss":
+            bp_type_str = f'ss{bp_type_str}'
+        if '"' in name:
+            raise ValueError("Name cannot contain double quotes")
+        return self.dbg_cmd_sync(f'bpx 0x{address:x}, "{name}", {bp_type_str}')
+
+    def clear_breakpoint(self, address_name_or_none: int | str | None = None) -> bool:
+        if address_name_or_none is None:
+            return self.dbg_cmd_sync('bpc')
+        if isinstance(address_name_or_none, int):
+            return self.dbg_cmd_sync(f'bpc 0x{address_name_or_none:x}')
+        return self.dbg_cmd_sync(f'bpc {address_name_or_none}')

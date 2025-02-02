@@ -5,42 +5,42 @@ from x64dbg_automate_pyclient.models import PageRightsConfiguration
 
 def test_stepi(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.stepi(2) == True
-    assert client.stepi(swallow_exceptions=True) == True
-    assert client.stepi(pass_exceptions=True) == True
+    assert client.stepi(2)
+    assert client.stepi(swallow_exceptions=True)
+    assert client.stepi(pass_exceptions=True)
     with pytest.raises(ValueError):
         assert client.stepi(pass_exceptions=True, swallow_exceptions=True)
 
 
 def test_stepo(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.stepo(2) == True
-    assert client.stepo(swallow_exceptions=True) == True
-    assert client.stepo(pass_exceptions=True) == True
+    assert client.stepo(2)
+    assert client.stepo(swallow_exceptions=True)
+    assert client.stepo(pass_exceptions=True)
     with pytest.raises(ValueError):
         assert client.stepo(pass_exceptions=True, swallow_exceptions=True)
 
 
 def test_go_and_pause(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.set_setting_int('Events', 'TlsCallbacks', 0) == True
-    assert client.set_setting_int('Events', 'TlsCallbacksSystem', 0) == True
-    assert client.go() == True
-    assert client.wait_until_stopped() == True
-    assert client.go() == True
-    assert client.pause() == True
-    assert client.wait_until_stopped() == True
+    assert client.set_setting_int('Events', 'TlsCallbacks', 0)
+    assert client.set_setting_int('Events', 'TlsCallbacksSystem', 0)
+    assert client.go()
+    assert client.wait_until_stopped()
+    assert client.go()
+    assert client.pause()
+    assert client.wait_until_stopped()
 
 
 def test_skip(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.skip(2) == True
+    assert client.skip(2)
 
 
 def test_ret(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.ret(1) == True
-    assert client.ret(1) == True
+    assert client.ret(1)
+    assert client.ret(1)
 
 
 def test_rw_regs(client: X64DbgClient):
@@ -87,3 +87,26 @@ def test_virt_protect(client: X64DbgClient):
     page = client.virt_query(addr)
     assert page
     assert page.protect == 0x1
+
+
+def test_breakpoint(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.clear_breakpoint()
+    rip = client.get_reg('rip')
+    assert client.write_memory(rip, b'\x90\x90\x90\x90')
+    assert client.set_breakpoint(rip+3)
+    assert client.go()
+    assert client.wait_until_stopped()
+    assert client.get_reg('rip') == rip+3
+    assert client.clear_breakpoint(rip+3)
+
+
+def test_breakpoint_ss(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.clear_breakpoint()
+    rip = client.get_reg('rip')
+    assert client.write_memory(rip, b'\x90\x90\x90\x90')
+    assert client.set_breakpoint(rip+3, singleshoot=True)
+    assert client.go()
+    assert client.wait_until_stopped()
+    assert client.get_reg('rip') == rip+3
