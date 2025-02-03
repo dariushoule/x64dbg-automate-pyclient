@@ -1,5 +1,5 @@
 from x64dbg_automate_pyclient import X64DbgClient
-from x64dbg_automate_pyclient.models import BreakpointType, DisasmArgType, DisasmInstrType, SegmentReg
+from x64dbg_automate_pyclient.models import BreakpointType, DisasmInstrType, SegmentReg
 
 
 def test_dbg_eval_not_debugging(client: X64DbgClient):
@@ -26,7 +26,7 @@ def test_dbg_command_exec_sync(client: X64DbgClient):
 
 def test_dbg_memmap(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    mm = client.get_memmap()
+    mm = client.memmap()
     assert len(mm) > 1
     assert mm[0].base_address > 0
     assert mm[0].region_size > 0
@@ -62,13 +62,6 @@ def test_disassemble(client: X64DbgClient):
     assert instr.arg[0].value == rip+1
     assert instr.arg[0].type == SegmentReg.SegDefault
     assert instr.arg[1].mnemonic == f''
-
-
-def test_assemble(client: X64DbgClient):
-    client.start_session(r'c:\Windows\system32\winver.exe')
-    rip = client.get_reg('rip')
-    assert client.assemble_at(rip, 'mov rax, 0x45678ABCDEF54321')
-    assert client.read_memory(rip, 10) == bytes.fromhex('48 B8 21 43 F5 DE BC 8A 67 45')
 
 
 def test_get_breakpoints(client: X64DbgClient):

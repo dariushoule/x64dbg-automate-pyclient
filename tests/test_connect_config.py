@@ -20,7 +20,7 @@ def test_compat_version(client: X64DbgClient):
 
 def test_bitness(client: X64DbgClient):
     client.start_session()
-    assert client.get_bitness() == 64
+    assert client.debugee_bitness() == 64
 
 
 def test_debugger(client: X64DbgClient):
@@ -35,16 +35,16 @@ def test_dbg_is_elevated(client: X64DbgClient):
 
 def test_dbg_is_debugging(client: X64DbgClient):
     client.start_session()
-    assert client.get_is_debugging() == False
+    assert client.is_debugging() == False
     assert client.load_executable(r'c:\Windows\system32\winver.exe') == True
-    assert client.get_is_debugging() == True
+    assert client.is_debugging() == True
 
 
 def test_dbg_is_running(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.get_is_running() == False
+    assert client.debugee_is_running() == False
     assert client.cmd_sync('g') == True
-    assert client.get_is_running() == True
+    assert client.debugee_is_running() == True
 
 
 def test_config_get_set(client: X64DbgClient):

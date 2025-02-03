@@ -62,19 +62,19 @@ class XAutoCommandsMixin(XAutoClientBase):
     def cmd_sync(self, cmd_str: str) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC_DIRECT, cmd_str)
     
-    def get_is_running(self) -> bool:
+    def debugee_is_running(self) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_RUNNING)
     
-    def get_is_debugging(self) -> bool:
+    def is_debugging(self) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_DEBUGGING)
     
     def debugger_is_elevated(self) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_ELEVATED)
     
-    def get_bitness(self) -> bool:
+    def debugee_bitness(self) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_GET_BITNESS)
     
-    def get_memmap(self) -> list[MemPage]:
+    def memmap(self) -> list[MemPage]:
         resp = self._send_request(XAutoCommand.XAUTO_REQ_DBG_MEMMAP)
         pages = []
         for page in resp:
@@ -127,7 +127,7 @@ class XAutoCommandsMixin(XAutoClientBase):
                 last_status=(raw_regs[8][0], raw_regs[8][1])
             )
         
-    def get_is_running(self) -> bool:
+    def debugee_is_running(self) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_RUNNING)
     
     def get_setting_str(self, section: str, setting_name: str) -> str | None:
@@ -151,8 +151,10 @@ class XAutoCommandsMixin(XAutoClientBase):
     def check_valid_read_ptr(self, addr: int) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_VALID_READ_PTR, addr)
     
-    def disassemble_at(self, addr: int) -> Instruction:
+    def disassemble_at(self, addr: int) -> Instruction | None:
         res = self._send_request(XAutoCommand.XAUTO_REQ_DISASSEMBLE, addr)
+        if not res:
+            return None
         return Instruction(
             instruction=res[0],
             argcount=res[1],
@@ -168,7 +170,7 @@ class XAutoCommandsMixin(XAutoClientBase):
             ) for arg in res[4]]
         )
     
-    def assemble_at(self, addr: int, instr: str) -> bool:
+    def _assemble_at(self, addr: int, instr: str) -> bool:
         return self._send_request(XAutoCommand.XAUTO_REQ_ASSEMBLE, addr, instr)
     
     def get_breakpoints(self, bp_type: BreakpointType) -> list[Breakpoint]:
@@ -221,7 +223,17 @@ class XAutoCommandsMixin(XAutoClientBase):
     def wait_until_debugging(self, timeout = 10) -> bool:
         slept = 0
         while True:
-            if self.get_is_debugging():
+            if self.is_debugging():
+                return True
+            time.sleep(0.2)
+            slept += 0.2
+            if slept >= timeout:
+                return False
+    
+    def wait_until_not_debugging(self, timeout = 10) -> bool:
+        slept = 0
+        while True:
+            if not self.is_debugging():
                 return True
             time.sleep(0.2)
             slept += 0.2
@@ -231,7 +243,7 @@ class XAutoCommandsMixin(XAutoClientBase):
     def wait_until_stopped(self, timeout = 10) -> bool:
         slept = 0
         while True:
-            if not self.get_is_running():
+            if not self.debugee_is_running() or not self.is_debugging():
                 return True
             time.sleep(0.1)
             slept += 0.1

@@ -1,6 +1,9 @@
+import queue
 import pytest
 from x64dbg_automate_pyclient import X64DbgClient
+from x64dbg_automate_pyclient.events import CreateThreadEventData, DbgEvent, EventType, ExceptionEventData
 from x64dbg_automate_pyclient.models import PageRightsConfiguration
+from x64dbg_automate_pyclient.win32 import OpenProcess, CreateRemoteThread, WaitForSingleObject, CloseHandle
 
 
 def test_stepi(client: X64DbgClient):
@@ -127,3 +130,186 @@ def test_comment(client: X64DbgClient):
     assert client.get_comment_at(rip) == "https://www.youtube.com/watch?v=mNjmGuJY5OE"
     assert client.del_comment_at(rip)
     assert client.get_comment_at(rip) == ""
+
+
+def test_start_stop(client: X64DbgClient):
+    client.start_session()
+    assert client.load_executable(r'c:\Windows\system32\winver.exe')
+    assert client.unload_executable()
+
+
+def test_event_queue_inline(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    rip = client.get_reg('rip')
+    assert client.write_memory(rip, b'\x90\x90\x90\x90')
+    assert client.set_breakpoint(rip+3, singleshoot=True)
+    assert client.go()
+    assert client.wait_for_debug_event(EventType.EVENT_BREAKPOINT)
+    assert client.get_reg('rip') == rip+3
+    assert client.clear_breakpoint()
+
+
+def test_event_queue_callback(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_SYSTEMBREAKPOINT, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert received.get().event_type == EventType.EVENT_SYSTEMBREAKPOINT
+    assert received.empty()
+    client.unload_executable()
+    client.unwatch_debug_event(EventType.EVENT_SYSTEMBREAKPOINT, callback)
+    client.load_executable(r'c:\Windows\system32\winver.exe')
+    assert received.empty()
+
+
+def test_event_create_thread(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_CREATE_THREAD, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    ev = received.get()
+    tev: CreateThreadEventData = ev.event_data
+    assert ev.event_type == EventType.EVENT_CREATE_THREAD
+    assert tev.dwThreadId > 0
+    assert tev.lpStartAddress > 0
+
+
+def test_assemble(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    rip = client.get_reg('rip')
+    assert client.assemble_at(rip, 'mov rax, 0x45678ABCDEF54321') == 10
+    assert client.read_memory(rip, 10) == bytes.fromhex('48 B8 21 43 F5 DE BC 8A 67 45')
+
+
+def test_event_exit_thread(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.set_setting_int('Events', 'TlsCallbacks', 0)
+    assert client.set_setting_int('Events', 'TlsCallbacksSystem', 0)
+    
+    page = client.virt_alloc()
+    mov_siz = client.assemble_at(page, 'mov rax, 0x10101010')
+    assert mov_siz == 7
+    assert client.assemble_at(page + mov_siz, 'ret') == 1
+
+    client.go()
+    client.wait_until_stopped()
+    client.go()
+
+    hProc = OpenProcess(0x1fffff, False, client.debugee_pid())
+    hThread = CreateRemoteThread(hProc, None, 0, page, None, 0, None)
+    WaitForSingleObject(hThread, -1)
+    CloseHandle(hThread)
+    CloseHandle(hProc)
+
+    while True:
+        ev = client.get_latest_debug_event()
+        if ev.event_type == EventType.EVENT_EXIT_THREAD:
+            assert ev.event_type == EventType.EVENT_EXIT_THREAD
+            assert ev.event_data.dwThreadId > 0
+            assert ev.event_data.dwExitCode == 0x10101010
+            break
+
+
+def test_event_load_unload_dll(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_LOAD_DLL, callback)
+    client.watch_debug_event(EventType.EVENT_UNLOAD_DLL, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
+    client.go()
+    client.wait_until_stopped()
+    client.go()
+
+    shellcode = client.virt_alloc()
+    sz_dll = client.virt_alloc()
+    client.write_memory(sz_dll, b'c:\\Windows\\system32\\lz32.dll\0')
+
+    i = shellcode
+    i = i + client.assemble_at(i, f'mov rcx, 0x{sz_dll:x}')
+    i = i + client.assemble_at(i, 'mov rax, LoadLibraryA')
+    i = i + client.assemble_at(i, 'push rcx')
+    i = i + client.assemble_at(i, 'push rcx')
+    i = i + client.assemble_at(i, 'push rcx')
+    i = i + client.assemble_at(i, 'call rax')
+    i = i + client.assemble_at(i, 'mov rdx, FreeLibrary')
+    i = i + client.assemble_at(i, 'mov rcx, rax')
+    i = i + client.assemble_at(i, 'call rdx')
+    i = i + client.assemble_at(i, 'pop rcx')
+    i = i + client.assemble_at(i, 'pop rcx')
+    i = i + client.assemble_at(i, 'pop rcx')
+    i = i + client.assemble_at(i, 'ret')
+
+    hProc = OpenProcess(0x1fffff, False, client.debugee_pid())
+    hThread = CreateRemoteThread(hProc, None, 0, shellcode, None, 0, None)
+    WaitForSingleObject(hThread, -1)
+    CloseHandle(hThread)
+    CloseHandle(hProc)
+
+    modbase = 0
+    while True:
+        mod = received.get(timeout=3)
+        if mod.event_type == EventType.EVENT_LOAD_DLL and mod.event_data.modname == r'lz32.dll':
+            assert mod.event_data.lpBaseOfDll > 0
+            modbase = mod.event_data.lpBaseOfDll
+        elif mod.event_type == EventType.EVENT_UNLOAD_DLL and mod.event_data.lpBaseOfDll == modbase:
+            break
+
+
+def test_event_output_dbg_str(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_OUTPUT_DEBUG_STRING, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
+    client.go()
+    client.wait_until_stopped()
+    client.go()
+
+    shellcode = client.virt_alloc()
+    sz_str = client.virt_alloc()
+    client.write_memory(sz_str, b'duck duck goose')
+
+    i = shellcode
+    i = i + client.assemble_at(i, f'mov rcx, 0x{sz_str:x}')
+    i = i + client.assemble_at(i, 'mov rax, OutputDebugStringA')
+    i = i + client.assemble_at(i, 'push rcx')
+    i = i + client.assemble_at(i, 'push rcx')
+    i = i + client.assemble_at(i, 'push rcx')
+    i = i + client.assemble_at(i, 'call rax')
+    i = i + client.assemble_at(i, 'pop rcx')
+    i = i + client.assemble_at(i, 'pop rcx')
+    i = i + client.assemble_at(i, 'pop rcx')
+    i = i + client.assemble_at(i, 'ret')
+
+    hProc = OpenProcess(0x1fffff, False, client.debugee_pid())
+    hThread = CreateRemoteThread(hProc, None, 0, shellcode, None, 0, None)
+    WaitForSingleObject(hThread, -1)
+    CloseHandle(hThread)
+    CloseHandle(hProc)
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_OUTPUT_DEBUG_STRING
+    assert ev.event_data.lpDebugStringData == b'duck duck goose\0'
+
+
+def test_event_exception(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_EXCEPTION, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
+
+    i = client.get_reg('rip')
+    i = i + client.assemble_at(i, 'mov rcx, 0x1234')
+    i = i + client.assemble_at(i, 'call rcx')
+    client.go()
+
+    ev = received.get(timeout=3)
+    xcpt_data: ExceptionEventData = ev.event_data
+    assert ev.event_type == EventType.EVENT_EXCEPTION
+    assert xcpt_data.ExceptionCode == 0xC0000005
+    assert xcpt_data.dwFirstChance == True
+    assert xcpt_data.ExceptionAddress == 0x1234
+    assert xcpt_data.NumberParameters == 2
+    assert xcpt_data.ExceptionInformation == [8, 4660]

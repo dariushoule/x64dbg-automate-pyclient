@@ -5,18 +5,18 @@ import time
 import msgpack
 import zmq
 
+from x64dbg_automate_pyclient.events import DebugEventQueueMixin
 from x64dbg_automate_pyclient.hla_xauto import XAutoHighLevelCommandAbstractionMixin
+from x64dbg_automate_pyclient.win32 import OpenMutexW, CloseHandle, SYNCHRONIZE
 
 
 COMPAT_VERSION = "bitter_oyster" # TODO: externalize
-K32 = ctypes.windll.kernel32
-SYNCHRONIZE = 0x00100000
 
 
 class ClientConnectionFailedError(Exception):
     pass
 
-class X64DbgClient(XAutoHighLevelCommandAbstractionMixin):
+class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def __init__(self, x64dbg_path: str | None = None, xauto_session_id: int | None = None):
         self.x64dbg_path = x64dbg_path
         self.xauto_session_id = xauto_session_id
@@ -39,7 +39,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin):
         try:
             while True:
                 msg = msgpack.unpackb(self.sub_socket.recv())
-                print(f"SUB:", msg)
+                self.debug_event_publish(msg)
         except zmq.error.ContextTerminated:
             pass
     
@@ -82,11 +82,14 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin):
 
     def _assert_connection_compat(self):
         v = self.get_xauto_compat_version()
-        assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin version {v} != {COMPAT_VERSION}"
+        assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
         
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
+        if len(target_exe.strip()) == 0 and (len(cmdline) > 0 or len(current_dir) > 0):
+            raise ValueError("cmdline and current_dir cannot be provided without target_exe")
+        
         visited_sessions = set(self.list_sessions())
-        self.proc = subprocess.Popen([self.x64dbg_path, target_exe.strip(), cmdline, current_dir], executable=self.x64dbg_path)
+        self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
 
         for _ in range(100):
             if self.xauto_session_id is not None:
@@ -110,6 +113,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin):
         self._assert_connection_compat()
 
         if target_exe.strip() != "":
+            self.load_executable(target_exe.strip(), cmdline, current_dir)
             self.wait_cmd_ready()
         return self.xauto_session_id
     
@@ -137,17 +141,16 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin):
                 return
         raise TimeoutError("Session did not terminate in a reasonable amount of time")
 
-
     @staticmethod
     def list_sessions() -> list[int]:
         sessions = []
         sid = 1
         while True:
-            handle = K32.OpenMutexW(SYNCHRONIZE, False, ctypes.create_unicode_buffer(f"x64dbg_automate_mutex_s_{sid}"))
+            handle = OpenMutexW(SYNCHRONIZE, False, ctypes.create_unicode_buffer(f"x64dbg_automate_mutex_s_{sid}"))
             if handle:
                 sessions.append(sid)
                 sid += 1
-                K32.CloseHandle(handle)
+                CloseHandle(handle)
                 continue
             break
         return sessions

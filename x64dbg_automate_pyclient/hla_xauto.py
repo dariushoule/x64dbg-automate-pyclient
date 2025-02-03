@@ -8,10 +8,19 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
     Higher-level abstractions built on top of raw XAuto command primitives
     """
 
-    def load_executable(self, target_exe: str, wait_timeout=10) -> bool:
-        if not self.cmd_sync(f'init {target_exe}'):
+    def load_executable(self, target_exe: str, cmdline: str = "", current_dir: str = "", wait_timeout=10) -> bool:
+        cmdline = cmdline.replace('"', r'\"')
+        current_dir = current_dir.replace('"', r'\"')
+        if len(current_dir) == 0:
+            current_dir = "."
+        if not self.cmd_sync(f'init {target_exe}, "{cmdline}", "{current_dir}"'):
             return False
         return self.wait_cmd_ready(wait_timeout)
+
+    def unload_executable(self, wait_timeout=10) -> bool:
+        if not self.cmd_sync(f'stop'):
+            return False
+        return self.wait_until_not_debugging(wait_timeout)
 
     def stepi(self, step_count = 1, pass_exceptions = False, swallow_exceptions = False, wait_for_ready=True, wait_timeout=2) -> bool:
         if pass_exceptions == True and swallow_exceptions == True:
@@ -70,7 +79,7 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return True
     
     def virt_query(self, addr: int) -> MemPage | None:
-        map = self.get_memmap()
+        map = self.memmap()
         for m in map:
             if m.base_address <= addr < m.base_address + m.region_size:
                 return m
@@ -128,3 +137,19 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
 
     def del_comment_at(self, address: int):
         return self.cmd_sync(f'cmtdel 0x{address:x}')
+
+    def debugee_pid(self) -> int | None:
+        if self.is_debugging():
+            pid, res = self.eval_sync(f'pid')
+            if res:
+                return pid
+        return None
+    
+    def assemble_at(self, addr: int, instr: str) -> int | None:
+        res = self._assemble_at(addr, instr)
+        if not res:
+            return None
+        ins = self.disassemble_at(addr)
+        if not ins:
+            return None
+        return ins.instr_size
