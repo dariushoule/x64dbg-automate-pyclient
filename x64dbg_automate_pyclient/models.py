@@ -102,6 +102,7 @@ class Context32(BaseModel):
     esp: int
     esi: int
     edi: int
+    eip: int
     eflags: int
     cs: int
     ds: int
@@ -195,6 +196,7 @@ class MutableRegister(StrEnum):
     r14 = 'r14'
     r15 = 'r15'
     rip = 'rip'
+    eip = 'eip'
     eflags = 'eflags'
     rflags = 'rflags'
     cs = 'cs'
@@ -280,6 +282,19 @@ class StandardBreakpointType(StrEnum):
     Long = 'long' # CD03
     Ud2 = 'ud2' # 0F0B
     Short = 'short' # CC
+
+
+class HardwareBreakpointType(StrEnum):
+    r = 'r'
+    w = 'w'
+    x = 'x'
+
+
+class MemoryBreakpointType(StrEnum):
+    r = 'r'
+    w = 'w'
+    x = 'x'
+    a = 'a'
 
 
 class DisasmInstrType(IntEnum):

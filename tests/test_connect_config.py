@@ -1,5 +1,5 @@
 import subprocess
-from tests.conftest import X64DBG_PATH
+from tests.conftest import TEST_BITNESS, X64DBG_PATH
 from x64dbg_automate_pyclient import X64DbgClient
 
 
@@ -20,10 +20,10 @@ def test_compat_version(client: X64DbgClient):
 
 def test_bitness(client: X64DbgClient):
     client.start_session()
-    assert client.debugee_bitness() == 64
+    assert client.debugee_bitness() == TEST_BITNESS
 
 
-def test_debugger(client: X64DbgClient):
+def test_debugger_version(client: X64DbgClient):
     client.start_session()
     assert client.get_debugger_version() > 18 # TODO: what is the lowest version we support?
 
@@ -59,4 +59,4 @@ def test_config_get_set(client: X64DbgClient):
 
 def test_attach(client: X64DbgClient):
     subprocess.Popen([X64DBG_PATH])
-    client.attach_session(1)
+    assert client.attach_session(1)

@@ -1,6 +1,7 @@
 
 from x64dbg_automate_pyclient.commands_xauto import XAutoCommandsMixin
-from x64dbg_automate_pyclient.models import MemPage, MutableRegister, PageRightsConfiguration, StandardBreakpointType
+from x64dbg_automate_pyclient.models import HardwareBreakpointType, MemPage, \
+    MemoryBreakpointType, MutableRegister, PageRightsConfiguration, StandardBreakpointType
 
 
 class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
@@ -55,7 +56,10 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         if pass_exceptions == True and swallow_exceptions == True:
             raise ValueError("Cannot pass and swallow exceptions at the same time")
         prefix = 'e' if pass_exceptions else 'se'
-        return self.cmd_sync(f"{prefix}go")
+        if not self.cmd_sync(f"{prefix}go"):
+            return False
+        return self.wait_until_running()
+
     
     def virt_alloc(self, n: int = 0x1000, addr: int = 0) -> int:
         if not self.cmd_sync(f"alloc 0x{n:x}, 0x{addr:x}"):
@@ -104,7 +108,9 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return res
     
     def pause(self) -> bool:
-        return self.cmd_sync(f"pause")
+        if not self.cmd_sync(f"pause"):
+            return False
+        return self.wait_until_stopped()
     
     def set_breakpoint(self, address: int, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot = False) -> bool:
         name = name or f"bpx_{address:x}"
@@ -114,13 +120,45 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         if '"' in name:
             raise ValueError("Name cannot contain double quotes")
         return self.cmd_sync(f'bpx 0x{address:x}, "{name}", {bp_type_str}')
+    
+    def set_hardware_breakpoint(self, address: int, bp_type: HardwareBreakpointType = HardwareBreakpointType.x, size = 1) -> bool:
+        if size not in [1, 2, 4, 8]:
+            raise ValueError("Invalid size")
+        return self.cmd_sync(f'bph 0x{address:x}, {bp_type}, {size}')
+    
+    def set_memory_breakpoint(self, address: int, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, restore = True) -> bool:
+        return self.cmd_sync(f'bpm 0x{address:x}, {int(restore)}, {bp_type}')
 
     def clear_breakpoint(self, address_name_or_none: int | str | None = None) -> bool:
         if address_name_or_none is None:
             return self.cmd_sync('bpc')
         if isinstance(address_name_or_none, int):
             return self.cmd_sync(f'bpc 0x{address_name_or_none:x}')
-        return self.cmd_sync(f'bpc {address_name_or_none}')
+        return self.cmd_sync(f'bpc "{address_name_or_none}"')
+    
+    def clear_hardware_breakpoint(self, address_or_none: int | None = None) -> bool:
+        if address_or_none is None:
+            return self.cmd_sync('bphc')
+        return self.cmd_sync(f'bphc 0x{address_or_none:x}')
+    
+    def clear_memory_breakpoint(self, address_or_none: int | None = None) -> bool:
+        if address_or_none is None:
+            return self.cmd_sync('bpmc')
+        return self.cmd_sync(f'bpmc 0x{address_or_none:x}')
+    
+    def toggle_breakpoint(self, address_name_or_none: int | str, on = True) -> bool:
+        toggle_cmd = 'bpe' if on else 'bpd'
+        if isinstance(address_name_or_none, int):
+            return self.cmd_sync(f'{toggle_cmd} 0x{address_name_or_none:x}')
+        return self.cmd_sync(f'{toggle_cmd} {address_name_or_none}')
+    
+    def toggle_hardware_breakpoint(self, address: int, on = True) -> bool:
+        toggle_cmd = 'bphe' if on else 'bphd'
+        return self.cmd_sync(f'{toggle_cmd} 0x{address:x}')
+    
+    def toggle_memory_breakpoint(self, address: int, on = True) -> bool:
+        toggle_cmd = 'bpme' if on else 'bpmd'
+        return self.cmd_sync(f'{toggle_cmd} 0x{address:x}')
 
     def set_label_at(self, address: int, text: str):
         if '"' in text:
@@ -138,12 +176,36 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
     def del_comment_at(self, address: int):
         return self.cmd_sync(f'cmtdel 0x{address:x}')
 
+    def hide_debugger_peb(self):
+        return self.cmd_sync(f'hide')
+
     def debugee_pid(self) -> int | None:
         if self.is_debugging():
             pid, res = self.eval_sync(f'pid')
             if res:
                 return pid
         return None
+
+    def debugee_thread_create(self, addr: int, arg: int = 0) -> int | None:
+        success = self.cmd_sync(f'createthread 0x{addr:x}, 0x{arg:x}')
+        if not success:
+            return None
+        tid, success = self.eval_sync('$result')
+        if not success:
+            return None
+        return tid
+
+    def debugee_thread_terminate(self, tid: int):
+        return self.cmd_sync(f'killthread 0x{tid:x}')
+
+    def debugee_thread_pause(self, tid: int):
+        return self.cmd_sync(f'suspendthread 0x{tid:x}')
+
+    def debugee_threads_resume(self, tid: int):
+        return self.cmd_sync(f'resumethread 0x{tid:x}')
+
+    def debugee_switch_thread(self, tid: int):
+        return self.cmd_sync(f'switchthread 0x{tid:x}')
     
     def assemble_at(self, addr: int, instr: str) -> int | None:
         res = self._assemble_at(addr, instr)

@@ -3,8 +3,8 @@ import pytest
 
 from x64dbg_automate_pyclient import X64DbgClient
 
-
-X64DBG_PATH = os.getenv("X64DBG_PATH", r"E:\re\x64dbg_dev\release\x64\x64dbg.exe")
+TEST_BITNESS=64
+X64DBG_PATH = os.getenv("X64DBG_PATH", f"E:\\re\\x64dbg_dev\\release\\x{TEST_BITNESS}\\x{TEST_BITNESS}dbg.exe")
 
 
 @pytest.fixture

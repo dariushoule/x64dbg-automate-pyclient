@@ -111,7 +111,7 @@ class XAutoCommandsMixin(XAutoClientBase):
                 last_status=(raw_regs[8][0], raw_regs[8][1].decode().strip('\0'))
             )
         else:
-            ctx = {k: v for k, v in zip(Context64.model_fields.keys(), raw_regs[0])}
+            ctx = {k: v for k, v in zip(Context32.model_fields.keys(), raw_regs[0])}
             ctx['x87_fpu'] = X87Fpu(**{k: v for k, v in zip(X87Fpu.model_fields.keys(), ctx['x87_fpu'])})
             ctx['xmm_regs'] = [ctx['xmm_regs'][i:i+16] for i in range(0, len(ctx['xmm_regs']), 16)]
             ctx['ymm_regs'] = [ctx['ymm_regs'][i:i+32] for i in range(0, len(ctx['ymm_regs']), 32)]
@@ -237,6 +237,16 @@ class XAutoCommandsMixin(XAutoClientBase):
                 return True
             time.sleep(0.2)
             slept += 0.2
+            if slept >= timeout:
+                return False
+    
+    def wait_until_running(self, timeout = 10) -> bool:
+        slept = 0
+        while True:
+            if self.debugee_is_running():
+                return True
+            time.sleep(0.1)
+            slept += 0.1
             if slept >= timeout:
                 return False
     
