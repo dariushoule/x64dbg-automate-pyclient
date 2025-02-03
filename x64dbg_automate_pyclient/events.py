@@ -1,4 +1,3 @@
-from collections import deque
 from enum import StrEnum
 import time
 
@@ -145,13 +144,13 @@ class DbgEvent():
 
 
 class DebugEventQueueMixin():
-    _debug_events_q: deque[DbgEvent] = deque()
+    _debug_events_q: list[DbgEvent] = []
     listeners: dict[EventType, list[callable]] = {}
 
     def debug_event_publish(self, raw_event_data: list[any]):
         event = DbgEvent(raw_event_data[0], raw_event_data[1:])
         while len(self._debug_events_q) > 100:
-            self._debug_events_q.popleft()
+            self._debug_events_q.pop(0)
         self._debug_events_q.append(event)
         for listener in self.listeners.get(event.event_type, []):
             listener(event)
@@ -167,11 +166,19 @@ class DebugEventQueueMixin():
             return None
         return self._debug_events_q[-1]
     
+    def clear_debug_events(self, event_type: EventType | None) -> DbgEvent | None:
+        filtered = []
+        for _ in range(len(self._debug_events_q)):
+            event = self._debug_events_q.pop(0)
+            if event.event_type != event_type and event_type is not None:
+                filtered.append(event)
+        self._debug_events_q = filtered
+    
     def wait_for_debug_event(self, event_type: EventType, timeout: int = 5) -> DbgEvent | None:
         while timeout > 0:
-            latest = self.peek_latest_debug_event()
-            if latest and latest.event_type == event_type:
-                return self.get_latest_debug_event()
+            for ix, event in enumerate(self._debug_events_q):
+                if event.event_type == event_type:
+                    return self._debug_events_q.pop(ix)
             time.sleep(0.25)
             timeout -= 0.25
         return None

@@ -1,4 +1,5 @@
 import ctypes
+import logging
 import subprocess
 import threading
 import time
@@ -11,6 +12,7 @@ from x64dbg_automate_pyclient.win32 import OpenMutexW, CloseHandle, SYNCHRONIZE
 
 
 COMPAT_VERSION = "bitter_oyster" # TODO: externalize
+logger = logging.getLogger(__name__)
 
 
 class ClientConnectionFailedError(Exception):
@@ -36,12 +38,22 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         return 51600 + self.xauto_session_id
     
     def _sub_thread(self):
-        try:
-            while True:
+        while True:
+            try:
+                if self.context is None:
+                    break
                 msg = msgpack.unpackb(self.sub_socket.recv())
                 self.debug_event_publish(msg)
-        except zmq.error.ContextTerminated:
-            pass
+            except zmq.error.ContextTerminated:
+                logger.exception("Socket terminated, exiting thread")
+                break
+            except zmq.error.ZMQError:
+                if self.context is None:
+                    logger.exception("Socket terminated, exiting thread")
+                    break
+                else:
+                    logger.exception("Unhandled ZMQError, retrying")
+
     
     def _init_connection(self):
         if self.context is not None:
@@ -57,6 +69,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
             raise ClientConnectionFailedError(f"Connection to x64dbg failed on port {self.SESS_REQ_REP_PORT}")
         
         self.sub_socket = self.context.socket(zmq.SUB)
+        self.req_socket.setsockopt(zmq.RCVTIMEO, 6000)
         self.sub_socket.connect(f"tcp://localhost:{self.SESS_PUB_SUB_PORT}")
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         self.sub_thread = threading.Thread(target=self._sub_thread)

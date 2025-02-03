@@ -217,6 +217,8 @@ def test_event_exit_thread(client: X64DbgClient):
     client.go()
     client.wait_until_stopped()
     client.go()
+    client.wait_until_running()
+    client.clear_debug_events(EventType.EVENT_EXIT_THREAD)
 
     hProc = OpenProcess(0x1fffff, False, client.debugee_pid())
     hThread = CreateRemoteThread(hProc, None, 0, page, None, 0, None)
@@ -224,13 +226,11 @@ def test_event_exit_thread(client: X64DbgClient):
     CloseHandle(hThread)
     CloseHandle(hProc)
 
-    while True:
-        ev = client.get_latest_debug_event()
-        if ev.event_type == EventType.EVENT_EXIT_THREAD:
-            assert ev.event_type == EventType.EVENT_EXIT_THREAD
-            assert ev.event_data.dwThreadId > 0
-            assert ev.event_data.dwExitCode == 0x10101010
-            break
+    ev = client.wait_for_debug_event(EventType.EVENT_EXIT_THREAD, 3)
+    assert ev
+    assert ev.event_type == EventType.EVENT_EXIT_THREAD
+    assert ev.event_data.dwThreadId > 0
+    assert ev.event_data.dwExitCode == 0x10101010
 
 
 def test_event_load_unload_dll(client: X64DbgClient):
