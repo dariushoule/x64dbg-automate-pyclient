@@ -19,7 +19,7 @@ all_instances: list['X64DbgClient'] = []
 def ctrl_c_handler(sig_t: int) -> bool:
     print(f'Received exit signal {sig_t}, detaching and exiting', flush=True)
     for i in all_instances:
-        i.deattach_session()
+        i.detach_session()
     import sys
     sys.exit(0)
     return True
@@ -114,7 +114,16 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
         """
-        Start a new x64dbg session and optionally load an executable into it.
+        Start a new x64dbg session and optionally load an executable into it. If target_exe is not provided, 
+        the debugger starts without any executable. This is useful for performing configuration before the debuggee is loaded.
+
+        Args:
+            target_exe: The path to the target executable (optional)
+            cmdline: The command line arguments to pass to the executable (optional)
+            current_dir: The current working directory to set for the executable (optional)
+
+        Returns:
+            The debug session ID
         """
         if len(target_exe.strip()) == 0 and (len(cmdline) > 0 or len(current_dir) > 0):
             raise ValueError("cmdline and current_dir cannot be provided without target_exe")
@@ -149,6 +158,12 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         return self.xauto_session_id
     
     def attach_session(self, xauto_session_id: int):
+        """
+        Attach to an existing x64dbg session
+
+        Args:
+            xauto_session_id: The session ID to attach to
+        """
         for _ in range(100):
             time.sleep(0.2)
             self.xauto_session_id = xauto_session_id
@@ -159,10 +174,16 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                 return self.xauto_session_id
         raise TimeoutError("Session did not start in a reasonable amount of time")
     
-    def deattach_session(self):
+    def detach_session(self):
+        """
+        Detach from the current x64dbg session, leaving the debugger process running.
+        """
         self._close_connection()
 
     def terminate_session(self):
+        """
+        End the current x64dbg session, terminating the debugger process.
+        """
         sid = self.xauto_session_id
         self.xauto_terminate_session()
         self._close_connection()
@@ -174,6 +195,17 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
 
     @staticmethod
     def list_sessions() -> list[int]:
+        """
+        Lists all active x64dbg sessions
+
+        ```
+        X64DbgClient.list_sessions()
+        >>> [1, 2, 3]
+        ```
+
+        Returns:
+            A list of session IDs
+        """
         sessions = []
         sid = 1
         while True:

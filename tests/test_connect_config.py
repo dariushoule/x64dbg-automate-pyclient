@@ -9,7 +9,7 @@ def test_connect(client: X64DbgClient):
 
 def test_reconnect(client: X64DbgClient):
     sid = client.start_session()
-    client.deattach_session()
+    client.detach_session()
     client.attach_session(sid)
 
 

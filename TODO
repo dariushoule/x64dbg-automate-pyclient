@@ -1,1 +1,2 @@
-- Terminate session when x64dbg side exits cleanly 
+- Terminate session when x64dbg side exits cleanly
+- Debugger panes: right click context menu script registration

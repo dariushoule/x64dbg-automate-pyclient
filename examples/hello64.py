@@ -1,11 +1,11 @@
 """
-Hello x64dbg Automate (64 bit)
+Example: Hello x64dbg Automate (64 bit)
 """
 import sys
 from x64dbg_automate import X64DbgClient
 
 if len(sys.argv) != 2:
-    print("Usage: python hello.py <x64dbg_path>")
+    print("Usage: python hello64.py <x64dbg_path>")
     quit(1)
 
 print('[+] Creating a new x64dbg Automate session')
@@ -28,4 +28,4 @@ client.set_reg('rdx', mem)
 client.go()
 
 print('[+] Bye bye! Go check out the title bar of the winver window! 🥳')
-client.deattach_session()
+client.detach_session()

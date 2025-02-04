@@ -1,8 +1,11 @@
 site_name: "x64dbg Automate"
-theme: readthedocs
 nav:
   - "Home": index.md
   - "Installation": installation.md
   - "Quickstart": quickstart.md
+  - "Api Reference":
+    - "Session Control": sessions.md
 plugins:
-  - mkdocstrings 
+  - search
+  - mkdocstrings
+  - autorefs
