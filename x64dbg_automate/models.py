@@ -2,6 +2,16 @@ from enum import IntEnum, StrEnum
 from pydantic import BaseModel
 
 
+class DebugSession(BaseModel):
+    pid: int
+    lockfile_path: str
+    cmdline: list[str]
+    cwd: str
+    window_title: str
+    sess_req_rep_port: int
+    sess_pub_sub_port: int
+
+
 class MemPage(BaseModel):
     base_address: int
     allocation_base: int

@@ -13,6 +13,7 @@ pytest = "^8.3.4"
 pydantic = "^2.10.6"
 mkdocstrings = {extras = ["python"], version = "^0.28.0"}
 mkdocs = "^1.6.1"
+psutil = "^6.1.1"
 
 [build-system]
 requires = ["poetry-core"]

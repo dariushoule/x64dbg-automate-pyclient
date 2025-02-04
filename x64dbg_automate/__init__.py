@@ -1,14 +1,18 @@
 import ctypes
+import glob
 import logging
+from os import unlink
 import subprocess
 import threading
 import time
 import msgpack
+import psutil
 import zmq
 
 from x64dbg_automate.events import DebugEventQueueMixin
 from x64dbg_automate.hla_xauto import XAutoHighLevelCommandAbstractionMixin
-from x64dbg_automate.win32 import OpenMutexW, CloseHandle, SYNCHRONIZE, SetConsoleCtrlHandler
+from x64dbg_automate.models import DebugSession
+from x64dbg_automate.win32 import GetTempPathW, SetConsoleCtrlHandler, EnumWindows, GetWindowTextW, GetWindowThreadProcessId
 
 
 COMPAT_VERSION = "bitter_oyster" # TODO: externalize
@@ -33,22 +37,16 @@ class ClientConnectionFailedError(Exception):
 class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def __init__(self, x64dbg_path: str):
         self.x64dbg_path = x64dbg_path
-        self.xauto_session_id = None
+        self.session_pid = None
         self.context = None
         self.req_socket = None
         self.sub_socket = None
+        self.sess_req_rep_port = 0
+        self.sess_pub_sub_port = 0
         all_instances.append(self)
 
     def __del__(self):
         all_instances.remove(self)
-    
-    @property
-    def SESS_REQ_REP_PORT(self) -> int:
-        return 41600 + self.xauto_session_id
-    
-    @property
-    def SESS_PUB_SUB_PORT(self) -> int:
-        return 51600 + self.xauto_session_id
     
     def _sub_thread(self):
         while True:
@@ -76,14 +74,14 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.req_socket = self.context.socket(zmq.REQ)
         self.req_socket.setsockopt(zmq.SNDTIMEO, 5000)
         self.req_socket.setsockopt(zmq.RCVTIMEO, 10000)
-        self.req_socket.connect(f"tcp://localhost:{self.SESS_REQ_REP_PORT}")
+        self.req_socket.connect(f"tcp://localhost:{self.sess_req_rep_port}")
         self.req_socket.send(msgpack.packb("PING"))
         if msgpack.unpackb(self.req_socket.recv()) != "PONG":
-            raise ClientConnectionFailedError(f"Connection to x64dbg failed on port {self.SESS_REQ_REP_PORT}")
+            raise ClientConnectionFailedError(f"Connection to x64dbg failed on port {self.sess_req_rep_port}")
         
         self.sub_socket = self.context.socket(zmq.SUB)
         self.req_socket.setsockopt(zmq.RCVTIMEO, 6000)
-        self.sub_socket.connect(f"tcp://localhost:{self.SESS_PUB_SUB_PORT}")
+        self.sub_socket.connect(f"tcp://localhost:{self.sess_pub_sub_port}")
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         self.sub_thread = threading.Thread(target=self._sub_thread)
         self.sub_thread.start()
@@ -96,8 +94,10 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.req_socket = None
         self.sub_socket = None
         self.sub_thread.join()
-        self.xauto_session_id = None
+        self.session_pid = None
         self.proc = None
+        self.sess_req_rep_port = 0
+        self.sess_pub_sub_port = 0
 
     def _send_request(self, request_type: str, *args) -> tuple:
         self.req_socket.send(msgpack.packb((request_type, *args)))
@@ -128,51 +128,44 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         if len(target_exe.strip()) == 0 and (len(cmdline) > 0 or len(current_dir) > 0):
             raise ValueError("cmdline and current_dir cannot be provided without target_exe")
         
-        visited_sessions = set(self.list_sessions())
         self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
-
-        for _ in range(100):
-            if self.xauto_session_id is not None:
-                break
-
-            time.sleep(0.2)
-            sessions = self.list_sessions()
-
-            for s in sessions:
-                if s not in visited_sessions:
-                    self.xauto_session_id = s
-                    self._init_connection()
-                    # Race prevention, ensure session we connected to is the expected PID
-                    if self.get_debugger_pid() != self.proc.pid:
-                        visited_sessions.add(s)
-                        self._close_connection()
-                        continue
-                    break
-        if self.xauto_session_id is None:
-            raise TimeoutError("Session did not start in a reasonable amount of time")
-        self._assert_connection_compat()
+        self.session_pid = self.proc.pid
+        self.attach_session(self.session_pid)
 
         if target_exe.strip() != "":
             self.load_executable(target_exe.strip(), cmdline, current_dir)
             self.wait_cmd_ready()
-        return self.xauto_session_id
+        return self.session_pid
     
-    def attach_session(self, xauto_session_id: int):
+    @staticmethod
+    def wait_for_session(session_pid: int, timeout = 10) -> DebugSession:
+        """
+        Wait for an x64dbg session to start
+
+        Args:
+            session_pid: The session ID to wait for (debugger PID)
+        """
+        while timeout > 0:
+            sessions = X64DbgClient.list_sessions()
+            sessions = [s for s in sessions if s.pid == session_pid]
+            if session_pid in [s.pid for s in sessions]:
+                return sessions[0]
+            time.sleep(0.2)
+            timeout -= 0.2
+        raise TimeoutError("Session did not appear in a reasonable amount of time")
+    
+    def attach_session(self, session_pid: int):
         """
         Attach to an existing x64dbg session
 
         Args:
-            xauto_session_id: The session ID to attach to
+            session_pid: The session ID to wait for (debugger PID)
         """
-        for _ in range(100):
-            time.sleep(0.2)
-            self.xauto_session_id = xauto_session_id
-            sessions = self.list_sessions()
-            if xauto_session_id in sessions:
-                self._init_connection()
-                self._assert_connection_compat()
-                return self.xauto_session_id
-        raise TimeoutError("Session did not start in a reasonable amount of time")
+        session = X64DbgClient.wait_for_session(session_pid)
+        self.sess_req_rep_port = session.sess_req_rep_port
+        self.sess_pub_sub_port = session.sess_pub_sub_port
+        self._init_connection()
+        self._assert_connection_compat()
     
     def detach_session(self):
         """
@@ -184,37 +177,73 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         """
         End the current x64dbg session, terminating the debugger process.
         """
-        sid = self.xauto_session_id
+        sid = self.session_pid
         self.xauto_terminate_session()
         self._close_connection()
         for _ in range(100):
             time.sleep(0.2)
-            if sid not in self.list_sessions():
+            if sid not in [p.pid for p in self.list_sessions()]:
                 return
         raise TimeoutError("Session did not terminate in a reasonable amount of time")
+    
+    @staticmethod
+    def _window_title_for_pid(pid: int) -> str:
+        wnd_title = ctypes.create_unicode_buffer(1024)
+        found_title = ''
+        def EnumWindowsCb(hwnd, pid):
+            nonlocal found_title
+            enum_process_id = ctypes.c_ulong()
+            GetWindowThreadProcessId(hwnd, ctypes.byref(enum_process_id))
+            if enum_process_id.value == pid:
+                GetWindowTextW(hwnd, wnd_title, 1024)
+                if 'x64dbg' in wnd_title.value.lower() or 'x32dbg' in wnd_title.value.lower():
+                    found_title = wnd_title.value if len(wnd_title.value) > len(found_title) else found_title
+            return True
+        EnumWindowsCb = EnumWindows.argtypes[0](EnumWindowsCb)
+        EnumWindows(EnumWindowsCb, pid)
+        return found_title
 
     @staticmethod
-    def list_sessions() -> list[int]:
+    def list_sessions() -> list[DebugSession]:
         """
         Lists all active x64dbg sessions
-
-        ```
-        X64DbgClient.list_sessions()
-        >>> [1, 2, 3]
-        ```
 
         Returns:
             A list of session IDs
         """
-        sessions = []
-        sid = 1
-        while True:
-            handle = OpenMutexW(SYNCHRONIZE, False, ctypes.create_unicode_buffer(f"x64dbg_automate_mutex_s_{sid}"))
-            if handle:
-                sessions.append(sid)
-                sid += 1
-                CloseHandle(handle)
-                continue
-            break
+        sessions: list[DebugSession] = []
+        temp_path_cstr = ctypes.create_unicode_buffer(1024)
+        if GetTempPathW(1024, temp_path_cstr) == 0:
+            temp_path = "c:\\windows\\temp\\"
+        else:
+            temp_path = temp_path_cstr.value
+        
+        # Find the first live x64dbg Automate session active and ask it to list all sessions
+        locks = glob.glob(f'{temp_path}xauto_session.*.lock')
+        for lock in locks:
+            try:
+                with open(lock, 'r') as f:
+                    sess_req_rep_port = int(f.readline().strip())
+                    sess_pub_sub_port = int(f.readline().strip())
+
+                pid = int(lock.split('.')[-2])
+                process = psutil.Process(pid)
+                if process.is_running():
+                    sessions.append(DebugSession(
+                        pid=pid,
+                        lockfile_path=lock,
+                        cmdline=process.cmdline(),
+                        cwd=process.cwd(),
+                        window_title=X64DbgClient._window_title_for_pid(pid),
+                        sess_req_rep_port=sess_req_rep_port,
+                        sess_pub_sub_port=sess_pub_sub_port
+                    ))
+            except psutil.NoSuchProcess:
+                # Stale session didn't get cleaned up properly
+                try:
+                    unlink(lock)
+                except:
+                    pass
+
         return sessions
     

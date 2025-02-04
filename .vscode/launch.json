@@ -10,7 +10,8 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": ["C:\\re\\x64dbg_dev\\release\\x64\\x64dbg.exe"]
         }
     ]
 }

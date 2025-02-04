@@ -12,7 +12,9 @@ class XAutoClientBase(ABC):
     sub_socket: zmq.SyncSocket | None
     sub_thread: threading.Thread
     x64dbg_path: str | None
-    xauto_session_id: int | None
+    session_pid: int | None
+    sess_req_rep_port = 0
+    sess_pub_sub_port = 0
 
     @abstractmethod
     def _send_request(self, request_type: str, *args):
