@@ -1,6 +1,6 @@
 from tests.conftest import TEST_BITNESS
-from x64dbg_automate_pyclient import X64DbgClient
-from x64dbg_automate_pyclient.models import BreakpointType, DisasmInstrType, SegmentReg
+from x64dbg_automate import X64DbgClient
+from x64dbg_automate.models import BreakpointType, DisasmInstrType, SegmentReg
 
 
 def test_dbg_eval_not_debugging(client: X64DbgClient):

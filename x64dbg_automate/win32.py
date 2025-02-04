@@ -19,3 +19,6 @@ CreateRemoteThread.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p
 
 WaitForSingleObject = K32.WaitForSingleObject
 WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+
+SetConsoleCtrlHandler = K32.SetConsoleCtrlHandler
+SetConsoleCtrlHandler.argtypes = [ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int), ctypes.c_bool]

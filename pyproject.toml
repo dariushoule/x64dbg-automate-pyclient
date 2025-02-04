@@ -1,11 +1,9 @@
 [tool.poetry]
-name = "x64dbg_automate_pyclient"
+name = "x64dbg_automate"
 version = "0.1.0"
 description = ""
 authors = ["Darius Houle <darius@x64.ooo>"]
 readme = "README.md"
-
-
 
 [tool.poetry.dependencies]
 python = "^3.13"
@@ -13,6 +11,7 @@ pyzmq = "^26.2.0"
 msgpack = "^1.1.0"
 pytest = "^8.3.4"
 pydantic = "^2.10.6"
+mkdocstrings = {extras = ["python"], version = "^0.28.0"}
 
 [build-system]
 requires = ["poetry-core"]

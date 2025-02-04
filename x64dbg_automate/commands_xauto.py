@@ -1,8 +1,8 @@
 from enum import StrEnum
 import time
 
-from x64dbg_automate_pyclient.client_base import XAutoClientBase
-from x64dbg_automate_pyclient.models import Breakpoint, BreakpointType, Context64, Context32, DisasmArgType, \
+from x64dbg_automate.client_base import XAutoClientBase
+from x64dbg_automate.models import Breakpoint, BreakpointType, Context64, Context32, DisasmArgType, \
     DisasmInstrType, Flags, FpuReg, Instruction, InstructionArg, MemPage, MxcsrFields, RegDump32, RegDump64, \
     SegmentReg, Symbol, SymbolType, X87ControlWordFields, X87Fpu, X87StatusWordFields
 

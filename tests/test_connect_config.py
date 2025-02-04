@@ -1,6 +1,6 @@
 import subprocess
 from tests.conftest import TEST_BITNESS, X64DBG_PATH
-from x64dbg_automate_pyclient import X64DbgClient
+from x64dbg_automate import X64DbgClient
 
 
 def test_connect(client: X64DbgClient):

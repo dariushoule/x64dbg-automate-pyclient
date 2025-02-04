@@ -1,6 +1,6 @@
 
-from x64dbg_automate_pyclient.commands_xauto import XAutoCommandsMixin
-from x64dbg_automate_pyclient.models import HardwareBreakpointType, MemPage, \
+from x64dbg_automate.commands_xauto import XAutoCommandsMixin
+from x64dbg_automate.models import HardwareBreakpointType, MemPage, \
     MemoryBreakpointType, MutableRegister, PageRightsConfiguration, StandardBreakpointType
 
 
@@ -112,14 +112,18 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             return False
         return self.wait_until_stopped()
     
-    def set_breakpoint(self, address: int, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot = False) -> bool:
-        name = name or f"bpx_{address:x}"
+    def set_breakpoint(self, address_or_symbol: int | str, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot = False) -> bool:
         bp_type_str = str(bp_type).lower()
         if singleshoot and bp_type_str != "ss":
             bp_type_str = f'ss{bp_type_str}'
-        if '"' in name:
-            raise ValueError("Name cannot contain double quotes")
-        return self.cmd_sync(f'bpx 0x{address:x}, "{name}", {bp_type_str}')
+        if isinstance(address_or_symbol, int):
+            name = name or f"bpx_{address_or_symbol:x}"
+            return self.cmd_sync(f'bpx 0x{address_or_symbol:x}, "{name}", {bp_type_str}')
+        else:
+            name = name or f"bpx_{address_or_symbol.replace(' ', '_')}"
+            if '"' in name:
+                raise ValueError("Name cannot contain double quotes")
+            return self.cmd_sync(f'bpx {address_or_symbol}, "{name}", {bp_type_str}')
     
     def set_hardware_breakpoint(self, address: int, bp_type: HardwareBreakpointType = HardwareBreakpointType.x, size = 1) -> bool:
         if size not in [1, 2, 4, 8]:

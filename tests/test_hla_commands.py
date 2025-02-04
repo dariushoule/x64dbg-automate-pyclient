@@ -2,10 +2,10 @@ import queue
 import time
 import pytest
 from tests.conftest import TEST_BITNESS
-from x64dbg_automate_pyclient import X64DbgClient
-from x64dbg_automate_pyclient.events import CreateThreadEventData, DbgEvent, EventType, ExceptionEventData
-from x64dbg_automate_pyclient.models import PageRightsConfiguration
-from x64dbg_automate_pyclient.win32 import OpenProcess, CreateRemoteThread, WaitForSingleObject, CloseHandle
+from x64dbg_automate import X64DbgClient
+from x64dbg_automate.events import CreateThreadEventData, DbgEvent, EventType, ExceptionEventData
+from x64dbg_automate.models import PageRightsConfiguration
+from x64dbg_automate.win32 import OpenProcess, CreateRemoteThread, WaitForSingleObject, CloseHandle
 
 
 def test_stepi(client: X64DbgClient):

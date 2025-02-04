@@ -6,28 +6,41 @@ import time
 import msgpack
 import zmq
 
-from x64dbg_automate_pyclient.events import DebugEventQueueMixin
-from x64dbg_automate_pyclient.hla_xauto import XAutoHighLevelCommandAbstractionMixin
-from x64dbg_automate_pyclient.win32 import OpenMutexW, CloseHandle, SYNCHRONIZE
+from x64dbg_automate.events import DebugEventQueueMixin
+from x64dbg_automate.hla_xauto import XAutoHighLevelCommandAbstractionMixin
+from x64dbg_automate.win32 import OpenMutexW, CloseHandle, SYNCHRONIZE, SetConsoleCtrlHandler
 
 
 COMPAT_VERSION = "bitter_oyster" # TODO: externalize
 logger = logging.getLogger(__name__)
+all_instances: list['X64DbgClient'] = []
+
+
+def ctrl_c_handler(sig_t: int) -> bool:
+    print(f'Received exit signal {sig_t}, detaching and exiting', flush=True)
+    for i in all_instances:
+        i.deattach_session()
+    import sys
+    sys.exit(0)
+    return True
+ctrl_c_handler = SetConsoleCtrlHandler.argtypes[0](ctrl_c_handler)
+SetConsoleCtrlHandler(ctrl_c_handler, True)
 
 
 class ClientConnectionFailedError(Exception):
     pass
 
 class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
-    def __init__(self, x64dbg_path: str | None = None, xauto_session_id: int | None = None):
+    def __init__(self, x64dbg_path: str):
         self.x64dbg_path = x64dbg_path
-        self.xauto_session_id = xauto_session_id
+        self.xauto_session_id = None
         self.context = None
         self.req_socket = None
         self.sub_socket = None
+        all_instances.append(self)
 
-        if self.x64dbg_path is None and self.xauto_session_id is None:
-            raise ValueError("One of x64dbg_path or x64dbg_session must be provided")
+    def __del__(self):
+        all_instances.remove(self)
     
     @property
     def SESS_REQ_REP_PORT(self) -> int:
@@ -45,7 +58,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                 msg = msgpack.unpackb(self.sub_socket.recv())
                 self.debug_event_publish(msg)
             except zmq.error.ContextTerminated:
-                logger.exception("Socket terminated, exiting thread")
+                # This session has been detached, exit thread
                 break
             except zmq.error.ZMQError:
                 if self.context is None:
@@ -76,6 +89,8 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.sub_thread.start()
 
     def _close_connection(self):
+        if self.context is None:
+            return
         self.context.destroy()
         self.context = None
         self.req_socket = None
@@ -98,6 +113,9 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
         
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
+        """
+        Start a new x64dbg session and optionally load an executable into it.
+        """
         if len(target_exe.strip()) == 0 and (len(cmdline) > 0 or len(current_dir) > 0):
             raise ValueError("cmdline and current_dir cannot be provided without target_exe")
         
