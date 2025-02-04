@@ -58,5 +58,7 @@ def test_config_get_set(client: X64DbgClient):
 
 
 def test_attach(client: X64DbgClient):
-    subprocess.Popen([X64DBG_PATH])
-    assert client.attach_session(1)
+    proc = subprocess.Popen([X64DBG_PATH])
+    client.wait_for_session(proc.pid)
+    client.attach_session(proc.pid)
+    assert client.is_debugging() == False

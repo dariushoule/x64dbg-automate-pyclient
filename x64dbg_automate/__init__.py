@@ -48,7 +48,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def __del__(self):
         all_instances.remove(self)
     
-    def _sub_thread(self):
+    def _sub_thread(self) -> None:
         while True:
             try:
                 if self.context is None:
@@ -66,7 +66,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                     logger.exception("Unhandled ZMQError, retrying")
 
     
-    def _init_connection(self):
+    def _init_connection(self) -> None:
         if self.context is not None:
             self._close_connection()
 
@@ -86,7 +86,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.sub_thread = threading.Thread(target=self._sub_thread)
         self.sub_thread.start()
 
-    def _close_connection(self):
+    def _close_connection(self) -> None:
         if self.context is None:
             return
         self.context.destroy()
@@ -108,7 +108,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
             raise RuntimeError(msg)
         return msg
 
-    def _assert_connection_compat(self):
+    def _assert_connection_compat(self) -> None:
         v = self.get_xauto_compat_version()
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
         
@@ -154,7 +154,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
             timeout -= 0.2
         raise TimeoutError("Session did not appear in a reasonable amount of time")
     
-    def attach_session(self, session_pid: int):
+    def attach_session(self, session_pid: int) -> None:
         """
         Attach to an existing x64dbg session
 
@@ -167,13 +167,13 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self._init_connection()
         self._assert_connection_compat()
     
-    def detach_session(self):
+    def detach_session(self) -> None:
         """
         Detach from the current x64dbg session, leaving the debugger process running.
         """
         self._close_connection()
 
-    def terminate_session(self):
+    def terminate_session(self) -> None:
         """
         End the current x64dbg session, terminating the debugger process.
         """
