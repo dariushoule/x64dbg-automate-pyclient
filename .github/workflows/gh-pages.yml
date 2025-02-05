@@ -1,5 +1,8 @@
 name: Deploy Docs to GHP
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:
