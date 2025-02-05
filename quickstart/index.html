@@ -142,7 +142,8 @@
 <h1 id="x64dbg-automate-quickstart">x64dbg Automate Quickstart</h1>
 <p>An automation session can be launched with four steps:</p>
 <p><strong>One: Instantiate <code>X64DbgClient</code> and orient it against your installation</strong></p>
-<pre><code>client = X64DbgClient(x64dbg_path=&quot;C:\x64dbg\release\x64\x64dbg.exe&quot;)
+<pre><code>from x64dbg_automate import X64DbgClient
+client = X64DbgClient(x64dbg_path=r&quot;C:\x64dbg\release\x64\x64dbg.exe&quot;)
 </code></pre>
 <p><strong>Two: Start a new debug session or attach to an existing one</strong></p>
 <pre><code>client.start_session(r'my_cool_program.exe')
@@ -153,7 +154,7 @@ client.go()
 </code></pre>
 <p><em>See Client Reference sections for full capabilities.</em></p>
 <p><strong>Four: Clean up</strong></p>
-<pre><code>client.deattach_session()
+<pre><code>client.detach_session()
 </code></pre>
 <h3 id="example-hello-world">Example: Hello World</h3>
 <pre><code class="language-python">&quot;&quot;&quot;
