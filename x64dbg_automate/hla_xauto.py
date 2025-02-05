@@ -151,10 +151,21 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             prefix = ''
         if not self.cmd_sync(f"{prefix}go"):
             return False
-        return self.wait_until_running()
+        self.wait_until_running(timeout=1)
+        return True
 
     
     def virt_alloc(self, n: int = 0x1000, addr: int = 0) -> int:
+        """
+        Allocates memory in the debugee's address space
+
+        Args:
+            n: Size of memory to allocate
+            addr: Address to allocate memory at
+
+        Returns:
+            Address of the allocated memory
+        """
         if not self.cmd_sync(f"alloc 0x{n:x}, 0x{addr:x}"):
             raise ValueError("Failed to allocate memory")
         addr, success = self.eval_sync("$result")
@@ -163,11 +174,31 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return addr
     
     def virt_free(self, addr: int) -> bool:
+        """
+        Frees memory in the debugee's address space
+
+        Args:
+            addr: Address to free memory at
+
+        Returns:
+            Success
+        """
         if not self.cmd_sync(f"free 0x{addr:x}"):
             raise ValueError("Failed to free memory")
         return True
     
-    def virt_protect(self, addr: int, page_rights: PageRightsConfiguration, guard = False) -> bool:
+    def virt_protect(self, addr: int, page_rights: PageRightsConfiguration, guard: bool = False) -> bool:
+        """
+        Changes a pages memory protection in the debugee's address space, optionally setting a page guard.
+
+        Args:
+            addr: Address to operate on
+            page_rights: New memory protection configuration
+            guard: page guard toggle
+
+        Returns:
+            Success
+        """
         rights_str = str(page_rights)
         if guard:
             rights_str = f'G{rights_str}'
@@ -176,6 +207,15 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return True
     
     def virt_query(self, addr: int) -> MemPage | None:
+        """
+        Retrieves information about a memory region.
+
+        Args:
+            addr: Address to query
+
+        Returns:
+            MemPage on success, None on failure
+        """
         map = self.memmap()
         for m in map:
             if m.base_address <= addr < m.base_address + m.region_size:
@@ -183,17 +223,40 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return None
     
     def memset(self, addr: int, byte_val: int, size: int) -> bool:
+        """
+        Sets memory in the debugee's address space to the specified value
+
+        Args:
+            addr: Address to set memory at
+            byte_val: Value to set memory to
+            size: Number of bytes to set
+
+        Returns:
+            Success
+        """
         if not self.cmd_sync(f"memset 0x{addr:x}, 0x{byte_val:x}, 0x{size:x}"):
             raise ValueError("Failed to set memory")
         return True
     
     def set_reg(self, reg: MutableRegister | str, val: int) -> bool:
+        """
+        Set a single register or subregister to a value
+
+        Returns:
+            Success
+        """
         reg = MutableRegister(str(reg).lower())
         if not isinstance(val, int):
             raise TypeError("val must be an integer")
         return self.cmd_sync(f'{reg}=0x{val:X}')
     
     def get_reg(self, reg: MutableRegister | str) -> int:
+        """
+        Get a single register or subregister
+
+        Returns:
+            Success
+        """
         reg = MutableRegister(str(reg).lower())
         res, success = self.eval_sync(f'{reg}')
         if not success:
@@ -211,7 +274,19 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             return False
         return self.wait_until_stopped()
     
-    def set_breakpoint(self, address_or_symbol: int | str, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot = False) -> bool:
+    def set_breakpoint(self, address_or_symbol: int | str, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot: bool = False) -> bool:
+        """
+        Sets a software breakpoint at the specified address or symbol.
+
+        Args:
+            address_or_symbol: Address or symbol to set the breakpoint at
+            name: Optional name for the breakpoint
+            bp_type: Type of software breakpoint to set
+            singleshoot: Set a single-shot breakpoint
+
+        Returns:
+            Success
+        """
         bp_type_str = str(bp_type).lower()
         if singleshoot and bp_type_str != "ss":
             bp_type_str = f'ss{bp_type_str}'
@@ -224,44 +299,146 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
                 raise ValueError("Name cannot contain double quotes")
             return self.cmd_sync(f'bpx {address_or_symbol}, "{name}", {bp_type_str}')
     
-    def set_hardware_breakpoint(self, address: int, bp_type: HardwareBreakpointType = HardwareBreakpointType.x, size = 1) -> bool:
+    def set_hardware_breakpoint(self, address_or_symbol: int | str, bp_type: HardwareBreakpointType = HardwareBreakpointType.x, size: int = 1) -> bool:
+        """
+        Sets a hardware breakpoint at the specified address or symbol.
+
+        Args:
+            address_or_symbol: Address or symbol to set the breakpoint at
+            bp_type: Type of software breakpoint to set
+            size: breakpoint size, one of [1, 2, 4, 8]
+
+        Returns:
+            Success
+        """
         if size not in [1, 2, 4, 8]:
             raise ValueError("Invalid size")
-        return self.cmd_sync(f'bph 0x{address:x}, {bp_type}, {size}')
+        if isinstance(address_or_symbol, int):
+            return self.cmd_sync(f'bph 0x{address_or_symbol:x}, {bp_type}, {size}')
+        else:
+            return self.cmd_sync(f'bph {address_or_symbol}, {bp_type}, {size}')
     
-    def set_memory_breakpoint(self, address: int, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, restore = True) -> bool:
-        return self.cmd_sync(f'bpm 0x{address:x}, {int(restore)}, {bp_type}')
+    def set_memory_breakpoint(self, address_or_symbol: int | str, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, restore: bool = True) -> bool:
+        """
+        Sets a memory breakpoint at the specified address or symbol.
 
-    def clear_breakpoint(self, address_name_or_none: int | str | None = None) -> bool:
-        if address_name_or_none is None:
+        Args:
+            address_or_symbol: Address or symbol to set the breakpoint at
+            bp_type: Type of software breakpoint to set
+            restore: Restore the original memory protection
+
+        Returns:
+            Success
+        """
+        if isinstance(address_or_symbol, int):
+            return self.cmd_sync(f'bpm 0x{address_or_symbol:x}, {int(restore)}, {bp_type}')
+        else:
+            return self.cmd_sync(f'bpm {address_or_symbol}, {int(restore)}, {bp_type}')
+
+    def clear_breakpoint(self, address_name_symbol_or_none: int | str | None = None) -> bool:
+        """
+        Clears software breakpoint at the specified address, name, or symbol.
+
+        Args:
+            address_name_symbol_or_none: Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)
+
+        Returns:
+            Success
+        """
+        if address_name_symbol_or_none is None:
             return self.cmd_sync('bpc')
-        if isinstance(address_name_or_none, int):
-            return self.cmd_sync(f'bpc 0x{address_name_or_none:x}')
-        return self.cmd_sync(f'bpc "{address_name_or_none}"')
+        if isinstance(address_name_symbol_or_none, int):
+            return self.cmd_sync(f'bpc 0x{address_name_symbol_or_none:x}')
+        return self.cmd_sync(f'bpc "{address_name_symbol_or_none}"')
     
-    def clear_hardware_breakpoint(self, address_or_none: int | None = None) -> bool:
-        if address_or_none is None:
+    def clear_hardware_breakpoint(self, address_symbol_or_none: int | str | None = None) -> bool:
+        """
+        Clears hardware breakpoint at the specified address or symbol.
+
+        Args:
+            address_symbol_or_none: Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)
+            
+        Returns:
+            Success
+        """
+        if address_symbol_or_none is None:
             return self.cmd_sync('bphc')
-        return self.cmd_sync(f'bphc 0x{address_or_none:x}')
+        if isinstance(address_symbol_or_none, int):
+            return self.cmd_sync(f'bphc 0x{address_symbol_or_none:x}')
+        return self.cmd_sync(f'bphc {address_symbol_or_none}')
     
-    def clear_memory_breakpoint(self, address_or_none: int | None = None) -> bool:
-        if address_or_none is None:
+    def clear_memory_breakpoint(self, address_symbol_or_none: int | str | None = None) -> bool:
+        """
+        Clears memory breakpoint at the specified address or symbol.
+
+        Args:
+            address_symbol_or_none: Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)
+            
+        Returns:
+            Success
+        """
+        if address_symbol_or_none is None:
             return self.cmd_sync('bpmc')
-        return self.cmd_sync(f'bpmc 0x{address_or_none:x}')
+        if isinstance(address_symbol_or_none, int):
+            return self.cmd_sync(f'bpmc 0x{address_symbol_or_none:x}')
+        return self.cmd_sync(f'bpmc {address_symbol_or_none}')
     
-    def toggle_breakpoint(self, address_name_or_none: int | str, on = True) -> bool:
+    def toggle_breakpoint(self, address_name_symbol_or_none: int | str | None = None, on: bool = True) -> bool:
+        """
+        Toggles software breakpoint at the specified address or symbol.
+
+        Args:
+            address_name_symbol_or_none: Address, name, or symbol to toggle the breakpoint at
+            on: Enable or disable the breakpoint
+            
+        Returns:
+            Success
+        """
         toggle_cmd = 'bpe' if on else 'bpd'
-        if isinstance(address_name_or_none, int):
-            return self.cmd_sync(f'{toggle_cmd} 0x{address_name_or_none:x}')
-        return self.cmd_sync(f'{toggle_cmd} {address_name_or_none}')
+        if isinstance(address_name_symbol_or_none, int):
+            return self.cmd_sync(f'{toggle_cmd} 0x{address_name_symbol_or_none:x}')
+        elif address_name_symbol_or_none is None:
+            return self.cmd_sync(f'{toggle_cmd}')
+        else:
+            return self.cmd_sync(f'{toggle_cmd} {address_name_symbol_or_none}')
     
-    def toggle_hardware_breakpoint(self, address: int, on = True) -> bool:
+    def toggle_hardware_breakpoint(self, address_symbol_or_none: int | str | None = None, on: bool = True) -> bool:
+        """
+        Toggles hardware breakpoint at the specified address or symbol.
+
+        Args:
+            address_symbol_or_none: Address or symbol to toggle the breakpoint at
+            on: Enable or disable the breakpoint
+            
+        Returns:
+            Success
+        """
         toggle_cmd = 'bphe' if on else 'bphd'
-        return self.cmd_sync(f'{toggle_cmd} 0x{address:x}')
+        if isinstance(address_symbol_or_none, int):
+            return self.cmd_sync(f'{toggle_cmd} 0x{address_symbol_or_none:x}')
+        elif address_symbol_or_none is None:
+            return self.cmd_sync(f'{toggle_cmd}')
+        else:
+            return self.cmd_sync(f'{toggle_cmd} {address_symbol_or_none}')
     
-    def toggle_memory_breakpoint(self, address: int, on = True) -> bool:
+    def toggle_memory_breakpoint(self, address_symbol_or_none: int | str | None = None, on: bool = True) -> bool:
+        """
+        Toggles memory breakpoint at the specified address or symbol.
+
+        Args:
+            address_symbol_or_none: Address or symbol to toggle the breakpoint at
+            on: Enable or disable the breakpoint
+            
+        Returns:
+            Success
+        """
         toggle_cmd = 'bpme' if on else 'bpmd'
-        return self.cmd_sync(f'{toggle_cmd} 0x{address:x}')
+        if isinstance(address_symbol_or_none, int):
+            return self.cmd_sync(f'{toggle_cmd} 0x{address_symbol_or_none:x}')
+        elif address_symbol_or_none is None:
+            return self.cmd_sync(f'{toggle_cmd}')
+        else:
+            return self.cmd_sync(f'{toggle_cmd} {address_symbol_or_none}')
 
     def set_label_at(self, address: int, text: str):
         if '"' in text:
@@ -342,6 +519,16 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return self.cmd_sync(f'switchthread 0x{tid:x}')
     
     def assemble_at(self, addr: int, instr: str) -> int | None:
+        """
+        Assembles a single instruction at the specified address
+
+        Args:
+            addr: Address to assemble at
+            instr: Instruction to assemble
+
+        Returns:
+            The size of the assembled instruction, or None on failure
+        """
         res = self._assemble_at(addr, instr)
         if not res:
             return None

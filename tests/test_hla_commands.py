@@ -4,7 +4,7 @@ import pytest
 from tests.conftest import TEST_BITNESS
 from x64dbg_automate import X64DbgClient
 from x64dbg_automate.events import CreateThreadEventData, DbgEvent, EventType, ExceptionEventData
-from x64dbg_automate.models import PageRightsConfiguration
+from x64dbg_automate.models import BreakpointType, HardwareBreakpointType, MemoryBreakpointType, PageRightsConfiguration, StandardBreakpointType
 from x64dbg_automate.win32 import OpenProcess, CreateRemoteThread, WaitForSingleObject, CloseHandle
 
 
@@ -390,3 +390,111 @@ def test_thread_control(client: X64DbgClient):
     assert client.thread_resume(tid)
     assert client.thread_terminate(tid)
     assert client.thread_resume(tid) == False
+
+
+def test_breakpoint_toggle_and_clear_standard_with_name_and_symbols(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.clear_breakpoint()
+    assert client.clear_hardware_breakpoint()
+    assert client.clear_memory_breakpoint()
+
+    addr, _ = client.eval_sync('GetCurrentProcessId')
+    assert client.set_breakpoint(addr, "charlie", StandardBreakpointType.Short, True)
+    bps = client.get_breakpoints(BreakpointType.BpNormal)
+    assert len(bps) == 1
+    assert bps[0].name == "charlie"
+    assert bps[0].type == BreakpointType.BpNormal
+    assert bps[0].enabled == True
+    assert bps[0].singleshoot == True
+    assert bps[0].active == True
+    assert bps[0].addr == addr  
+    assert bps[0].mod == 'kernel32.dll'
+    # TODO: investigate, this may be an issue in x64dbg
+    # assert client.toggle_breakpoint("charlie") 
+    # assert client.get_breakpoints(BreakpointType.BpNormal)[0].enabled == False
+    assert client.toggle_breakpoint("GetCurrentProcessId", False)
+    assert client.get_breakpoints(BreakpointType.BpNormal)[0].enabled == False
+    assert client.toggle_breakpoint(addr, True)
+    assert client.get_breakpoints(BreakpointType.BpNormal)[0].enabled == True
+    # TODO: investigate, this may be an issue in x64dbg
+    # assert client.clear_breakpoint("charlie")
+    assert client.clear_breakpoint("GetCurrentProcessId")
+    assert len(client.get_breakpoints(BreakpointType.BpNormal)) == 0
+    assert client.set_breakpoint('GetCurrentProcessId', bp_type=StandardBreakpointType.Ud2)
+    bps = client.get_breakpoints(BreakpointType.BpNormal)
+    assert len(bps) == 1
+    assert bps[0].name == "bpx_GetCurrentProcessId"
+    assert bps[0].type == BreakpointType.BpNormal
+    assert bps[0].enabled == True
+    assert client.clear_breakpoint(addr)
+    assert len(client.get_breakpoints(BreakpointType.BpNormal)) == 0
+
+
+def test_breakpoint_toggle_and_clear_hardware_with_name_and_symbols(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.clear_breakpoint()
+    assert client.clear_hardware_breakpoint()
+    assert client.clear_memory_breakpoint()
+
+    addr, _ = client.eval_sync('GetCurrentProcessId')
+    assert client.set_hardware_breakpoint(addr, HardwareBreakpointType.r, 4)
+    bps = client.get_breakpoints(BreakpointType.BpHardware)
+    assert len(bps) == 1
+    assert bps[0].type == BreakpointType.BpHardware
+    assert bps[0].enabled == True
+    assert bps[0].singleshoot == False
+    assert bps[0].active == True
+    assert bps[0].addr == addr  
+    assert bps[0].hwSize == 2  
+    assert bps[0].mod == 'kernel32.dll'
+
+    assert client.toggle_hardware_breakpoint("GetCurrentProcessId", False)
+    assert client.get_breakpoints(BreakpointType.BpHardware)[0].enabled == False
+    assert client.toggle_hardware_breakpoint(addr, True)
+    assert client.get_breakpoints(BreakpointType.BpHardware)[0].enabled == True
+    assert client.clear_hardware_breakpoint("GetCurrentProcessId")
+    assert len(client.get_breakpoints(BreakpointType.BpHardware)) == 0
+    assert client.set_hardware_breakpoint('GetCurrentProcessId', bp_type=HardwareBreakpointType.x)
+    bps = client.get_breakpoints(BreakpointType.BpHardware)
+    assert len(bps) == 1
+    assert bps[0].type == BreakpointType.BpHardware
+    assert bps[0].enabled == True
+    assert client.clear_hardware_breakpoint(addr)
+    assert len(client.get_breakpoints(BreakpointType.BpHardware)) == 0
+
+
+def test_breakpoint_toggle_and_clear_memory_with_name_and_symbols(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.clear_breakpoint()
+    assert client.clear_hardware_breakpoint()
+    assert client.clear_memory_breakpoint()
+
+    addr, _ = client.eval_sync('GetCurrentProcessId')
+    mem = client.virt_query(addr)
+    addr_base = mem.base_address
+    assert client.set_memory_breakpoint(addr, MemoryBreakpointType.a, 4)
+    bps = client.get_breakpoints(BreakpointType.BpMemory)
+    assert len(bps) == 1
+    assert bps[0].type == BreakpointType.BpMemory
+    assert bps[0].enabled == True
+    assert bps[0].singleshoot == True
+    assert bps[0].active == True
+    assert bps[0].addr == addr_base
+    assert bps[0].mod == 'kernel32.dll'
+
+    # TODO: Symbols can't be toggled, only their memory bases (do we try to do this automatically for people?)
+    assert client.toggle_memory_breakpoint("GetCurrentProcessId", False) == False
+    assert client.get_breakpoints(BreakpointType.BpMemory)[0].enabled == True
+
+    assert client.toggle_memory_breakpoint(addr_base, True)
+    assert client.get_breakpoints(BreakpointType.BpMemory)[0].enabled == True
+
+    assert client.clear_memory_breakpoint("GetCurrentProcessId") == False
+    assert len(client.get_breakpoints(BreakpointType.BpMemory)) == 1
+    assert client.set_memory_breakpoint('GetCurrentProcessId', bp_type=MemoryBreakpointType.x)
+    bps = client.get_breakpoints(BreakpointType.BpMemory)
+    assert len(bps) == 1
+    assert bps[0].type == BreakpointType.BpMemory
+    assert bps[0].enabled == True
+    client.clear_memory_breakpoint(addr_base)
+    assert len(client.get_breakpoints(BreakpointType.BpMemory)) == 0

@@ -4,9 +4,14 @@ nav:
   - "Installation": installation.md
   - "Quickstart": quickstart.md
   - "Api Reference":
-    - "Session Control": api/sessions.md
+    - "Session Control": api/session-control.md
     - "Debug Control": api/debug-control.md
-    - "Registers and Memory": api/reg-and-mem.md
+    - "Memory Control": api/memory-control.md
+    - "Breakpoints": api/breakpoints.md
+    - "Registers and Expressions": api/registers-expressions.md
+    - "Assembling and Disassembling": api/assembler-disassembler.md
+    - "Commands and Extensibility": api/commands.md
+    - "Labels, Comments, Bookmarks": api/annotations.md
 plugins:
   - search
   - mkdocstrings

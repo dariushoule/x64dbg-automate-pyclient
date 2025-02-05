@@ -52,14 +52,24 @@ class XAutoCommandsMixin(XAutoClientBase):
     def eval_sync(self, eval_str) -> list[int, bool]:
         """
         Evaluates an expression that results in a numerical output
+        
         Returns:
-            list[int, bool], a list containing:
-                - int: Evaluation result
-                - bool: Success or failure
+            A list containing the result and a boolean indicating success
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_EVAL, eval_str)
     
     def cmd_sync(self, cmd_str: str) -> bool:
+        """
+        Evaluates a command and returns the success or failure.
+
+        See: https://help.x64dbg.com/en/latest/commands/
+
+        Args:
+            cmd_str: The command to execute
+
+        Returns:
+            Success
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC_DIRECT, cmd_str)
     
     def debugee_is_running(self) -> bool:
@@ -75,6 +85,12 @@ class XAutoCommandsMixin(XAutoClientBase):
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_GET_BITNESS)
     
     def memmap(self) -> list[MemPage]:
+        """
+        Retrieves the memory map of the debugee
+
+        Returns:
+            A list of MemPage objects
+        """
         resp = self._send_request(XAutoCommand.XAUTO_REQ_DBG_MEMMAP)
         pages = []
         for page in resp:
@@ -82,15 +98,41 @@ class XAutoCommandsMixin(XAutoClientBase):
         return pages
     
     def read_memory(self, addr: int, size: int) -> bytes:
+        """
+        Reads data frpm the debugee's memory
+
+        Args:
+            addr: The address to read from
+            size: The number of bytes to read
+
+        Returns:
+            Success
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, size)
      
     def write_memory(self, addr: int, data: bytes) -> bool:
+        """
+        Writes data to the debugee's memory
+
+        Args:
+            addr: The address to write to
+            data: The data to be written
+
+        Returns:
+            Success
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_MEMORY, addr, data)
     
     def gui_refresh_views(self) -> list[MemPage]:
         return self._send_request(XAutoCommand.XAUTO_REQ_GUI_REFRESH_VIEWS)
     
-    def get_regs(self) -> list[MemPage]:
+    def get_regs(self) -> list[RegDump32] | list[RegDump64]:
+        """
+        Dump the registers of the debugee
+
+        Returns:
+            A list of RegDump objects
+        """
         raw_regs = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_REGISTERS)
         bitness = raw_regs[0]
         raw_regs = raw_regs[1:]
@@ -152,6 +194,15 @@ class XAutoCommandsMixin(XAutoClientBase):
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_VALID_READ_PTR, addr)
     
     def disassemble_at(self, addr: int) -> Instruction | None:
+        """
+        Disassembles a single instruction at the specified address
+
+        Args:
+            addr: The address to disassemble at
+
+        Returns:
+            An Instruction object or None if the disassembly failed
+        """
         res = self._send_request(XAutoCommand.XAUTO_REQ_DISASSEMBLE, addr)
         if not res:
             return None
@@ -174,6 +225,15 @@ class XAutoCommandsMixin(XAutoClientBase):
         return self._send_request(XAutoCommand.XAUTO_REQ_ASSEMBLE, addr, instr)
     
     def get_breakpoints(self, bp_type: BreakpointType) -> list[Breakpoint]:
+        """
+        Retrieves all breakpoints of the specified type
+
+        Args:
+            bp_type: The type of breakpoint to get
+        
+        Returns:
+            A list of Breakpoint objects
+        """
         resp = self._send_request(XAutoCommand.XAUTO_REQ_GET_BREAKPOINTS, bp_type)
         return [Breakpoint(
             type=BreakpointType(bp[0]),
@@ -209,6 +269,15 @@ class XAutoCommandsMixin(XAutoClientBase):
         return comment
     
     def get_symbol_at(self, addr: int) -> Symbol | None:
+        """
+        Retrieves the symbol at the specified address
+
+        Args:
+            addr: The address to get the symbol for
+
+        Returns:
+            A Symbol object or None if no symbol was found
+        """
         res = self._send_request(XAutoCommand.XAUTO_REQ_GET_SYMBOL, addr)
         if not res[0]:
             return ""
@@ -220,7 +289,16 @@ class XAutoCommandsMixin(XAutoClientBase):
             ordinal=res[5]
         )
     
-    def wait_until_debugging(self, timeout = 10) -> bool:
+    def wait_until_debugging(self, timeout: int = 10) -> bool:
+        """
+        Blocks until the debugger enters a debugging state
+
+        Args:
+            timeout: The maximum time to wait in seconds
+
+        Returns:
+            True if the debugger is debugging, False otherwise
+        """
         slept = 0
         while True:
             if self.is_debugging():
@@ -230,7 +308,16 @@ class XAutoCommandsMixin(XAutoClientBase):
             if slept >= timeout:
                 return False
     
-    def wait_until_not_debugging(self, timeout = 10) -> bool:
+    def wait_until_not_debugging(self, timeout: int = 10) -> bool:
+        """
+        Blocks until the debugger enters a not-debugging state
+
+        Args:
+            timeout: The maximum time to wait in seconds
+
+        Returns:
+            True if the debugger is not-debugging, False otherwise
+        """
         slept = 0
         while True:
             if not self.is_debugging():
@@ -240,7 +327,16 @@ class XAutoCommandsMixin(XAutoClientBase):
             if slept >= timeout:
                 return False
     
-    def wait_until_running(self, timeout = 10) -> bool:
+    def wait_until_running(self, timeout: int = 10) -> bool:
+        """
+        Blocks until the debugger enters a running state
+
+        Args:
+            timeout: The maximum time to wait in seconds
+
+        Returns:
+            True if the debugger is running, False otherwise
+        """
         slept = 0
         while True:
             if self.debugee_is_running():
@@ -250,7 +346,16 @@ class XAutoCommandsMixin(XAutoClientBase):
             if slept >= timeout:
                 return False
     
-    def wait_until_stopped(self, timeout = 10) -> bool:
+    def wait_until_stopped(self, timeout: int = 10) -> bool:
+        """
+        Blocks until the debugger enters a stopped state
+
+        Args:
+            timeout: The maximum time to wait in seconds
+
+        Returns:
+            True if the debugger is stopped, False otherwise
+        """
         slept = 0
         while True:
             if not self.debugee_is_running() or not self.is_debugging():
@@ -260,5 +365,14 @@ class XAutoCommandsMixin(XAutoClientBase):
             if slept >= timeout:
                 return False
     
-    def wait_cmd_ready(self, timeout = 10) -> bool:
+    def wait_cmd_ready(self, timeout: int = 10) -> bool:
+        """
+        Blocks until the debugger is ready to accept debug control commands (debugging + stopped)
+
+        Args:
+            timeout: The maximum time to wait in seconds
+
+        Returns:
+            True if the debugger is ready, False otherwise
+        """
         return self.wait_until_debugging(timeout) and self.wait_until_stopped(timeout)

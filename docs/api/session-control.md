@@ -1,6 +1,6 @@
 # Session Control
 
-### Sessions
+### What are Sessions?
 
 A session refers to an automation-enabled running instance of x64dbg.
 

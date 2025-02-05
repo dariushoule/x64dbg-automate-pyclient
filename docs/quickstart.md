@@ -18,7 +18,7 @@ client.set_breakpoint('GetModuleHandleA')
 client.go()
 ```
 
-_See client documentation sections for full capabilities._
+_See API Reference sections for full capabilities._
 
 **Four: Clean up**
 
@@ -72,6 +72,6 @@ client.deattach_session()
 
 ![Output in Winver](rocks.png)
 
-# Examples
+# More Examples
 
 More examples of x64dbg Automate's capabilities can be seen in: [https://github.com/dariushoule/x64dbg-automate-pyclient/tree/main/examples](https://github.com/dariushoule/x64dbg-automate-pyclient/tree/main/examples)

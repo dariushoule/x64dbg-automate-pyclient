@@ -170,3 +170,85 @@ client.detach_session()
     options:
         show_root_heading: true
         show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.wait_for_debug_event
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.clear_debug_events
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.watch_debug_event
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.unwatch_debug_event
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.get_latest_debug_event
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.peek_latest_debug_event
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.wait_until_debugging
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.wait_until_not_debugging
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.wait_until_running
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.wait_until_stopped
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.wait_cmd_ready
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+### API Model Reference
+
+::: x64dbg_automate.events.DbgEvent
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+        show_bases: false
+
+
+::: x64dbg_automate.events.EventType
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+        show_bases: false
