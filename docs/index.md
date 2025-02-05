@@ -6,7 +6,7 @@ x64dbg Automate is a plugin + client library that adds enhanced scripting and au
 <img src="art.png" alt="Python + x64dbg homepage graphic"/>
 </p>
 
-The heart of this project is the native plugin that externalizes the bridge and scripting interfaces of x64dbg - this is the foundation on which the Python reference client for x64dbg Automate is built.
+The heart of the project is the native plugin that externalizes the bridge and scripting interfaces of x64dbg. This is the foundation on which the Python reference client for x64dbg Automate is built.
 
 ## Core Principles
 
