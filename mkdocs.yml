@@ -20,3 +20,6 @@ plugins:
   - search
   - mkdocstrings
   - autorefs
+theme:
+  name: mkdocs
+  custom_dir: docs_custom/
