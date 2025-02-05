@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>Registers and Expressions - x64dbg Automate</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../css/brands.min.css" rel="stylesheet">
+        <link href="../../css/solid.min.css" rel="stylesheet">
+        <link href="../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../../assets/_mkdocstrings.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">x64dbg Automate</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../.." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../installation/" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../quickstart/" class="nav-link">Quickstart</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Client Reference</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../session-control/" class="dropdown-item">Session Control</a>
+</li>
+                                    
+<li>
+    <a href="../debug-control/" class="dropdown-item">Debug Control</a>
+</li>
+                                    
+<li>
+    <a href="../memory-control/" class="dropdown-item">Memory Control</a>
+</li>
+                                    
+<li>
+    <a href="../breakpoints/" class="dropdown-item">Breakpoints</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active" aria-current="page">Registers and Expressions</a>
+</li>
+                                    
+<li>
+    <a href="../assembler-disassembler/" class="dropdown-item">Assembling and Disassembling</a>
+</li>
+                                    
+<li>
+    <a href="../commands/" class="dropdown-item">Commands and Extensibility</a>
+</li>
+                                    
+<li>
+    <a href="../annotations/" class="dropdown-item">Labels, Comments, Bookmarks</a>
+</li>
+                                    
+<li>
+    <a href="../settings/" class="dropdown-item">Settings</a>
+</li>
+                                    
+<li>
+    <a href="../gui/" class="dropdown-item">Gui</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../breakpoints/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../assembler-disassembler/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#registers-and-expressions" class="nav-link">Registers and Expressions</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.get_reg" class="nav-link">get_reg</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.get_regs" class="nav-link">get_regs</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.set_reg" class="nav-link">set_reg</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.eval_sync" class="nav-link">eval_sync</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.get_symbol_at" class="nav-link">get_symbol_at</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.RegDump" class="nav-link">RegDump</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.RegDump64" class="nav-link">RegDump64</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.RegDump32" class="nav-link">RegDump32</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.Context64" class="nav-link">Context64</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.Context32" class="nav-link">Context32</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.X87Fpu" class="nav-link">X87Fpu</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.Flags" class="nav-link">Flags</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.FpuReg" class="nav-link">FpuReg</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.MxcsrFields" class="nav-link">MxcsrFields</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.X87StatusWordFields" class="nav-link">X87StatusWordFields</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.X87ControlWordFields" class="nav-link">X87ControlWordFields</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.Symbol" class="nav-link">Symbol</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.SymbolType" class="nav-link">SymbolType</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.MutableRegister" class="nav-link">MutableRegister</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="registers-and-expressions">Registers and Expressions</h1>
+<h3 id="what-is-an-expression">What is an Expression?</h3>
+<p>An expression is a statement evaluated in the context of the debugger. It can be as simple as 2+2, or a complex calculation involving symbols, scales, and segments. 
+x64dbg Automate provides the debugger's full evaluation capabilities, and adds some convenience methods.</p>
+<p>When you request a register in x64dbg Automate it's really just shorthand for evaluating an expression where the only value is your register. This is true unless
+a full register dump is requested. This is the exception to the above rule - instead providing a full thread context dump in the format the debugger uses internally. </p>
+<p>The full register dump can be useful for accessing more nuanced parts of thread state, but is generally overkill for common tasks like retrieving a common register value.</p>
+<h3 id="example-expressions-and-registers">Example: Expressions and Registers</h3>
+<pre><code class="language-python">&quot;&quot;&quot;
+Example: Expressions and Registers (64 bit)
+&quot;&quot;&quot;
+import sys
+from x64dbg_automate import X64DbgClient
+from x64dbg_automate.models import RegDump64
+
+if len(sys.argv) != 2:
+    print(&quot;Usage: python hello64.py &lt;x64dbg_path&gt;&quot;)
+    quit(1)
+
+print('[+] Creating a new x64dbg Automate session')
+client = X64DbgClient(x64dbg_path=sys.argv[1])
+client.start_session(r'c:\Windows\system32\winver.exe')
+
+print('[+] Getting the value of RIP')
+rip = client.get_reg('rip')
+print(f'\tRIP: 0x{rip:X}')
+
+print('[+] Setting the value of RIP')
+client.set_reg('rip', 0x1234)
+
+print('[+] Setting the value of RIP to an expression')
+value, _ = client.eval_sync('LoadLibraryA + 0x20')
+client.set_reg('rip', value)
+
+print('[+] Setting the value of a subregister')
+client.set_reg('rax', 0)
+client.set_reg('ah', 0x99)
+
+print('[+] Performing a full register dump')
+dump: RegDump64 = client.get_regs()
+print(f'\tRIP: 0x{dump.context.rip:X}')
+print(f'\tRAX: 0x{dump.context.rax:X}')
+
+print('[+] Cleaning up')
+client.terminate_session()
+</code></pre>
+<pre><code>[+] Creating a new x64dbg Automate session
+[+] Getting the value of RIP
+        RIP: 0x7FFC97E6142A
+[+] Setting the value of RIP
+[+] Setting the value of RIP to an expression
+[+] Setting the value of a subregister
+[+] Performing a full register dump
+        RIP: 0x7FFC973C2DA0
+        RAX: 0x9900
+[+] Cleaning up
+</code></pre>
+<h3 id="api-method-reference">API Method Reference</h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.get_reg" class="doc doc-heading">
+            <code class="highlight language-python">get_reg(reg)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Get a single register or subregister</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate\hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_reg(self, reg: MutableRegister | str) -&gt; int:
+    """
+    Get a single register or subregister
+
+    Returns:
+        Success
+    """
+    reg = MutableRegister(str(reg).lower())
+    res, success = self.eval_sync(f'{reg}')
+    if not success:
+        raise ValueError(f"Failed to evaluate register {reg}")
+    return res</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.get_regs" class="doc doc-heading">
+            <code class="highlight language-python">get_regs()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Dump the registers of the debugee</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>list[<a class="autorefs autorefs-internal" title="x64dbg_automate.models.RegDump32" href="#x64dbg_automate.models.RegDump32">RegDump32</a>] | list[<a class="autorefs autorefs-internal" title="x64dbg_automate.models.RegDump64" href="#x64dbg_automate.models.RegDump64">RegDump64</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of RegDump objects</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate\commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_regs(self) -&gt; list[RegDump32] | list[RegDump64]:
+    """
+    Dump the registers of the debugee
+
+    Returns:
+        A list of RegDump objects
+    """
+    raw_regs = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_REGISTERS)
+    bitness = raw_regs[0]
+    raw_regs = raw_regs[1:]
+    if bitness == 64:
+        ctx = {k: v for k, v in zip(Context64.model_fields.keys(), raw_regs[0])}
+        ctx['x87_fpu'] = X87Fpu(**{k: v for k, v in zip(X87Fpu.model_fields.keys(), ctx['x87_fpu'])})
+        ctx['xmm_regs'] = [ctx['xmm_regs'][i:i+16] for i in range(0, len(ctx['xmm_regs']), 16)]
+        ctx['ymm_regs'] = [ctx['ymm_regs'][i:i+32] for i in range(0, len(ctx['ymm_regs']), 32)]
+        return RegDump64(
+            context=Context64(**ctx),
+            flags=Flags(**{k: v for k, v in zip(Flags.model_fields.keys(), raw_regs[1])}),
+            fpu=[FpuReg(data=raw_regs[2][i][0], st_value=raw_regs[2][i][1], tag=raw_regs[2][i][2]) for i in range(len(raw_regs[2]))],
+            mmx=raw_regs[3],
+            mxcsr_fields=MxcsrFields(**{k: v for k, v in zip(MxcsrFields.model_fields.keys(), raw_regs[4])}),
+            x87_status_word_fields=X87StatusWordFields(**{k: v for k, v in zip(X87StatusWordFields.model_fields.keys(), raw_regs[5])}),
+            x87_control_word_fields=X87ControlWordFields(**{k: v for k, v in zip(X87ControlWordFields.model_fields.keys(), raw_regs[6])}),
+            last_error=(raw_regs[7][0], raw_regs[7][1].decode().strip('\0')),
+            last_status=(raw_regs[8][0], raw_regs[8][1].decode().strip('\0'))
+        )
+    else:
+        ctx = {k: v for k, v in zip(Context32.model_fields.keys(), raw_regs[0])}
+        ctx['x87_fpu'] = X87Fpu(**{k: v for k, v in zip(X87Fpu.model_fields.keys(), ctx['x87_fpu'])})
+        ctx['xmm_regs'] = [ctx['xmm_regs'][i:i+16] for i in range(0, len(ctx['xmm_regs']), 16)]
+        ctx['ymm_regs'] = [ctx['ymm_regs'][i:i+32] for i in range(0, len(ctx['ymm_regs']), 32)]
+        return RegDump32(
+            context=Context32(**ctx),
+            flags=Flags(**{k: v for k, v in zip(Flags.model_fields.keys(), raw_regs[1])}),
+            fpu=[FpuReg(data=raw_regs[2][i][0], st_value=raw_regs[2][i][1], tag=raw_regs[2][i][2]) for i in range(len(raw_regs[2]))],
+            mmx=raw_regs[3],
+            mxcsr_fields=MxcsrFields(**{k: v for k, v in zip(MxcsrFields.model_fields.keys(), raw_regs[4])}),
+            x87_status_word_fields=X87StatusWordFields(**{k: v for k, v in zip(X87StatusWordFields.model_fields.keys(), raw_regs[5])}),
+            x87_control_word_fields=X87ControlWordFields(**{k: v for k, v in zip(X87ControlWordFields.model_fields.keys(), raw_regs[6])}),
+            last_error=(raw_regs[7][0], raw_regs[7][1]),
+            last_status=(raw_regs[8][0], raw_regs[8][1])
+        )</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.set_reg" class="doc doc-heading">
+            <code class="highlight language-python">set_reg(reg, val)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Set a single register or subregister to a value</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate\hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def set_reg(self, reg: MutableRegister | str, val: int) -&gt; bool:
+    """
+    Set a single register or subregister to a value
+
+    Returns:
+        Success
+    """
+    reg = MutableRegister(str(reg).lower())
+    if not isinstance(val, int):
+        raise TypeError("val must be an integer")
+    return self.cmd_sync(f'{reg}=0x{val:X}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.eval_sync" class="doc doc-heading">
+            <code class="highlight language-python">eval_sync(eval_str)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Evaluates an expression that results in a numerical output</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>list[int, bool]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list containing the result and a boolean indicating success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate\commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def eval_sync(self, eval_str) -&gt; list[int, bool]:
+    """
+    Evaluates an expression that results in a numerical output
+
+    Returns:
+        A list containing the result and a boolean indicating success
+    """
+    return self._send_request(XAutoCommand.XAUTO_REQ_DBG_EVAL, eval_str)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.get_symbol_at" class="doc doc-heading">
+            <code class="highlight language-python">get_symbol_at(addr)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Retrieves the symbol at the specified address</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>addr</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The address to get the symbol for</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.Symbol" href="#x64dbg_automate.models.Symbol">Symbol</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A Symbol object or None if no symbol was found</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate\commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_symbol_at(self, addr: int) -&gt; Symbol | None:
+    """
+    Retrieves the symbol at the specified address
+
+    Args:
+        addr: The address to get the symbol for
+
+    Returns:
+        A Symbol object or None if no symbol was found
+    """
+    res = self._send_request(XAutoCommand.XAUTO_REQ_GET_SYMBOL, addr)
+    if not res[0]:
+        return ""
+    return Symbol(
+        addr=res[1],
+        decoratedSymbol=res[2],
+        undecoratedSymbol=res[3],
+        type=SymbolType(res[4]),
+        ordinal=res[5]
+    )</code></pre>
+            </details>
+    </div>
+
+</div><h3 id="api-model-reference">API Model Reference</h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.RegDump" class="doc doc-heading">
+            <code>RegDump</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class RegDump(BaseModel):
+    flags: Flags
+    fpu: list[FpuReg]
+    mmx: list[int]
+    mxcsr_fields: MxcsrFields
+    x87_status_word_fields: X87StatusWordFields
+    x87_control_word_fields: X87ControlWordFields
+    last_error: tuple[int, str]
+    last_status: tuple[int, str]</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.RegDump64" class="doc doc-heading">
+            <code>RegDump64</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.RegDump" href="#x64dbg_automate.models.RegDump">RegDump</a></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class RegDump64(RegDump):
+    context: Context64</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.RegDump32" class="doc doc-heading">
+            <code>RegDump32</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.RegDump" href="#x64dbg_automate.models.RegDump">RegDump</a></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class RegDump32(RegDump):
+    context: Context32</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.Context64" class="doc doc-heading">
+            <code>Context64</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class Context64(BaseModel):
+    rax: int
+    rbx: int
+    rcx: int
+    rdx: int
+    rbp: int
+    rsp: int
+    rsi: int
+    rdi: int
+    r8: int
+    r9: int
+    r10: int
+    r11: int
+    r12: int
+    r13: int
+    r14: int
+    r15: int
+    rip: int
+    eflags: int
+    cs: int
+    ds: int
+    es: int
+    fs: int
+    gs: int
+    ss: int
+    dr0: int
+    dr1: int
+    dr2: int
+    dr3: int
+    dr6: int
+    dr7: int
+    reg_area: bytes
+    x87_fpu: X87Fpu
+    mxcsr: int
+    xmm_regs: list[bytes]
+    ymm_regs: list[bytes]</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.Context32" class="doc doc-heading">
+            <code>Context32</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class Context32(BaseModel):
+    eax: int
+    ebx: int
+    ecx: int
+    edx: int
+    ebp: int
+    esp: int
+    esi: int
+    edi: int
+    eip: int
+    eflags: int
+    cs: int
+    ds: int
+    es: int
+    fs: int
+    gs: int
+    ss: int
+    dr0: int
+    dr1: int
+    dr2: int
+    dr3: int
+    dr6: int
+    dr7: int
+    reg_area: bytes
+    x87_fpu: X87Fpu
+    mxcsr: int
+    xmm_regs: list[bytes]
+    ymm_regs: list[bytes]</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.X87Fpu" class="doc doc-heading">
+            <code>X87Fpu</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class X87Fpu(BaseModel):
+    ControlWord: int
+    StatusWord: int
+    TagWord: int
+    ErrorOffset: int
+    ErrorSelector: int
+    DataOffset: int
+    DataSelector: int
+    Cr0NpxState: int</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.Flags" class="doc doc-heading">
+            <code>Flags</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class Flags(BaseModel):
+    c: bool
+    p: bool
+    a: bool
+    z: bool
+    s: bool
+    t: bool
+    i: bool
+    d: bool
+    o: bool</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.FpuReg" class="doc doc-heading">
+            <code>FpuReg</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class FpuReg(BaseModel):
+    data: bytes
+    st_value: int
+    tag: int</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.MxcsrFields" class="doc doc-heading">
+            <code>MxcsrFields</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class MxcsrFields(BaseModel):
+    FZ: bool
+    PM: bool
+    UM: bool
+    OM: bool
+    ZM: bool
+    IM: bool
+    DM: bool
+    DAZ: bool
+    PE: bool
+    UE: bool
+    OE: bool
+    ZE: bool
+    DE: bool
+    IE: bool
+    RC: int</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.X87StatusWordFields" class="doc doc-heading">
+            <code>X87StatusWordFields</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class X87StatusWordFields(BaseModel):
+    B: bool
+    C3: bool
+    C2: bool
+    C1: bool
+    C0: bool
+    ES: bool
+    SF: bool
+    P: bool
+    U: bool
+    O: bool
+    Z: bool
+    D: bool
+    I: bool
+    TOP: int</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.X87ControlWordFields" class="doc doc-heading">
+            <code>X87ControlWordFields</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class X87ControlWordFields(BaseModel):
+    IC: bool
+    IEM: bool
+    PM: bool
+    UM: bool
+    OM: bool
+    ZM: bool
+    DM: bool
+    IM: bool
+    RC: int
+    PC: int</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.Symbol" class="doc doc-heading">
+            <code>Symbol</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class Symbol(BaseModel):
+    addr: int
+    decoratedSymbol: str
+    undecoratedSymbol: str
+    type: int
+    ordinal: int</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.SymbolType" class="doc doc-heading">
+            <code>SymbolType</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="enum.IntEnum">IntEnum</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class SymbolType(IntEnum):
+    SymImport = 0
+    SymExport = 1
+    SymSymbol = 2</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.MutableRegister" class="doc doc-heading">
+            <code>MutableRegister</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="enum.StrEnum">StrEnum</span></code></p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate\models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class MutableRegister(StrEnum):
+    rax = 'rax'
+    rbx = 'rbx'
+    rcx = 'rcx'
+    rdx = 'rdx'
+    rbp = 'rbp'
+    rsp = 'rsp'
+    rsi = 'rsi'
+    rdi = 'rdi'
+    r8 = 'r8'
+    r9 = 'r9'
+    r10 = 'r10'
+    r11 = 'r11'
+    r12 = 'r12'
+    r13 = 'r13'
+    r14 = 'r14'
+    r15 = 'r15'
+    rip = 'rip'
+    eip = 'eip'
+    eflags = 'eflags'
+    rflags = 'rflags'
+    cs = 'cs'
+    ds = 'ds'
+    es = 'es'
+    fs = 'fs'
+    gs = 'gs'
+    ss = 'ss'
+    dr0 = 'dr0'
+    dr1 = 'dr1'
+    dr2 = 'dr2'
+    dr3 = 'dr3'
+    dr6 = 'dr6'
+    dr7 = 'dr7'
+    eax = 'eax'
+    ebx = 'ebx'
+    ecx = 'ecx'
+    edx = 'edx'
+    ebp = 'ebp'
+    esp = 'esp'
+    esi = 'esi'
+    edi = 'edi'
+    ax = 'ax'
+    bx = 'bx'
+    cx = 'cx'
+    dx = 'dx'
+    si = 'si'
+    di = 'di'
+    bp = 'bp'
+    sp = 'sp'
+    al = 'al'
+    bl = 'bl'
+    cl = 'cl'
+    dl = 'dl'
+    ah = 'ah'
+    bh = 'bh'
+    ch = 'ch'
+    dh = 'dh'
+    sil = 'sil'
+    dil = 'dil'
+    bpl = 'bpl'
+    spl = 'spl'
+    r8d = 'r8d'
+    r9d = 'r9d'
+    r10d = 'r10d'
+    r11d = 'r11d'
+    r12d = 'r12d'
+    r13d = 'r13d'
+    r14d = 'r14d'
+    r15d = 'r15d'
+    r8w = 'r8w'
+    r9w = 'r9w'
+    r10w = 'r10w'
+    r11w = 'r11w'
+    r12w = 'r12w'
+    r13w = 'r13w'
+    r14w = 'r14w'
+    r15w = 'r15w'
+    r8b = 'r8b'
+    r9b = 'r9b'
+    r10b = 'r10b'
+    r11b = 'r11b'
+    r12b = 'r12b'
+    r13b = 'r13b'
+    r14b = 'r14b'
+    r15b = 'r15b'</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

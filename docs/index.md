@@ -20,6 +20,8 @@ The heart of this project is the native plugin that externalizes the bridge and 
 
 To get started with x64dbg Automate, it's recommended to visit [Installation](installation.md) and [Quickstart](quickstart.md).
 
+🔔 _All examples and sample code assume x64dbg is configured to stop on entry and system breakpoints, skipping TLS breakpoints._
+
 ## Source
 
 - Plugin Repository: [https://github.com/dariushoule/x64dbg-automate](https://github.com/dariushoule/x64dbg-automate)

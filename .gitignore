@@ -35,6 +35,3 @@ ENV/
 # Misc
 .DS_Store
 *.log
-
-# Mkdocs
-site/
