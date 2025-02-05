@@ -6,9 +6,9 @@ The client implements the full RPC protocol provided by [x64dbg-automate](https:
 
 ## Documentation
 
-Full documentation is published on: TODO
+Full project documentation is published on: TODO
 
-[Installation](todo) and [Quickstart](todo)
+See: [Installation](todo) and [Quickstart](todo)
 
 🔔 _All examples and sample code assume x64dbg is configured to stop on entry and system breakpoints, skipping TLS breakpoints._
 
@@ -31,3 +31,9 @@ python .\examples\assemble_and_disassemble.py C:\<you>\x64dbg\release\x64\x64dbg
 python -m mkdocs serve # dev
 python -m mkdocs build # publish
 ```
+
+# Contributing
+
+Issues, feature-requests, and pull-requests are welcome on this project ❤️🐛
+
+My commitment to the community will be to be a responsive maintainer. Discuss with me before implementing major breaking changes or feature additions.
