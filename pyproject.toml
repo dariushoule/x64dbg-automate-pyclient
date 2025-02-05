@@ -6,7 +6,7 @@ authors = ["Darius Houle <darius@x64.ooo>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.10"
 pyzmq = "^26.2.0"
 msgpack = "^1.1.0"
 pytest = "^8.3.4"
