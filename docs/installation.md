@@ -17,6 +17,8 @@ Extract the contents of the archive into your debugger's plugin directory, creat
 pip install x64dbg_automate --upgrade
 ```
 
+    🔔 Important: The Microsoft Store builds of Python are restricted such that the client library may not function well. Use them at your own risk.
+
 
 ### Troubleshooting
 

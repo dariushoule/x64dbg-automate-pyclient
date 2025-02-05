@@ -4,7 +4,8 @@ An automation session can be launched with four steps:
 
 **One: Instantiate `X64DbgClient` and orient it against your installation**
 ```
-client = X64DbgClient(x64dbg_path="C:\x64dbg\release\x64\x64dbg.exe")
+from x64dbg_automate import X64DbgClient
+client = X64DbgClient(x64dbg_path=r"C:\x64dbg\release\x64\x64dbg.exe")
 ```
 
 **Two: Start a new debug session or attach to an existing one**
@@ -23,7 +24,7 @@ _See Client Reference sections for full capabilities._
 **Four: Clean up**
 
 ```
-client.deattach_session()
+client.detach_session()
 ```
 
 ### Example: Hello World
