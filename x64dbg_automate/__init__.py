@@ -111,7 +111,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         return msg
 
     def _assert_connection_compat(self) -> None:
-        v = self.get_xauto_compat_version()
+        v = self._get_xauto_compat_version()
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
         
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
@@ -184,7 +184,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         End the current x64dbg session, terminating the debugger process.
         """
         sid = self.session_pid
-        self.xauto_terminate_session()
+        self._xauto_terminate_session()
         self._close_connection()
         for _ in range(100):
             time.sleep(0.2)

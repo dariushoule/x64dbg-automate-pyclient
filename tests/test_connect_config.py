@@ -42,9 +42,9 @@ def test_dbg_is_debugging(client: X64DbgClient):
 
 def test_dbg_is_running(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.debugee_is_running() == False
+    assert client.is_running() == False
     assert client.cmd_sync('g') == True
-    assert client.debugee_is_running() == True
+    assert client.is_running() == True
 
 
 def test_config_get_set(client: X64DbgClient):

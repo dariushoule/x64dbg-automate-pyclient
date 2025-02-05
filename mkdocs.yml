@@ -3,7 +3,7 @@ nav:
   - "Home": index.md
   - "Installation": installation.md
   - "Quickstart": quickstart.md
-  - "Api Reference":
+  - "Client Reference":
     - "Session Control": api/session-control.md
     - "Debug Control": api/debug-control.md
     - "Memory Control": api/memory-control.md
@@ -12,6 +12,8 @@ nav:
     - "Assembling and Disassembling": api/assembler-disassembler.md
     - "Commands and Extensibility": api/commands.md
     - "Labels, Comments, Bookmarks": api/annotations.md
+    - "Settings": api/settings.md
+    - "Gui": api/gui.md
 plugins:
   - search
   - mkdocstrings

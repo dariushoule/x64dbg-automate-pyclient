@@ -18,7 +18,7 @@ client.set_breakpoint('GetModuleHandleA')
 client.go()
 ```
 
-_See API Reference sections for full capabilities._
+_See Client Reference sections for full capabilities._
 
 **Four: Clean up**
 

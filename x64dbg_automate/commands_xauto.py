@@ -38,15 +38,27 @@ class XAutoCommand(StrEnum):
 
 class XAutoCommandsMixin(XAutoClientBase):
     def get_debugger_pid(self) -> int:
+        """
+        Retrieves the PID of the x64dbg process
+
+        Returns:
+            The PID of the x64dbg process
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DEBUGGER_PID)
     
-    def get_xauto_compat_version(self) -> str:
+    def _get_xauto_compat_version(self) -> str:
         return self._send_request(XAutoCommand.XAUTO_REQ_COMPAT_VERSION)
     
     def get_debugger_version(self) -> int:
+        """
+        Retrieves the version (numeric) of the x64dbg process
+
+        Returns:
+            The version of the x64dbg process
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DEBUGGER_VERSION)
     
-    def xauto_terminate_session(self):
+    def _xauto_terminate_session(self):
         assert self._send_request(XAutoCommand.XAUTO_REQ_QUIT) == "OK_QUITTING", "Failed to terminate x64dbg session"
     
     def eval_sync(self, eval_str) -> list[int, bool]:
@@ -62,7 +74,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         Evaluates a command and returns the success or failure.
 
-        See: https://help.x64dbg.com/en/latest/commands/
+        See: [https://help.x64dbg.com/en/latest/commands/](https://help.x64dbg.com/en/latest/commands/)
 
         Args:
             cmd_str: The command to execute
@@ -72,16 +84,40 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC_DIRECT, cmd_str)
     
-    def debugee_is_running(self) -> bool:
+    def is_running(self) -> bool:
+        """
+        Checks if the debugee's state is "running"
+
+        Returns:
+            True if the debugee is running, False otherwise
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_RUNNING)
     
     def is_debugging(self) -> bool:
+        """
+        Checks if the debugee's state is "debugging"
+
+        Returns:
+            True if the debugee is running, False otherwise
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_DEBUGGING)
     
     def debugger_is_elevated(self) -> bool:
+        """
+        Checks if the debugger is running with elevated privileges
+
+        Returns:
+            True if the debugger is elevated, False otherwise
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_ELEVATED)
     
     def debugee_bitness(self) -> bool:
+        """
+        Retrieves the bitness of the debugee
+
+        Returns:
+            The bitness of the debugee
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_GET_BITNESS)
     
     def memmap(self) -> list[MemPage]:
@@ -123,7 +159,13 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_MEMORY, addr, data)
     
-    def gui_refresh_views(self) -> list[MemPage]:
+    def gui_refresh_views(self) -> bool:
+        """
+        Refreshes the GUI views of x64dbg
+
+        Returns:
+            Success
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_GUI_REFRESH_VIEWS)
     
     def get_regs(self) -> list[RegDump32] | list[RegDump64]:
@@ -168,29 +210,77 @@ class XAutoCommandsMixin(XAutoClientBase):
                 last_error=(raw_regs[7][0], raw_regs[7][1]),
                 last_status=(raw_regs[8][0], raw_regs[8][1])
             )
-        
-    def debugee_is_running(self) -> bool:
-        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_RUNNING)
     
     def get_setting_str(self, section: str, setting_name: str) -> str | None:
+        """
+        Retrieves a string setting from the x64dbg configuration
+
+        Args:
+            section: The section of the setting
+            setting_name: The name of the setting
+
+        Returns:
+            The value of the setting or None if the setting was not found
+        """
         res, setting = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_SETTING_SZ, section, setting_name)
         if not res:
             return None
         return setting
     
     def set_setting_str(self, section: str, setting_name: str, setting_val: str) -> bool:
+        """
+        Sets a string setting in the x64dbg configuration
+
+        Args:
+            section: The section of the setting
+            setting_name: The name of the setting
+            setting_val: The desired value of the setting
+
+        Returns:
+            Success
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_SETTING_SZ, section, setting_name, setting_val)
     
     def get_setting_int(self, section: str, setting_name: str) -> int | None:
+        """
+        Retrieves a numeric setting from the x64dbg configuration
+
+        Args:
+            section: The section of the setting
+            setting_name: The name of the setting
+
+        Returns:
+            The value of the setting or None if the setting was not found
+        """
         res, setting = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_SETTING_UINT, section, setting_name)
         if not res:
             return None
         return setting
     
     def set_setting_int(self, section: str, setting_name: str, setting_val: int) -> bool:
+        """
+        Sets a numeric setting in the x64dbg configuration
+
+        Args:
+            section: The section of the setting
+            setting_name: The name of the setting
+            setting_val: The desired value of the setting
+
+        Returns:
+            Success
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_WRITE_SETTING_UINT, section, setting_name, setting_val)
     
     def check_valid_read_ptr(self, addr: int) -> bool:
+        """
+        Checks if the specified address is accessible read memory in the debugee
+
+        Args:
+            addr: The address to check
+
+        Returns:
+            True if the address is valid, False otherwise
+        """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_VALID_READ_PTR, addr)
     
     def disassemble_at(self, addr: int) -> Instruction | None:
@@ -257,12 +347,31 @@ class XAutoCommandsMixin(XAutoClientBase):
         ) for bp in resp]
     
     def get_label_at(self, addr: int, segment_reg: SegmentReg = SegmentReg.SegDefault) -> str:
+        """
+        Retrieves the label at the specified address
+
+        Args:
+            addr: The address to get the label for
+            segment_reg: The segment register to use
+
+        Returns:
+            The label or an empty string if no label was found
+        """
         res, label = self._send_request(XAutoCommand.XAUTO_REQ_GET_LABEL, addr, segment_reg)
         if not res:
             return ""
         return label
     
     def get_comment_at(self, addr: int) -> str:
+        """
+        Retrieves the comment at the specified address
+
+        Args:
+            addr: The address to get the comment for
+
+        Returns:
+            The label or an empty string if no comment was found
+        """
         res, comment = self._send_request(XAutoCommand.XAUTO_REQ_GET_COMMENT, addr)
         if not res:
             return ""
@@ -339,7 +448,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         slept = 0
         while True:
-            if self.debugee_is_running():
+            if self.is_running():
                 return True
             time.sleep(0.08)
             slept += 0.08
@@ -358,7 +467,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         slept = 0
         while True:
-            if not self.debugee_is_running() or not self.is_debugging():
+            if not self.is_running() or not self.is_debugging():
                 return True
             time.sleep(0.2)
             slept += 0.2

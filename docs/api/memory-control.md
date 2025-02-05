@@ -185,6 +185,12 @@ client.terminate_session()
         show_root_full_path: false
 
 
+::: x64dbg_automate.X64DbgClient.check_valid_read_ptr
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
 ### API Model Reference
 
 ::: x64dbg_automate.models.MemPage

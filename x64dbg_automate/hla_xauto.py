@@ -440,26 +440,76 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         else:
             return self.cmd_sync(f'{toggle_cmd} {address_symbol_or_none}')
 
-    def set_label_at(self, address: int, text: str):
+    def set_label_at(self, address: int, text: str) -> bool:
+        """
+        Sets a label at the specified address
+
+        Args:
+            address: Address to set the label at
+            text: Label text
+
+        Returns:
+            Success
+        """
         if '"' in text:
             raise ValueError("Text cannot contain double quotes")
         return self.cmd_sync(f'lblset 0x{address:x}, "{text}"')
 
-    def del_label_at(self, address: int):
+    def del_label_at(self, address: int) -> bool:
+        """
+        Deletes a label at the specified address
+
+        Args:
+            address: Address to clear the label at
+
+        Returns:
+            Success
+        """
         return self.cmd_sync(f'lbldel 0x{address:x}')
 
-    def set_comment_at(self, address: int, text: str):
+    def set_comment_at(self, address: int, text: str) -> bool:
+        """
+        Sets a comment at the specified address
+
+        Args:
+            address: Address to set the comment at
+            text: comment text
+
+        Returns:
+            Success
+        """
         if '"' in text:
             raise ValueError("Text cannot contain double quotes")
         return self.cmd_sync(f'cmtset 0x{address:x}, "{text}"')
 
-    def del_comment_at(self, address: int):
+    def del_comment_at(self, address: int) -> bool:
+        """
+        Deletes a comment at the specified address
+
+        Args:
+            address: Address to clear the comment at
+
+        Returns:
+            Success
+        """
         return self.cmd_sync(f'cmtdel 0x{address:x}')
 
-    def hide_debugger_peb(self):
+    def hide_debugger_peb(self) -> bool:
+        """
+        Hides the debugger in the debugee's PEB
+
+        Returns:
+            Success
+        """
         return self.cmd_sync(f'hide')
 
     def debugee_pid(self) -> int | None:
+        """
+        Retrieves the PID of the debugee
+
+        Returns:
+            PID of the debugee, or None if the debugger is not debugging
+        """
         if self.is_debugging():
             pid, res = self.eval_sync(f'pid')
             if res:

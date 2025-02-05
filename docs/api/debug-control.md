@@ -238,6 +238,36 @@ client.detach_session()
         show_root_full_path: false
 
 
+::: x64dbg_automate.X64DbgClient.hide_debugger_peb
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.debugee_pid
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.get_debugger_pid
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.is_running
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.is_debugging
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
 ### API Model Reference
 
 ::: x64dbg_automate.events.DbgEvent
