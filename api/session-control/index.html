@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>Session Control - x64dbg Automate</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../css/brands.min.css" rel="stylesheet">
+        <link href="../../css/solid.min.css" rel="stylesheet">
+        <link href="../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../../assets/_mkdocstrings.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">x64dbg Automate</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../.." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../installation/" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../quickstart/" class="nav-link">Quickstart</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Client Reference</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="./" class="dropdown-item active" aria-current="page">Session Control</a>
+</li>
+                                    
+<li>
+    <a href="../debug-control/" class="dropdown-item">Debug Control</a>
+</li>
+                                    
+<li>
+    <a href="../memory-control/" class="dropdown-item">Memory Control</a>
+</li>
+                                    
+<li>
+    <a href="../breakpoints/" class="dropdown-item">Breakpoints</a>
+</li>
+                                    
+<li>
+    <a href="../registers-expressions/" class="dropdown-item">Registers and Expressions</a>
+</li>
+                                    
+<li>
+    <a href="../assembler-disassembler/" class="dropdown-item">Assembling and Disassembling</a>
+</li>
+                                    
+<li>
+    <a href="../commands/" class="dropdown-item">Commands and Extensibility</a>
+</li>
+                                    
+<li>
+    <a href="../annotations/" class="dropdown-item">Labels, Comments, Bookmarks</a>
+</li>
+                                    
+<li>
+    <a href="../settings/" class="dropdown-item">Settings</a>
+</li>
+                                    
+<li>
+    <a href="../gui/" class="dropdown-item">Gui</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../../quickstart/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../debug-control/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#session-control" class="nav-link">Session Control</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.start_session" class="nav-link">start_session</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.attach_session" class="nav-link">attach_session</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.detach_session" class="nav-link">detach_session</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.terminate_session" class="nav-link">terminate_session</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.list_sessions" class="nav-link">list_sessions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.wait_for_session" class="nav-link">wait_for_session</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.DebugSession" class="nav-link">DebugSession</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="session-control">Session Control</h1>
+<h3 id="what-are-sessions">What are Sessions?</h3>
+<p>A session refers to an automation-enabled running instance of x64dbg.</p>
+<p>Each instance of the debugger you launch or attach to has a session ID allocated to it. The automation client relies on sessions 
+to know which debugger instance to communicate with. For all intents and purposes the session ID is equivalent to the debugger PID.</p>
+<p>After launching x64dbg with the plugin installed its session ID and port binds can be seen in the startup log:</p>
+<pre><code>[x64dbg-automate] Allocated session ID: 12584
+[x64dbg-automate] Allocated PUB/SUB port: 49759
+[x64dbg-automate] Allocated REQ/REP port: 52085
+</code></pre>
+<p>Sessions can also be discovered programmatically - with PIDs, command lines, working directories, and window titles provided for disambiguation.</p>
+<h3 id="example-sessions">Example: Sessions</h3>
+<pre><code class="language-python">&quot;&quot;&quot;
+Example: Session Control (32/64 bit)
+&quot;&quot;&quot;
+import subprocess
+import sys
+from x64dbg_automate import X64DbgClient
+
+if len(sys.argv) != 2:
+    print(&quot;Usage: python sessions.py &lt;x64dbg_path&gt;&quot;)
+    quit(1)
+
+print('[+] Creating an x64dbg Automate session using start_session')
+client1 = X64DbgClient(x64dbg_path=sys.argv[1])
+client1.start_session(r'c:\Windows\system32\winver.exe')
+
+print('[+] Starting an unconnected session using subprocess.Popen')
+client2 = X64DbgClient(x64dbg_path=sys.argv[1])
+proc = subprocess.Popen([sys.argv[1]], executable=sys.argv[1])
+
+print('[+] Waiting for the unconnected session to start')
+X64DbgClient.wait_for_session(proc.pid)
+
+print('[+] Listing running sessions')
+sessions = X64DbgClient.list_sessions()
+print(sessions)
+
+print('[+] Terminating the first session')
+client1.terminate_session()
+
+print('[+] Listing running sessions')
+sessions = X64DbgClient.list_sessions()
+print(sessions)
+
+print('[+] Attaching to the second session')
+client2.attach_session(sessions[0].pid)
+
+print('[+] Detaching from the second session')
+client2.detach_session()
+
+print('[+] Re-attaching to the second session')
+client2.attach_session(sessions[0].pid)
+
+print('[+] Terminating the second session')
+client2.terminate_session()
+</code></pre>
+<pre><code>[+] Creating an x64dbg Automate session using start_session
+[+] Starting an unconnected session using subprocess.Popen
+[+] Waiting for the unconnected session to start
+[+] Listing running sessions
+[DebugSession(pid=11396, lockfile_path='C:\\Users\\dariu\\AppData\\Local\\Temp\\xauto_session.11396.lock', cmdline=['C:\\re\\x64dbg_dev\\release\\x64\\x64dbg.exe'], cwd='C:\\re\\x64dbg_dev\\release\\x64', window_title='winver.exe - PID: 30944 - Module: ntdll.dll - Thread: Main Thread 20648 - x64dbg', sess_req_rep_port=54561, sess_pub_sub_port=60710), DebugSession(pid=26000, lockfile_path='C:\\Users\\dariu\\AppData\\Local\\Temp\\xauto_session.26000.lock', cmdline=['C:\\re\\x64dbg_dev\\release\\x64\\x64dbg.exe'], cwd='C:\\re\\x64dbg_dev\\release\\x64', window_title='x64dbg', sess_req_rep_port=53337, sess_pub_sub_port=61219)]
+[+] Terminating the first session
+[+] Listing running sessions
+[DebugSession(pid=26000, lockfile_path='C:\\Users\\dariu\\AppData\\Local\\Temp\\xauto_session.26000.lock', cmdline=['C:\\re\\x64dbg_dev\\release\\x64\\x64dbg.exe'], cwd='C:\\re\\x64dbg_dev\\release\\x64', window_title='x64dbg', sess_req_rep_port=53337, sess_pub_sub_port=61219)]   
+[+] Attaching to the second session
+[+] Detaching from the second session
+[+] Re-attaching to the second session
+[+] Terminating the second session
+</code></pre>
+<h3 id="api-method-reference">API Method Reference</h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.start_session" class="doc doc-heading">
+            <code class="highlight language-python">start_session(target_exe='', cmdline='', current_dir='')</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Start a new x64dbg session and optionally load an executable into it. If target_exe is not provided, 
+the debugger starts without any executable. This is useful for performing configuration before the debuggee is loaded.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>target_exe</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the target executable (optional)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cmdline</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The command line arguments to pass to the executable (optional)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>current_dir</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current working directory to set for the executable (optional)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The debug session ID</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
+              <pre class="highlight"><code class="language-python">def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -&gt; int:
+    """
+    Start a new x64dbg session and optionally load an executable into it. If target_exe is not provided, 
+    the debugger starts without any executable. This is useful for performing configuration before the debuggee is loaded.
+
+    Args:
+        target_exe: The path to the target executable (optional)
+        cmdline: The command line arguments to pass to the executable (optional)
+        current_dir: The current working directory to set for the executable (optional)
+
+    Returns:
+        The debug session ID
+    """
+    if len(target_exe.strip()) == 0 and (len(cmdline) &gt; 0 or len(current_dir) &gt; 0):
+        raise ValueError("cmdline and current_dir cannot be provided without target_exe")
+
+    self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
+    self.session_pid = self.proc.pid
+    self.attach_session(self.session_pid)
+
+    if target_exe.strip() != "":
+        self.load_executable(target_exe.strip(), cmdline, current_dir)
+        self.wait_cmd_ready()
+    return self.session_pid</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.attach_session" class="doc doc-heading">
+            <code class="highlight language-python">attach_session(session_pid)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Attach to an existing x64dbg session</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>session_pid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The session ID to attach to (debugger PID)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
+              <pre class="highlight"><code class="language-python">def attach_session(self, session_pid: int) -&gt; None:
+    """
+    Attach to an existing x64dbg session
+
+    Args:
+        session_pid: The session ID to attach to (debugger PID)
+    """
+    session = X64DbgClient.wait_for_session(session_pid)
+    self.sess_req_rep_port = session.sess_req_rep_port
+    self.sess_pub_sub_port = session.sess_pub_sub_port
+    self._init_connection()
+    self._assert_connection_compat()</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.detach_session" class="doc doc-heading">
+            <code class="highlight language-python">detach_session()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Detach from the current x64dbg session, leaving the debugger process running.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
+              <pre class="highlight"><code class="language-python">def detach_session(self) -&gt; None:
+    """
+    Detach from the current x64dbg session, leaving the debugger process running.
+    """
+    self._close_connection()</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.terminate_session" class="doc doc-heading">
+            <code class="highlight language-python">terminate_session()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>End the current x64dbg session, terminating the debugger process.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
+              <pre class="highlight"><code class="language-python">def terminate_session(self) -&gt; None:
+    """
+    End the current x64dbg session, terminating the debugger process.
+    """
+    sid = self.session_pid
+    self._xauto_terminate_session()
+    self._close_connection()
+    for _ in range(100):
+        time.sleep(0.2)
+        if sid not in [p.pid for p in self.list_sessions()]:
+            return
+    raise TimeoutError("Session did not terminate in a reasonable amount of time")</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.list_sessions" class="doc doc-heading">
+            <code class="highlight language-python">list_sessions()</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Lists all active x64dbg sessions</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>list[<a class="autorefs autorefs-internal" title="x64dbg_automate.models.DebugSession" href="#x64dbg_automate.models.DebugSession">DebugSession</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of sessions</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
+              <pre class="highlight"><code class="language-python">@staticmethod
+def list_sessions() -&gt; list[DebugSession]:
+    """
+    Lists all active x64dbg sessions
+
+    Returns:
+        A list of sessions
+    """
+    sessions: list[DebugSession] = []
+    temp_path_cstr = ctypes.create_unicode_buffer(1024)
+    if GetTempPathW(1024, temp_path_cstr) == 0:
+        temp_path = "c:\\windows\\temp\\"
+    else:
+        temp_path = temp_path_cstr.value
+
+    locks = glob.glob(f'{temp_path}xauto_session.*.lock')
+    for lock in locks:
+        while True:
+            try:
+                with open(lock, 'r') as f:
+                    sess_req_rep_port = int(f.readline().strip())
+                    sess_pub_sub_port = int(f.readline().strip())
+
+                pid = int(lock.split('.')[-2])
+                if psutil.pid_exists(pid):
+                    process = psutil.Process(pid)
+                    sessions.append(DebugSession(
+                        pid=pid,
+                        lockfile_path=lock,
+                        cmdline=process.cmdline(),
+                        cwd=process.cwd(),
+                        window_title=X64DbgClient._window_title_for_pid(pid),
+                        sess_req_rep_port=sess_req_rep_port,
+                        sess_pub_sub_port=sess_pub_sub_port
+                    ))
+                    break
+                else:
+                    if time.time() - os.path.getctime(lock) &gt; 10.0:
+                        logger.warning(f"Stale lockfile {lock}, removing")
+                        os.unlink(lock)
+                        break
+            except FileNotFoundError:
+                # The process exited between the glob and the open
+                break
+
+    return sessions</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.wait_for_session" class="doc doc-heading">
+            <code class="highlight language-python">wait_for_session(session_pid, timeout=10)</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Wait for an x64dbg session to start</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>session_pid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The session ID to wait for (debugger PID)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum time to wait in seconds</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.DebugSession" href="#x64dbg_automate.models.DebugSession">DebugSession</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The awaited debug session object</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
+              <pre class="highlight"><code class="language-python">@staticmethod
+def wait_for_session(session_pid: int, timeout: int = 10) -&gt; DebugSession:
+    """
+    Wait for an x64dbg session to start
+
+    Args:
+        session_pid: The session ID to wait for (debugger PID)
+        timeout: The maximum time to wait in seconds
+
+    Returns:
+        The awaited debug session object
+    """
+    while timeout &gt; 0:
+        sessions = X64DbgClient.list_sessions()
+        sessions = [s for s in sessions if s.pid == session_pid]
+        if session_pid in [s.pid for s in sessions]:
+            return sessions[0]
+        time.sleep(0.2)
+        timeout -= 0.2
+    raise TimeoutError("Session did not appear in a reasonable amount of time")</code></pre>
+            </details>
+    </div>
+
+</div><h3 id="api-model-reference">API Model Reference</h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.DebugSession" class="doc doc-heading">
+            <code>DebugSession</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+        <p>Represents a debug session in x64dbg Automate</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class DebugSession(BaseModel):
+    """
+    Represents a debug session in x64dbg Automate
+    """
+    pid: int # The process ID of the debugger
+    lockfile_path: str # The path to the lockfile for the session
+    cmdline: list[str] # The command line arguments used to start the session
+    cwd: str # The current working directory of the session
+    window_title: str # The title of the x64dbg window
+    sess_req_rep_port: int # The port used for zmq request/reply communication
+    sess_pub_sub_port: int # The port used for zmq publish/subscribe communication</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

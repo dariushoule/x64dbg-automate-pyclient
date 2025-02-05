@@ -1,0 +1,2867 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>Debug Control - x64dbg Automate</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../css/brands.min.css" rel="stylesheet">
+        <link href="../../css/solid.min.css" rel="stylesheet">
+        <link href="../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../../assets/_mkdocstrings.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">x64dbg Automate</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../.." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../installation/" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../quickstart/" class="nav-link">Quickstart</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Client Reference</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../session-control/" class="dropdown-item">Session Control</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active" aria-current="page">Debug Control</a>
+</li>
+                                    
+<li>
+    <a href="../memory-control/" class="dropdown-item">Memory Control</a>
+</li>
+                                    
+<li>
+    <a href="../breakpoints/" class="dropdown-item">Breakpoints</a>
+</li>
+                                    
+<li>
+    <a href="../registers-expressions/" class="dropdown-item">Registers and Expressions</a>
+</li>
+                                    
+<li>
+    <a href="../assembler-disassembler/" class="dropdown-item">Assembling and Disassembling</a>
+</li>
+                                    
+<li>
+    <a href="../commands/" class="dropdown-item">Commands and Extensibility</a>
+</li>
+                                    
+<li>
+    <a href="../annotations/" class="dropdown-item">Labels, Comments, Bookmarks</a>
+</li>
+                                    
+<li>
+    <a href="../settings/" class="dropdown-item">Settings</a>
+</li>
+                                    
+<li>
+    <a href="../gui/" class="dropdown-item">Gui</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../session-control/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../memory-control/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#debug-control" class="nav-link">Debug Control</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.load_executable" class="nav-link">load_executable</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.unload_executable" class="nav-link">unload_executable</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.go" class="nav-link">go</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.pause" class="nav-link">pause</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.stepi" class="nav-link">stepi</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.stepo" class="nav-link">stepo</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.skip" class="nav-link">skip</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.ret" class="nav-link">ret</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.thread_create" class="nav-link">thread_create</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.thread_terminate" class="nav-link">thread_terminate</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.thread_pause" class="nav-link">thread_pause</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.thread_resume" class="nav-link">thread_resume</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.switch_thread" class="nav-link">switch_thread</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.wait_for_debug_event" class="nav-link">wait_for_debug_event</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.clear_debug_events" class="nav-link">clear_debug_events</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.watch_debug_event" class="nav-link">watch_debug_event</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.unwatch_debug_event" class="nav-link">unwatch_debug_event</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.get_latest_debug_event" class="nav-link">get_latest_debug_event</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.peek_latest_debug_event" class="nav-link">peek_latest_debug_event</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.wait_until_debugging" class="nav-link">wait_until_debugging</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.wait_until_not_debugging" class="nav-link">wait_until_not_debugging</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.wait_until_running" class="nav-link">wait_until_running</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.wait_until_stopped" class="nav-link">wait_until_stopped</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.wait_cmd_ready" class="nav-link">wait_cmd_ready</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.hide_debugger_peb" class="nav-link">hide_debugger_peb</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.debugee_pid" class="nav-link">debugee_pid</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.get_debugger_pid" class="nav-link">get_debugger_pid</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.is_running" class="nav-link">is_running</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.is_debugging" class="nav-link">is_debugging</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.events.DbgEvent" class="nav-link">DbgEvent</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.events.EventType" class="nav-link">EventType</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="debug-control">Debug Control</h1>
+<h3 id="what-is-debug-control">What is Debug Control?</h3>
+<p>Debug control refers to performing actions that change the state of the running debugger. </p>
+<p>Examples include:</p>
+<ul>
+<li>Loading/unloading a debugee</li>
+<li>Transitioning from stopped to running or visa-versa</li>
+<li>Switching thread contexts</li>
+<li>Single-stepping</li>
+<li>Running until return</li>
+</ul>
+<p>It's helpful to think of changing the debuggers state as two-steps:</p>
+<ol>
+<li>Requesting the change in state</li>
+<li>Waiting for the expected state</li>
+</ol>
+<p>Without explicit waits its easy to end up with race conditions and poor repeatability in scripts. </p>
+<pre><code># Good
+client.set_breakpoint(0x00401000, singleshoot=True)
+client.go()
+client.wait_for_debug_event(EventType.EVENT_BREAKPOINT)
+    # Retrieved RIP after debugger reached target state
+print(client.get_reg('eip'))
+
+# Bad
+client.set_breakpoint(0x00401000, singleshoot=True)
+client.go()
+    # Retrieved RIP without wait. It's possible to read an unintended value before the breakpoint is hit
+print(client.get_reg('eip'))
+</code></pre>
+<h3 id="example-debug-control">Example: Debug Control</h3>
+<pre><code class="language-python">&quot;&quot;&quot;
+Example: Debug Control (32/64 bit)
+&quot;&quot;&quot;
+import sys
+from x64dbg_automate import X64DbgClient
+
+if len(sys.argv) != 2:
+    print(&quot;Usage: python sessions.py &lt;x64dbg_path&gt;&quot;)
+    quit(1)
+
+print('[+] Creating the x64dbg Automate session')
+client = X64DbgClient(x64dbg_path=sys.argv[1])
+client.start_session()
+
+print('[+] Loading notepad and asking it to open a file')
+client.load_executable('C:\\Windows\\System32\\notepad.exe', 'C:\\Users\\desktop.ini')
+
+print('[+] Resuming from system breakpoint')
+client.go()
+
+print('[+] Waiting until the debugee is stopped at the entrypoint')
+client.wait_until_stopped()
+
+print('[+] Stepping-in 3 times')
+client.stepi(3)
+
+print('[+] Resuming from entrypoint + 3 step-ins')
+client.go()
+
+print('[+] Pausing the debugee')
+client.pause()
+
+print('[+] Resuming the debugee')
+client.go()
+
+print('[+] Unloading notepad')
+client.unload_executable()
+
+print('[+] Detaching the session')
+client.detach_session()
+</code></pre>
+<pre><code>[+] Creating the x64dbg Automate session
+[+] Loading notepad and asking it to open a file
+[+] Resuming from system breakpoint
+[+] Waiting until the debugee is stopped at the entrypoint
+[+] Stepping-in 3 times
+[+] Resuming from entrypoint + 3 step-ins
+[+] Pausing the debugee
+[+] Resuming the debugee
+[+] Unloading notepad
+[+] Detaching the session
+</code></pre>
+<h3 id="api-method-reference">API Method Reference</h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.load_executable" class="doc doc-heading">
+            <code class="highlight language-python">load_executable(target_exe, cmdline='', current_dir='', wait_timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Loads a new executable into the debugger. This method will block until the debugee is ready to receive a command.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>target_exe</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the executable to load</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cmdline</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Command line arguments to pass to the executable</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>current_dir</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Current working directory for the executable</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Max time to wait for the debugee to be ready</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if successful, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def load_executable(self, target_exe: str, cmdline: str = "", current_dir: str = "", wait_timeout: int = 10) -&gt; bool:
+    """
+    Loads a new executable into the debugger. This method will block until the debugee is ready to receive a command.
+
+    Args:
+        target_exe: Path to the executable to load
+        cmdline: Command line arguments to pass to the executable
+        current_dir: Current working directory for the executable
+        wait_timeout: Max time to wait for the debugee to be ready
+
+    Returns:
+        True if successful, False otherwise
+    """
+    cmdline = cmdline.replace('"', r'\"')
+    current_dir = current_dir.replace('"', r'\"')
+    if len(current_dir) == 0:
+        current_dir = "."
+    if not self.cmd_sync(f'init {target_exe}, "{cmdline}", "{current_dir}"'):
+        return False
+    return self.wait_cmd_ready(wait_timeout)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.unload_executable" class="doc doc-heading">
+            <code class="highlight language-python">unload_executable(wait_timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Unloads the currently loaded executable. This method will block until the debugger is no longer debugging.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Max time to wait for the debugger finish unloading</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if successful, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def unload_executable(self, wait_timeout: int = 10) -&gt; bool:
+    """
+    Unloads the currently loaded executable. This method will block until the debugger is no longer debugging.
+
+    Args:
+        wait_timeout: Max time to wait for the debugger finish unloading
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if not self.cmd_sync(f'stop'):
+        return False
+    return self.wait_until_not_debugging(wait_timeout)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.go" class="doc doc-heading">
+            <code class="highlight language-python">go(pass_exceptions=False, swallow_exceptions=False)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Resumes the debugee. This method will block until the debugee is in the running state.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>pass_exceptions</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pass exceptions to the debugee</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>swallow_exceptions</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Swallow exceptions</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if successful, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def go(self, pass_exceptions: bool = False, swallow_exceptions: bool = False) -&gt; bool:
+    """
+    Resumes the debugee. This method will block until the debugee is in the running state.
+
+    Args:
+        pass_exceptions: Pass exceptions to the debugee
+        swallow_exceptions: Swallow exceptions
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if pass_exceptions == True and swallow_exceptions == True:
+        raise ValueError("Cannot pass and swallow exceptions at the same time")
+    if pass_exceptions:
+        prefix = 'e'
+    elif swallow_exceptions:
+        prefix = 'se'
+    else:
+        prefix = ''
+    if not self.cmd_sync(f"{prefix}go"):
+        return False
+    self.wait_until_running(timeout=1)
+    return True</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.pause" class="doc doc-heading">
+            <code class="highlight language-python">pause()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Pauses the debugee. This method will block until the debugee is in the stopped state.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if successful, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def pause(self) -&gt; bool:
+    """
+    Pauses the debugee. This method will block until the debugee is in the stopped state.
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if not self.cmd_sync(f"pause"):
+        return False
+    return self.wait_until_stopped()</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.stepi" class="doc doc-heading">
+            <code class="highlight language-python">stepi(step_count=1, pass_exceptions=False, swallow_exceptions=False, wait_for_ready=True, wait_timeout=2)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Steps into N instructions.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>step_count</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of instructions to step through</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pass_exceptions</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pass exceptions to the debugee during step</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>swallow_exceptions</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Swallow exceptions during step</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_for_ready</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Block until debugger is stopped</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum time in seconds to wait for debugger to stop</p>
+              </div>
+            </td>
+            <td>
+                  <code>2</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Returns:
+    bool: True if stepping operation was successful, False otherwise.
+Raises:
+    ValueError: If both pass_exceptions and swallow_exceptions are True.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def stepi(self, step_count: int = 1, pass_exceptions: bool = False, swallow_exceptions: bool = False, wait_for_ready: bool = True, wait_timeout: int = 2) -&gt; bool:
+    """
+    Steps into N instructions.
+
+    Args:
+        step_count: Number of instructions to step through
+        pass_exceptions: Pass exceptions to the debugee during step
+        swallow_exceptions: Swallow exceptions during step
+        wait_for_ready: Block until debugger is stopped
+        wait_timeout: Maximum time in seconds to wait for debugger to stop
+    Returns:
+        bool: True if stepping operation was successful, False otherwise.
+    Raises:
+        ValueError: If both pass_exceptions and swallow_exceptions are True.
+    """
+    if pass_exceptions == True and swallow_exceptions == True:
+        raise ValueError("Cannot pass and swallow exceptions at the same time")
+    if pass_exceptions:
+        prefix = 'e'
+    elif swallow_exceptions:
+        prefix = 'se'
+    else:
+        prefix = ''
+    res = self.cmd_sync(f"{prefix}sti 0x{step_count:x}")
+    if res and wait_for_ready:
+        self.wait_until_stopped(wait_timeout)
+    return res</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.stepo" class="doc doc-heading">
+            <code class="highlight language-python">stepo(step_count=1, pass_exceptions=False, swallow_exceptions=False, wait_for_ready=True, wait_timeout=2)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Steps over N instructions.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>step_count</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of instructions to step through</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pass_exceptions</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pass exceptions to the debugee during step</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>swallow_exceptions</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Swallow exceptions during step</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_for_ready</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Block until debugger is stopped</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum time in seconds to wait for debugger to stop</p>
+              </div>
+            </td>
+            <td>
+                  <code>2</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Returns:
+    bool: True if stepping operation was successful, False otherwise.
+Raises:
+    ValueError: If both pass_exceptions and swallow_exceptions are True.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def stepo(self, step_count: int = 1, pass_exceptions: bool = False, swallow_exceptions: bool = False, wait_for_ready: bool = True, wait_timeout: int = 2) -&gt; bool:
+    """
+    Steps over N instructions.
+
+    Args:
+        step_count: Number of instructions to step through
+        pass_exceptions: Pass exceptions to the debugee during step
+        swallow_exceptions: Swallow exceptions during step
+        wait_for_ready: Block until debugger is stopped
+        wait_timeout: Maximum time in seconds to wait for debugger to stop
+    Returns:
+        bool: True if stepping operation was successful, False otherwise.
+    Raises:
+        ValueError: If both pass_exceptions and swallow_exceptions are True.
+    """
+    if pass_exceptions == True and swallow_exceptions == True:
+        raise ValueError("Cannot pass and swallow exceptions at the same time")
+    if pass_exceptions:
+        prefix = 'e'
+    elif swallow_exceptions:
+        prefix = 'se'
+    else:
+        prefix = ''
+    res = self.cmd_sync(f"{prefix}sto 0x{step_count:x}")
+    if res and wait_for_ready:
+        self.wait_until_stopped(wait_timeout)
+    return res</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.skip" class="doc doc-heading">
+            <code class="highlight language-python">skip(skip_count=1, wait_for_ready=True, wait_timeout=2)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Skips over N instructions.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>skip_count</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of instructions to skip</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_for_ready</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Block until debugger is stopped</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum time in seconds to wait for debugger to stop</p>
+              </div>
+            </td>
+            <td>
+                  <code>2</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Returns:
+    bool: True if stepping operation was successful, False otherwise.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def skip(self, skip_count: int = 1, wait_for_ready: bool = True, wait_timeout: int = 2) -&gt; bool:
+    """
+    Skips over N instructions.
+
+    Args:
+        skip_count: Number of instructions to skip
+        wait_for_ready: Block until debugger is stopped
+        wait_timeout: Maximum time in seconds to wait for debugger to stop
+    Returns:
+        bool: True if stepping operation was successful, False otherwise.
+    """
+    res = self.cmd_sync(f"skip {skip_count}")
+    if res and wait_for_ready:
+        self.wait_until_stopped(wait_timeout)
+    return res</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.ret" class="doc doc-heading">
+            <code class="highlight language-python">ret(frames=1, wait_timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Steps until a ret instruction is encountered.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>frames</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of ret instructions to seek</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum time in seconds to wait for debugger to stop</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Returns:
+    bool: True if stepping operation was successful, False otherwise.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def ret(self, frames: int = 1, wait_timeout: int = 10) -&gt; bool:
+    """
+    Steps until a ret instruction is encountered.
+
+    Args:
+        frames: Number of ret instructions to seek
+        wait_timeout: Maximum time in seconds to wait for debugger to stop
+    Returns:
+        bool: True if stepping operation was successful, False otherwise.
+    """
+    if not self.cmd_sync(f"rtr {frames}"):
+        return False
+    return self.wait_cmd_ready(wait_timeout)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.thread_create" class="doc doc-heading">
+            <code class="highlight language-python">thread_create(addr, arg=0)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Create a new thread in the debugee.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>addr</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address of the thread entry point</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>arg</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Argument to pass to the thread</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def thread_create(self, addr: int, arg: int = 0) -&gt; int | None:
+    """
+    Create a new thread in the debugee.
+
+    Args:
+        addr: Address of the thread entry point
+        arg: Argument to pass to the thread
+    """
+    success = self.cmd_sync(f'createthread 0x{addr:x}, 0x{arg:x}')
+    if not success:
+        return None
+    tid, success = self.eval_sync('$result')
+    if not success:
+        return None
+    return tid</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.thread_terminate" class="doc doc-heading">
+            <code class="highlight language-python">thread_terminate(tid)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Kills a thread in the debugee.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>tid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Thread ID to kill</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def thread_terminate(self, tid: int):
+    """
+    Kills a thread in the debugee.
+
+    Args:
+        tid: Thread ID to kill
+    """
+    return self.cmd_sync(f'killthread 0x{tid:x}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.thread_pause" class="doc doc-heading">
+            <code class="highlight language-python">thread_pause(tid)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Pauses a thread in the debugee.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>tid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Thread ID to kill</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def thread_pause(self, tid: int):
+    """
+    Pauses a thread in the debugee.
+
+    Args:
+        tid: Thread ID to kill
+    """
+    return self.cmd_sync(f'suspendthread 0x{tid:x}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.thread_resume" class="doc doc-heading">
+            <code class="highlight language-python">thread_resume(tid)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Resumes a thread in the debugee.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>tid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Thread ID to kill</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def thread_resume(self, tid: int):
+    """
+    Resumes a thread in the debugee.
+
+    Args:
+        tid: Thread ID to kill
+    """
+    return self.cmd_sync(f'resumethread 0x{tid:x}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.switch_thread" class="doc doc-heading">
+            <code class="highlight language-python">switch_thread(tid)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Switches the currently observed debugger thread.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>tid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Thread ID to kill</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def switch_thread(self, tid: int):
+    """
+    Switches the currently observed debugger thread.
+
+    Args:
+        tid: Thread ID to kill
+    """
+    return self.cmd_sync(f'switchthread 0x{tid:x}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.wait_for_debug_event" class="doc doc-heading">
+            <code class="highlight language-python">wait_for_debug_event(event_type, timeout=5)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Wait for a debug event of a specific type to occur. This method returns the latest event of the specified type, which may have occurred before the method was called.</p>
+<p>Returned events are removed from the queue. If the event has not occurred within the timeout, None is returned.</p>
+<p><code>clear_debug_events</code> can be used to ensure an empty debug event queue before calling this method.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>event_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.events.EventType" href="#x64dbg_automate.events.EventType">EventType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of event to wait for</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum time to wait for the event in seconds</p>
+              </div>
+            </td>
+            <td>
+                  <code>5</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.events.DbgEvent" href="#x64dbg_automate.events.DbgEvent">DbgEvent</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DbgEvent | None: The latest event of the specified type, or None if the event did not occur within the timeout.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+              <pre class="highlight"><code class="language-python">def wait_for_debug_event(self, event_type: EventType, timeout: int = 5) -&gt; DbgEvent | None:
+    """
+    Wait for a debug event of a specific type to occur. This method returns the latest event of the specified type, which may have occurred before the method was called.
+
+    Returned events are removed from the queue. If the event has not occurred within the timeout, None is returned.
+
+    `clear_debug_events` can be used to ensure an empty debug event queue before calling this method.
+
+    Args:
+        event_type: The type of event to wait for
+        timeout: The maximum time to wait for the event in seconds
+
+    Returns:
+        DbgEvent | None: The latest event of the specified type, or None if the event did not occur within the timeout.
+    """
+    while timeout &gt; 0:
+        for ix, event in enumerate(self._debug_events_q):
+            if event.event_type == event_type:
+                return self._debug_events_q.pop(ix)
+        time.sleep(0.25)
+        timeout -= 0.25
+    return None</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.clear_debug_events" class="doc doc-heading">
+            <code class="highlight language-python">clear_debug_events(event_type=None)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Clear the debug event queue. If <code>event_type</code> is specified, only events of that type will be removed.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>event_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.events.EventType" href="#x64dbg_automate.events.EventType">EventType</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of event to clear. If None, all events will be cleared.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+              <pre class="highlight"><code class="language-python">def clear_debug_events(self, event_type: EventType | None = None) -&gt; None:
+    """
+    Clear the debug event queue. If `event_type` is specified, only events of that type will be removed.
+
+    Args:
+        event_type: The type of event to clear. If None, all events will be cleared.
+    """
+    filtered = []
+    for _ in range(len(self._debug_events_q)):
+        event = self._debug_events_q.pop(0)
+        if event.event_type != event_type and event_type is not None:
+            filtered.append(event)
+    self._debug_events_q = filtered</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.watch_debug_event" class="doc doc-heading">
+            <code class="highlight language-python">watch_debug_event(event_type, callback)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Register a callback to be invoked when a debug event of a specific type occurs.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>event_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.events.EventType" href="#x64dbg_automate.events.EventType">EventType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of event to watch</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>callback</code>
+            </td>
+            <td>
+                  <code>callable</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The callback to invoke when the event occurs. The callback should accept a single argument of type <code>DbgEvent</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+              <pre class="highlight"><code class="language-python">def watch_debug_event(self, event_type: EventType, callback: callable):
+    """
+    Register a callback to be invoked when a debug event of a specific type occurs.
+
+    Args:
+        event_type: The type of event to watch
+        callback: The callback to invoke when the event occurs. The callback should accept a single argument of type `DbgEvent`.
+    """
+    self.listeners[event_type] = self.listeners.get(event_type, []) + [callback]</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.unwatch_debug_event" class="doc doc-heading">
+            <code class="highlight language-python">unwatch_debug_event(event_type, callback)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Remove a callback registered with <code>watch_debug_event</code></p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>event_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.events.EventType" href="#x64dbg_automate.events.EventType">EventType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of event to unwatch</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>callback</code>
+            </td>
+            <td>
+                  <code>callable</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The callback instance to remove</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+              <pre class="highlight"><code class="language-python">def unwatch_debug_event(self, event_type: EventType, callback: callable):
+    """
+    Remove a callback registered with `watch_debug_event`
+
+    Args:
+        event_type: The type of event to unwatch
+        callback: The callback instance to remove
+    """
+    self.listeners[event_type] = [x for x in self.listeners.get(event_type, []) if x != callback]</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.get_latest_debug_event" class="doc doc-heading">
+            <code class="highlight language-python">get_latest_debug_event()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Get the latest debug event that occurred in the debugee. The event is removed from the queue.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_latest_debug_event(self) -&gt; DbgEvent | None:
+    """
+    Get the latest debug event that occurred in the debugee. The event is removed from the queue.
+    """
+    if len(self._debug_events_q) == 0:
+        return None
+    return self._debug_events_q.pop()</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.peek_latest_debug_event" class="doc doc-heading">
+            <code class="highlight language-python">peek_latest_debug_event()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Get the latest debug event that occurred in the debugee. The event is not removed from the queue.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+              <pre class="highlight"><code class="language-python">def peek_latest_debug_event(self) -&gt; DbgEvent | None:
+    """
+    Get the latest debug event that occurred in the debugee. The event is not removed from the queue.
+    """
+    if len(self._debug_events_q) == 0:
+        return None
+    return self._debug_events_q[-1]</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.wait_until_debugging" class="doc doc-heading">
+            <code class="highlight language-python">wait_until_debugging(timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Blocks until the debugger enters a debugging state</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum time to wait in seconds</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugger is debugging, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def wait_until_debugging(self, timeout: int = 10) -&gt; bool:
+    """
+    Blocks until the debugger enters a debugging state
+
+    Args:
+        timeout: The maximum time to wait in seconds
+
+    Returns:
+        True if the debugger is debugging, False otherwise
+    """
+    slept = 0
+    while True:
+        if self.is_debugging():
+            return True
+        time.sleep(0.2)
+        slept += 0.2
+        if slept &gt;= timeout:
+            return False</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.wait_until_not_debugging" class="doc doc-heading">
+            <code class="highlight language-python">wait_until_not_debugging(timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Blocks until the debugger enters a not-debugging state</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum time to wait in seconds</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugger is not-debugging, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def wait_until_not_debugging(self, timeout: int = 10) -&gt; bool:
+    """
+    Blocks until the debugger enters a not-debugging state
+
+    Args:
+        timeout: The maximum time to wait in seconds
+
+    Returns:
+        True if the debugger is not-debugging, False otherwise
+    """
+    slept = 0
+    while True:
+        if not self.is_debugging():
+            return True
+        time.sleep(0.2)
+        slept += 0.2
+        if slept &gt;= timeout:
+            return False</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.wait_until_running" class="doc doc-heading">
+            <code class="highlight language-python">wait_until_running(timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Blocks until the debugger enters a running state</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum time to wait in seconds</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugger is running, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def wait_until_running(self, timeout: int = 10) -&gt; bool:
+    """
+    Blocks until the debugger enters a running state
+
+    Args:
+        timeout: The maximum time to wait in seconds
+
+    Returns:
+        True if the debugger is running, False otherwise
+    """
+    slept = 0
+    while True:
+        if self.is_running():
+            return True
+        time.sleep(0.08)
+        slept += 0.08
+        if slept &gt;= timeout:
+            return False</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.wait_until_stopped" class="doc doc-heading">
+            <code class="highlight language-python">wait_until_stopped(timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Blocks until the debugger enters a stopped state</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum time to wait in seconds</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugger is stopped, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def wait_until_stopped(self, timeout: int = 10) -&gt; bool:
+    """
+    Blocks until the debugger enters a stopped state
+
+    Args:
+        timeout: The maximum time to wait in seconds
+
+    Returns:
+        True if the debugger is stopped, False otherwise
+    """
+    slept = 0
+    while True:
+        if not self.is_running() or not self.is_debugging():
+            return True
+        time.sleep(0.2)
+        slept += 0.2
+        if slept &gt;= timeout:
+            return False</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.wait_cmd_ready" class="doc doc-heading">
+            <code class="highlight language-python">wait_cmd_ready(timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Blocks until the debugger is ready to accept debug control commands (debugging + stopped)</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum time to wait in seconds</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugger is ready, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def wait_cmd_ready(self, timeout: int = 10) -&gt; bool:
+    """
+    Blocks until the debugger is ready to accept debug control commands (debugging + stopped)
+
+    Args:
+        timeout: The maximum time to wait in seconds
+
+    Returns:
+        True if the debugger is ready, False otherwise
+    """
+    return self.wait_until_debugging(timeout) and self.wait_until_stopped(timeout)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.hide_debugger_peb" class="doc doc-heading">
+            <code class="highlight language-python">hide_debugger_peb()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Hides the debugger in the debugee's PEB</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def hide_debugger_peb(self) -&gt; bool:
+    """
+    Hides the debugger in the debugee's PEB
+
+    Returns:
+        Success
+    """
+    return self.cmd_sync(f'hide')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.debugee_pid" class="doc doc-heading">
+            <code class="highlight language-python">debugee_pid()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Retrieves the PID of the debugee</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>int | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PID of the debugee, or None if the debugger is not debugging</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def debugee_pid(self) -&gt; int | None:
+    """
+    Retrieves the PID of the debugee
+
+    Returns:
+        PID of the debugee, or None if the debugger is not debugging
+    """
+    if self.is_debugging():
+        pid, res = self.eval_sync(f'pid')
+        if res:
+            return pid
+    return None</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.get_debugger_pid" class="doc doc-heading">
+            <code class="highlight language-python">get_debugger_pid()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Retrieves the PID of the x64dbg process</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The PID of the x64dbg process</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_debugger_pid(self) -&gt; int:
+    """
+    Retrieves the PID of the x64dbg process
+
+    Returns:
+        The PID of the x64dbg process
+    """
+    return self._send_request(XAutoCommand.XAUTO_REQ_DEBUGGER_PID)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.is_running" class="doc doc-heading">
+            <code class="highlight language-python">is_running()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Checks if the debugee's state is "running"</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugee is running, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def is_running(self) -&gt; bool:
+    """
+    Checks if the debugee's state is "running"
+
+    Returns:
+        True if the debugee is running, False otherwise
+    """
+    return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_RUNNING)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.is_debugging" class="doc doc-heading">
+            <code class="highlight language-python">is_debugging()</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Checks if the debugee's state is "debugging"</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugee is running, False otherwise</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def is_debugging(self) -&gt; bool:
+    """
+    Checks if the debugee's state is "debugging"
+
+    Returns:
+        True if the debugee is running, False otherwise
+    """
+    return self._send_request(XAutoCommand.XAUTO_REQ_DBG_IS_DEBUGGING)</code></pre>
+            </details>
+    </div>
+
+</div><h3 id="api-model-reference">API Model Reference</h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.events.DbgEvent" class="doc doc-heading">
+            <code>DbgEvent</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+                <pre class="highlight"><code class="language-python">class DbgEvent():
+    def __init__(self, event_type: str, event_data: list[any]):
+        self.event_type = event_type
+
+        if event_type == EventType.EVENT_BREAKPOINT:
+            self.event_data = BreakpointEventData(
+                type=event_data[0],
+                addr=event_data[1],
+                enabled=event_data[2],
+                singleshoot=event_data[3],
+                active=event_data[4],
+                name=event_data[5],
+                mod=event_data[6],
+                slot=event_data[7],
+                typeEx=event_data[8],
+                hwSize=event_data[9],
+                hitCount=event_data[10],
+                fastResume=event_data[11],
+                silent=event_data[12],
+                breakCondition=event_data[13],
+                logText=event_data[14],
+                logCondition=event_data[15],
+                commandText=event_data[16],
+                commandCondition=event_data[17]
+            )
+        elif event_type == EventType.EVENT_SYSTEMBREAKPOINT:
+            self.event_data = SysBreakpointEventData(
+                reserved=event_data[0]
+            )
+        elif event_type == EventType.EVENT_CREATE_THREAD:
+            self.event_data = CreateThreadEventData(
+                dwThreadId=event_data[0],
+                lpThreadLocalBase=event_data[1],
+                lpStartAddress=event_data[2]
+            )
+        elif event_type == EventType.EVENT_EXIT_THREAD:
+            self.event_data = ExitThreadEventData(
+                dwThreadId=event_data[0],
+                dwExitCode=event_data[1]
+            )
+        elif event_type == EventType.EVENT_LOAD_DLL:
+            self.event_data = LoadDllEventData(
+                modname=event_data[0],
+                lpBaseOfDll=event_data[1]
+            )
+        elif event_type == EventType.EVENT_UNLOAD_DLL:
+            self.event_data = UnloadDllEventData(
+                lpBaseOfDll=event_data[0]
+            )
+        elif event_type == EventType.EVENT_OUTPUT_DEBUG_STRING:
+            self.event_data = OutputDebugStringEventData(
+                lpDebugStringData=event_data[0]
+            )
+        elif event_type == EventType.EVENT_EXCEPTION:
+            self.event_data = ExceptionEventData(
+                ExceptionCode=event_data[0],
+                ExceptionFlags=event_data[1],
+                ExceptionRecord=event_data[2],
+                ExceptionAddress=event_data[3],
+                NumberParameters=event_data[4],
+                ExceptionInformation=event_data[5],
+                dwFirstChance=event_data[6]
+            )
+        else:
+            raise ValueError(f"Unknown event type: {event_type}")</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.events.EventType" class="doc doc-heading">
+            <code>EventType</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+                <pre class="highlight"><code class="language-python">class EventType(StrEnum):
+    EVENT_BREAKPOINT = "EVENT_BREAKPOINT"
+    EVENT_SYSTEMBREAKPOINT = "EVENT_SYSTEMBREAKPOINT"
+    EVENT_CREATE_THREAD = "EVENT_CREATE_THREAD"
+    EVENT_EXIT_THREAD = "EVENT_EXIT_THREAD"
+    EVENT_LOAD_DLL = "EVENT_LOAD_DLL"
+    EVENT_UNLOAD_DLL = "EVENT_UNLOAD_DLL"
+    EVENT_OUTPUT_DEBUG_STRING = "EVENT_OUTPUT_DEBUG_STRING"
+    EVENT_EXCEPTION = "EVENT_EXCEPTION"</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

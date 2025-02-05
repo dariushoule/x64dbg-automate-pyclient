@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>Breakpoints - x64dbg Automate</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../css/brands.min.css" rel="stylesheet">
+        <link href="../../css/solid.min.css" rel="stylesheet">
+        <link href="../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <link href="../../assets/_mkdocstrings.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">x64dbg Automate</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../.." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../installation/" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../quickstart/" class="nav-link">Quickstart</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Client Reference</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../session-control/" class="dropdown-item">Session Control</a>
+</li>
+                                    
+<li>
+    <a href="../debug-control/" class="dropdown-item">Debug Control</a>
+</li>
+                                    
+<li>
+    <a href="../memory-control/" class="dropdown-item">Memory Control</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active" aria-current="page">Breakpoints</a>
+</li>
+                                    
+<li>
+    <a href="../registers-expressions/" class="dropdown-item">Registers and Expressions</a>
+</li>
+                                    
+<li>
+    <a href="../assembler-disassembler/" class="dropdown-item">Assembling and Disassembling</a>
+</li>
+                                    
+<li>
+    <a href="../commands/" class="dropdown-item">Commands and Extensibility</a>
+</li>
+                                    
+<li>
+    <a href="../annotations/" class="dropdown-item">Labels, Comments, Bookmarks</a>
+</li>
+                                    
+<li>
+    <a href="../settings/" class="dropdown-item">Settings</a>
+</li>
+                                    
+<li>
+    <a href="../gui/" class="dropdown-item">Gui</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../memory-control/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../registers-expressions/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#breakpoints" class="nav-link">Breakpoints</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.get_breakpoints" class="nav-link">get_breakpoints</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.set_breakpoint" class="nav-link">set_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.set_hardware_breakpoint" class="nav-link">set_hardware_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.set_memory_breakpoint" class="nav-link">set_memory_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.clear_breakpoint" class="nav-link">clear_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.clear_hardware_breakpoint" class="nav-link">clear_hardware_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.clear_memory_breakpoint" class="nav-link">clear_memory_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.toggle_breakpoint" class="nav-link">toggle_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.toggle_hardware_breakpoint" class="nav-link">toggle_hardware_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.toggle_memory_breakpoint" class="nav-link">toggle_memory_breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.Breakpoint" class="nav-link">Breakpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.BreakpointType" class="nav-link">BreakpointType</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.StandardBreakpointType" class="nav-link">StandardBreakpointType</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.HardwareBreakpointType" class="nav-link">HardwareBreakpointType</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.MemoryBreakpointType" class="nav-link">MemoryBreakpointType</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="breakpoints">Breakpoints</h1>
+<p>Management of breakpoints are supported nearly completely by x64dbg Automate. </p>
+<p>Software, hardware, and memory breakpoints are usable, but their condition and log components are not yet exposed.</p>
+<h3 id="example-breakpoints">Example: Breakpoints</h3>
+<pre><code class="language-python">&quot;&quot;&quot;
+Example: Breakpoints (64 bit)
+&quot;&quot;&quot;
+&quot;&quot;&quot;
+Example: Breakpoints (64 bit)
+&quot;&quot;&quot;
+import sys
+from x64dbg_automate import X64DbgClient
+from x64dbg_automate.events import EventType
+
+if len(sys.argv) != 2:
+    print(&quot;Usage: python sessions.py &lt;x64dbg_path&gt;&quot;)
+    quit(1)
+
+print('[+] Creating the x64dbg Automate session')
+client = X64DbgClient(x64dbg_path=sys.argv[1])
+client.start_session(r'c:\Windows\system32\winver.exe')
+
+print('[+] Writing shellcode to demonstrate breakpoint features')
+sys_entry, _ = client.eval_sync('rip')
+i = sys_entry
+i = i + client.assemble_at(i, 'mov rax, GetCurrentProcessId')
+i = i + client.assemble_at(i, 'call rax')
+
+print('[+] Setting a standard breakpoint at GetCurrentProcessId')
+client.set_breakpoint('GetCurrentProcessId', singleshoot=True)
+client.go()
+
+print('[+] Waiting until the debugee is stopped at the software breakpoint')
+bp = client.wait_for_debug_event(EventType.EVENT_BREAKPOINT)
+client.clear_debug_events()
+print(f'[+] Breakpoint &quot;{bp.event_data.name}&quot; hit at {bp.event_data.addr:X} with singleshoot={bp.event_data.singleshoot}')
+
+print('[+] Resetting and setting a hardware breakpoint at GetCurrentProcessId')
+client.set_reg('rip', sys_entry)
+client.set_hardware_breakpoint('GetCurrentProcessId')
+client.go()
+
+print('[+] Waiting until the debugee is stopped at the hardware breakpoint')
+client.wait_for_debug_event(EventType.EVENT_BREAKPOINT)
+client.clear_debug_events()
+
+print('[+] Clearing hardware breakpoint')
+client.clear_hardware_breakpoint('GetCurrentProcessId')
+
+print('[+] Resetting and setting a memory breakpoint at GetCurrentProcessId')
+client.set_reg('rip', sys_entry)
+client.set_memory_breakpoint('GetCurrentProcessId', restore=False)
+client.go()
+
+print('[+] Waiting until the debugee is stopped at the memory breakpoint')
+client.wait_for_debug_event(EventType.EVENT_BREAKPOINT)
+client.clear_debug_events()
+
+print('[+] Cleaning up')
+client.terminate_session()
+</code></pre>
+<pre><code>[+] Creating the x64dbg Automate session
+[+] Writing shellcode to demonstrate breakpoint features
+[+] Setting a standard breakpoint at GetCurrentProcessId
+[+] Waiting until the debugee is stopped at the software breakpoint
+[+] Breakpoint &quot;bpx_GetCurrentProcessId&quot; hit at 7FFC973A36E0 with singleshoot=True
+[+] Resetting and setting a hardware breakpoint at GetCurrentProcessId
+[+] Waiting until the debugee is stopped at the hardware breakpoint
+[+] Clearing hardware breakpoint
+[+] Resetting and setting a memory breakpoint at GetCurrentProcessId
+[+] Waiting until the debugee is stopped at the memory breakpoint
+[+] Cleaning up
+</code></pre>
+<h3 id="api-method-reference">API Method Reference</h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.get_breakpoints" class="doc doc-heading">
+            <code class="highlight language-python">get_breakpoints(bp_type)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Retrieves all breakpoints of the specified type</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>bp_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.BreakpointType" href="#x64dbg_automate.models.BreakpointType">BreakpointType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of breakpoint to get</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>list[<a class="autorefs autorefs-internal" title="x64dbg_automate.models.Breakpoint" href="#x64dbg_automate.models.Breakpoint">Breakpoint</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of Breakpoint objects</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_breakpoints(self, bp_type: BreakpointType) -&gt; list[Breakpoint]:
+    """
+    Retrieves all breakpoints of the specified type
+
+    Args:
+        bp_type: The type of breakpoint to get
+
+    Returns:
+        A list of Breakpoint objects
+    """
+    resp = self._send_request(XAutoCommand.XAUTO_REQ_GET_BREAKPOINTS, bp_type)
+    return [Breakpoint(
+        type=BreakpointType(bp[0]),
+        addr=bp[1],
+        enabled=bp[2],
+        singleshoot=bp[3],
+        active=bp[4],
+        name=bp[5],
+        mod=bp[6],
+        slot=bp[7],
+        typeEx=bp[8],
+        hwSize=bp[9],
+        hitCount=bp[10],
+        fastResume=bp[11],
+        silent=bp[12],
+        breakCondition=bp[13],
+        logText=bp[14],
+        logCondition=bp[15],
+        commandText=bp[16],
+        commandCondition=bp[17]
+    ) for bp in resp]</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.set_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">set_breakpoint(address_or_symbol, name=None, bp_type=StandardBreakpointType.Short, singleshoot=False)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Sets a software breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_or_symbol</code>
+            </td>
+            <td>
+                  <code>int | str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to set the breakpoint at</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code>str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional name for the breakpoint</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>bp_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.StandardBreakpointType" href="#x64dbg_automate.models.StandardBreakpointType">StandardBreakpointType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type of software breakpoint to set</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="x64dbg_automate.models.StandardBreakpointType.Short">Short</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>singleshoot</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Set a single-shot breakpoint</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def set_breakpoint(self, address_or_symbol: int | str, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot: bool = False) -&gt; bool:
+    """
+    Sets a software breakpoint at the specified address or symbol.
+
+    Args:
+        address_or_symbol: Address or symbol to set the breakpoint at
+        name: Optional name for the breakpoint
+        bp_type: Type of software breakpoint to set
+        singleshoot: Set a single-shot breakpoint
+
+    Returns:
+        Success
+    """
+    bp_type_str = str(bp_type).lower()
+    if singleshoot and bp_type_str != "ss":
+        bp_type_str = f'ss{bp_type_str}'
+    if isinstance(address_or_symbol, int):
+        name = name or f"bpx_{address_or_symbol:x}"
+        return self.cmd_sync(f'bpx 0x{address_or_symbol:x}, "{name}", {bp_type_str}')
+    else:
+        name = name or f"bpx_{address_or_symbol.replace(' ', '_')}"
+        if '"' in name:
+            raise ValueError("Name cannot contain double quotes")
+        return self.cmd_sync(f'bpx {address_or_symbol}, "{name}", {bp_type_str}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.set_hardware_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">set_hardware_breakpoint(address_or_symbol, bp_type=HardwareBreakpointType.x, size=1)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Sets a hardware breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_or_symbol</code>
+            </td>
+            <td>
+                  <code>int | str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to set the breakpoint at</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>bp_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.HardwareBreakpointType" href="#x64dbg_automate.models.HardwareBreakpointType">HardwareBreakpointType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type of software breakpoint to set</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="x64dbg_automate.models.HardwareBreakpointType.x">x</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>size</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>breakpoint size, one of [1, 2, 4, 8]</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def set_hardware_breakpoint(self, address_or_symbol: int | str, bp_type: HardwareBreakpointType = HardwareBreakpointType.x, size: int = 1) -&gt; bool:
+    """
+    Sets a hardware breakpoint at the specified address or symbol.
+
+    Args:
+        address_or_symbol: Address or symbol to set the breakpoint at
+        bp_type: Type of software breakpoint to set
+        size: breakpoint size, one of [1, 2, 4, 8]
+
+    Returns:
+        Success
+    """
+    if size not in [1, 2, 4, 8]:
+        raise ValueError("Invalid size")
+    if isinstance(address_or_symbol, int):
+        return self.cmd_sync(f'bph 0x{address_or_symbol:x}, {bp_type}, {size}')
+    else:
+        return self.cmd_sync(f'bph {address_or_symbol}, {bp_type}, {size}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.set_memory_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">set_memory_breakpoint(address_or_symbol, bp_type=MemoryBreakpointType.a, restore=True)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Sets a memory breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_or_symbol</code>
+            </td>
+            <td>
+                  <code>int | str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to set the breakpoint at</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>bp_type</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.MemoryBreakpointType" href="#x64dbg_automate.models.MemoryBreakpointType">MemoryBreakpointType</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type of software breakpoint to set</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="x64dbg_automate.models.MemoryBreakpointType.a">a</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>restore</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Restore the original memory protection</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def set_memory_breakpoint(self, address_or_symbol: int | str, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, restore: bool = True) -&gt; bool:
+    """
+    Sets a memory breakpoint at the specified address or symbol.
+
+    Args:
+        address_or_symbol: Address or symbol to set the breakpoint at
+        bp_type: Type of software breakpoint to set
+        restore: Restore the original memory protection
+
+    Returns:
+        Success
+    """
+    if isinstance(address_or_symbol, int):
+        return self.cmd_sync(f'bpm 0x{address_or_symbol:x}, {int(restore)}, {bp_type}')
+    else:
+        return self.cmd_sync(f'bpm {address_or_symbol}, {int(restore)}, {bp_type}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.clear_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">clear_breakpoint(address_name_symbol_or_none=None)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Clears software breakpoint at the specified address, name, or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_name_symbol_or_none</code>
+            </td>
+            <td>
+                  <code>int | str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def clear_breakpoint(self, address_name_symbol_or_none: int | str | None = None) -&gt; bool:
+    """
+    Clears software breakpoint at the specified address, name, or symbol.
+
+    Args:
+        address_name_symbol_or_none: Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)
+
+    Returns:
+        Success
+    """
+    if address_name_symbol_or_none is None:
+        return self.cmd_sync('bpc')
+    if isinstance(address_name_symbol_or_none, int):
+        return self.cmd_sync(f'bpc 0x{address_name_symbol_or_none:x}')
+    return self.cmd_sync(f'bpc "{address_name_symbol_or_none}"')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.clear_hardware_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">clear_hardware_breakpoint(address_symbol_or_none=None)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Clears hardware breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_symbol_or_none</code>
+            </td>
+            <td>
+                  <code>int | str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def clear_hardware_breakpoint(self, address_symbol_or_none: int | str | None = None) -&gt; bool:
+    """
+    Clears hardware breakpoint at the specified address or symbol.
+
+    Args:
+        address_symbol_or_none: Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)
+
+    Returns:
+        Success
+    """
+    if address_symbol_or_none is None:
+        return self.cmd_sync('bphc')
+    if isinstance(address_symbol_or_none, int):
+        return self.cmd_sync(f'bphc 0x{address_symbol_or_none:x}')
+    return self.cmd_sync(f'bphc {address_symbol_or_none}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.clear_memory_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">clear_memory_breakpoint(address_symbol_or_none=None)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Clears memory breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_symbol_or_none</code>
+            </td>
+            <td>
+                  <code>int | str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def clear_memory_breakpoint(self, address_symbol_or_none: int | str | None = None) -&gt; bool:
+    """
+    Clears memory breakpoint at the specified address or symbol.
+
+    Args:
+        address_symbol_or_none: Address or symbol to remove the breakpoint at (None removes all breakpoints of this type)
+
+    Returns:
+        Success
+    """
+    if address_symbol_or_none is None:
+        return self.cmd_sync('bpmc')
+    if isinstance(address_symbol_or_none, int):
+        return self.cmd_sync(f'bpmc 0x{address_symbol_or_none:x}')
+    return self.cmd_sync(f'bpmc {address_symbol_or_none}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.toggle_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">toggle_breakpoint(address_name_symbol_or_none=None, on=True)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Toggles software breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_name_symbol_or_none</code>
+            </td>
+            <td>
+                  <code>int | str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address, name, or symbol to toggle the breakpoint at</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>on</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Enable or disable the breakpoint</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def toggle_breakpoint(self, address_name_symbol_or_none: int | str | None = None, on: bool = True) -&gt; bool:
+    """
+    Toggles software breakpoint at the specified address or symbol.
+
+    Args:
+        address_name_symbol_or_none: Address, name, or symbol to toggle the breakpoint at
+        on: Enable or disable the breakpoint
+
+    Returns:
+        Success
+    """
+    toggle_cmd = 'bpe' if on else 'bpd'
+    if isinstance(address_name_symbol_or_none, int):
+        return self.cmd_sync(f'{toggle_cmd} 0x{address_name_symbol_or_none:x}')
+    elif address_name_symbol_or_none is None:
+        return self.cmd_sync(f'{toggle_cmd}')
+    else:
+        return self.cmd_sync(f'{toggle_cmd} {address_name_symbol_or_none}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.toggle_hardware_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">toggle_hardware_breakpoint(address_symbol_or_none=None, on=True)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Toggles hardware breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_symbol_or_none</code>
+            </td>
+            <td>
+                  <code>int | str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to toggle the breakpoint at</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>on</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Enable or disable the breakpoint</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def toggle_hardware_breakpoint(self, address_symbol_or_none: int | str | None = None, on: bool = True) -&gt; bool:
+    """
+    Toggles hardware breakpoint at the specified address or symbol.
+
+    Args:
+        address_symbol_or_none: Address or symbol to toggle the breakpoint at
+        on: Enable or disable the breakpoint
+
+    Returns:
+        Success
+    """
+    toggle_cmd = 'bphe' if on else 'bphd'
+    if isinstance(address_symbol_or_none, int):
+        return self.cmd_sync(f'{toggle_cmd} 0x{address_symbol_or_none:x}')
+    elif address_symbol_or_none is None:
+        return self.cmd_sync(f'{toggle_cmd}')
+    else:
+        return self.cmd_sync(f'{toggle_cmd} {address_symbol_or_none}')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.toggle_memory_breakpoint" class="doc doc-heading">
+            <code class="highlight language-python">toggle_memory_breakpoint(address_symbol_or_none=None, on=True)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Toggles memory breakpoint at the specified address or symbol.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>address_symbol_or_none</code>
+            </td>
+            <td>
+                  <code>int | str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Address or symbol to toggle the breakpoint at</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>on</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Enable or disable the breakpoint</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def toggle_memory_breakpoint(self, address_symbol_or_none: int | str | None = None, on: bool = True) -&gt; bool:
+    """
+    Toggles memory breakpoint at the specified address or symbol.
+
+    Args:
+        address_symbol_or_none: Address or symbol to toggle the breakpoint at
+        on: Enable or disable the breakpoint
+
+    Returns:
+        Success
+    """
+    toggle_cmd = 'bpme' if on else 'bpmd'
+    if isinstance(address_symbol_or_none, int):
+        return self.cmd_sync(f'{toggle_cmd} 0x{address_symbol_or_none:x}')
+    elif address_symbol_or_none is None:
+        return self.cmd_sync(f'{toggle_cmd}')
+    else:
+        return self.cmd_sync(f'{toggle_cmd} {address_symbol_or_none}')</code></pre>
+            </details>
+    </div>
+
+</div><h3 id="api-model-reference">API Model Reference</h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.Breakpoint" class="doc doc-heading">
+            <code>Breakpoint</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class Breakpoint(BaseModel):
+    type: BreakpointType
+    addr: int
+    enabled: bool
+    singleshoot: bool
+    active: bool
+    name: str
+    mod: str
+    slot: int
+    typeEx: int
+    hwSize: int
+    hitCount: int
+    fastResume: bool
+    silent: bool
+    breakCondition: str
+    logText: str
+    logCondition: str
+    commandText: str
+    commandCondition: str</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.BreakpointType" class="doc doc-heading">
+            <code>BreakpointType</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class BreakpointType(IntEnum):
+    BpNone = 0,
+    BpNormal = 1,
+    BpHardware = 2,
+    BpMemory = 4,
+    BpDll = 8,
+    BpException = 16</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.StandardBreakpointType" class="doc doc-heading">
+            <code>StandardBreakpointType</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class StandardBreakpointType(StrEnum):
+    SingleShotInt3 = 'ss' # CC (SingleShoot)
+    Long = 'long' # CD03
+    Ud2 = 'ud2' # 0F0B
+    Short = 'short' # CC</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.HardwareBreakpointType" class="doc doc-heading">
+            <code>HardwareBreakpointType</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class HardwareBreakpointType(StrEnum):
+    r = 'r'
+    w = 'w'
+    x = 'x'</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.MemoryBreakpointType" class="doc doc-heading">
+            <code>MemoryBreakpointType</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class MemoryBreakpointType(StrEnum):
+    r = 'r'
+    w = 'w'
+    x = 'x'
+    a = 'a'</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
