@@ -1,4 +1,6 @@
 site_name: "x64dbg Automate"
+site_description: "Full documentation for the x64dbg Automate plugin - Easy Scriptable and Repeatable Debug Sessions"
+site_author: "Darbonzo (darius@x64.ooo)"
 nav:
   - "Home": index.md
   - "Installation": installation.md
