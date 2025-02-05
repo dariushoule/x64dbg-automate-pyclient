@@ -7,14 +7,14 @@ A session refers to an automation-enabled running instance of x64dbg.
 Each instance of the debugger you launch or attach to has a session ID allocated to it. The automation client relies on sessions 
 to know which debugger instance to communicate with. For all intents and purposes the session ID is equivalent to the debugger PID.
 
-After launching x64dbg with the plugin installed its session ID can be seen in the startup log:
+After launching x64dbg with the plugin installed its session ID and port binds can be seen in the startup log:
 ```
 [x64dbg-automate] Allocated session ID: 12584
 [x64dbg-automate] Allocated PUB/SUB port: 49759
 [x64dbg-automate] Allocated REQ/REP port: 52085
 ```
 
-Sessions can also be discovered programatically, with PIDs, command lines, working directories, and window titles available for diambiguation.
+Sessions can also be discovered programmatically - with PIDs, command lines, working directories, and window titles provided for disambiguation.
 
 ### Example: Sessions
 
@@ -80,28 +80,48 @@ client2.terminate_session()
 [+] Terminating the second session
 ```
 
-### API Reference
+### API Method Reference
 
 ::: x64dbg_automate.X64DbgClient.start_session
     options:
         show_root_heading: true
+        show_root_full_path: false
 
 
 ::: x64dbg_automate.X64DbgClient.attach_session
     options:
         show_root_heading: true
+        show_root_full_path: false
 
 
 ::: x64dbg_automate.X64DbgClient.detach_session
     options:
         show_root_heading: true
+        show_root_full_path: false
 
 
 ::: x64dbg_automate.X64DbgClient.terminate_session
     options:
         show_root_heading: true
+        show_root_full_path: false
 
 
 ::: x64dbg_automate.X64DbgClient.list_sessions
     options:
         show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.wait_for_session
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+### API Model Reference
+
+::: x64dbg_automate.models.DebugSession
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+        show_bases: false

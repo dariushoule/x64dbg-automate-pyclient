@@ -1,7 +1,7 @@
 import ctypes
 import glob
 import logging
-from os import unlink
+import os
 import subprocess
 import threading
 import time
@@ -21,11 +21,11 @@ all_instances: list['X64DbgClient'] = []
 
 
 def ctrl_c_handler(sig_t: int) -> bool:
-    print(f'Received exit signal {sig_t}, detaching and exiting', flush=True)
+    logger.warning(f'Received exit signal {sig_t}, detaching and exiting')
     for i in all_instances:
         i.detach_session()
-    import sys
-    sys.exit(0)
+    import psutil
+    psutil.Process().terminate()
     return True
 ctrl_c_handler = SetConsoleCtrlHandler.argtypes[0](ctrl_c_handler)
 SetConsoleCtrlHandler(ctrl_c_handler, True)
@@ -38,7 +38,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def __init__(self, x64dbg_path: str):
         self.x64dbg_path = x64dbg_path
         self.session_pid = None
-        self.context = None
+        self.context = zmq.Context()
         self.req_socket = None
         self.sub_socket = None
         self.sess_req_rep_port = 0
@@ -51,28 +51,28 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def _sub_thread(self) -> None:
         while True:
             try:
-                if self.context is None:
+                if self.sub_socket is None:
                     break
-                msg = msgpack.unpackb(self.sub_socket.recv())
+                msg = msgpack.unpackb(self.sub_socket.recv(zmq.DONTWAIT))
                 self.debug_event_publish(msg)
-            except zmq.error.ContextTerminated:
-                # This session has been detached, exit thread
+            except zmq.error.Again:
+                # No messages on socket
+                time.sleep(0.2)
+                pass
+            except KeyboardInterrupt:
+                # Quitting, expected exit
                 break
             except zmq.error.ZMQError:
-                if self.context is None:
-                    logger.exception("Socket terminated, exiting thread")
-                    break
-                else:
-                    logger.exception("Unhandled ZMQError, retrying")
+                logger.exception("Unhandled ZMQError, retrying")
 
     
     def _init_connection(self) -> None:
-        if self.context is not None:
+        if self.req_socket is not None:
             self._close_connection()
 
-        self.context = zmq.Context()
         self.req_socket = self.context.socket(zmq.REQ)
-        self.req_socket.setsockopt(zmq.SNDTIMEO, 5000)
+        self.req_socket.setsockopt(zmq.CONNECT_TIMEOUT, 6000)
+        self.req_socket.setsockopt(zmq.SNDTIMEO, 6000)
         self.req_socket.setsockopt(zmq.RCVTIMEO, 10000)
         self.req_socket.connect(f"tcp://localhost:{self.sess_req_rep_port}")
         self.req_socket.send(msgpack.packb("PING"))
@@ -80,17 +80,19 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
             raise ClientConnectionFailedError(f"Connection to x64dbg failed on port {self.sess_req_rep_port}")
         
         self.sub_socket = self.context.socket(zmq.SUB)
-        self.req_socket.setsockopt(zmq.RCVTIMEO, 6000)
+        self.sub_socket.setsockopt(zmq.CONNECT_TIMEOUT, 6000)
+        self.sub_socket.setsockopt(zmq.SNDTIMEO, 6000)
+        self.sub_socket.setsockopt(zmq.RCVTIMEO, 10000)
         self.sub_socket.connect(f"tcp://localhost:{self.sess_pub_sub_port}")
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         self.sub_thread = threading.Thread(target=self._sub_thread)
         self.sub_thread.start()
 
     def _close_connection(self) -> None:
-        if self.context is None:
+        if self.req_socket is None:
             return
-        self.context.destroy()
-        self.context = None
+        self.req_socket.close()
+        self.sub_socket.close()
         self.req_socket = None
         self.sub_socket = None
         self.sub_thread.join()
@@ -138,12 +140,16 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         return self.session_pid
     
     @staticmethod
-    def wait_for_session(session_pid: int, timeout = 10) -> DebugSession:
+    def wait_for_session(session_pid: int, timeout: int = 10) -> DebugSession:
         """
         Wait for an x64dbg session to start
 
         Args:
             session_pid: The session ID to wait for (debugger PID)
+            timeout: The maximum time to wait in seconds
+
+        Returns:
+            The awaited debug session object
         """
         while timeout > 0:
             sessions = X64DbgClient.list_sessions()
@@ -159,7 +165,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         Attach to an existing x64dbg session
 
         Args:
-            session_pid: The session ID to wait for (debugger PID)
+            session_pid: The session ID to attach to (debugger PID)
         """
         session = X64DbgClient.wait_for_session(session_pid)
         self.sess_req_rep_port = session.sess_req_rep_port
@@ -209,7 +215,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         Lists all active x64dbg sessions
 
         Returns:
-            A list of session IDs
+            A list of sessions
         """
         sessions: list[DebugSession] = []
         temp_path_cstr = ctypes.create_unicode_buffer(1024)
@@ -218,32 +224,35 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         else:
             temp_path = temp_path_cstr.value
         
-        # Find the first live x64dbg Automate session active and ask it to list all sessions
         locks = glob.glob(f'{temp_path}xauto_session.*.lock')
         for lock in locks:
-            try:
-                with open(lock, 'r') as f:
-                    sess_req_rep_port = int(f.readline().strip())
-                    sess_pub_sub_port = int(f.readline().strip())
-
-                pid = int(lock.split('.')[-2])
-                process = psutil.Process(pid)
-                if process.is_running():
-                    sessions.append(DebugSession(
-                        pid=pid,
-                        lockfile_path=lock,
-                        cmdline=process.cmdline(),
-                        cwd=process.cwd(),
-                        window_title=X64DbgClient._window_title_for_pid(pid),
-                        sess_req_rep_port=sess_req_rep_port,
-                        sess_pub_sub_port=sess_pub_sub_port
-                    ))
-            except psutil.NoSuchProcess:
-                # Stale session didn't get cleaned up properly
+            while True:
                 try:
-                    unlink(lock)
-                except:
-                    pass
+                    with open(lock, 'r') as f:
+                        sess_req_rep_port = int(f.readline().strip())
+                        sess_pub_sub_port = int(f.readline().strip())
+
+                    pid = int(lock.split('.')[-2])
+                    if psutil.pid_exists(pid):
+                        process = psutil.Process(pid)
+                        sessions.append(DebugSession(
+                            pid=pid,
+                            lockfile_path=lock,
+                            cmdline=process.cmdline(),
+                            cwd=process.cwd(),
+                            window_title=X64DbgClient._window_title_for_pid(pid),
+                            sess_req_rep_port=sess_req_rep_port,
+                            sess_pub_sub_port=sess_pub_sub_port
+                        ))
+                        break
+                    else:
+                        if time.time() - os.path.getctime(lock) > 10.0:
+                            logger.warning(f"Stale lockfile {lock}, removing")
+                            os.unlink(lock)
+                            break
+                except FileNotFoundError:
+                    # The process exited between the glob and the open
+                    break
 
         return sessions
     

@@ -9,7 +9,19 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
     Higher-level abstractions built on top of raw XAuto command primitives
     """
 
-    def load_executable(self, target_exe: str, cmdline: str = "", current_dir: str = "", wait_timeout=10) -> bool:
+    def load_executable(self, target_exe: str, cmdline: str = "", current_dir: str = "", wait_timeout: int = 10) -> bool:
+        """
+        Loads a new executable into the debugger. This method will block until the debugee is ready to receive a command.
+
+        Args:
+            target_exe: Path to the executable to load
+            cmdline: Command line arguments to pass to the executable
+            current_dir: Current working directory for the executable
+            wait_timeout: Max time to wait for the debugee to be ready
+
+        Returns:
+            True if successful, False otherwise
+        """
         cmdline = cmdline.replace('"', r'\"')
         current_dir = current_dir.replace('"', r'\"')
         if len(current_dir) == 0:
@@ -18,44 +30,125 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             return False
         return self.wait_cmd_ready(wait_timeout)
 
-    def unload_executable(self, wait_timeout=10) -> bool:
+    def unload_executable(self, wait_timeout: int = 10) -> bool:
+        """
+        Unloads the currently loaded executable. This method will block until the debugger is no longer debugging.
+
+        Args:
+            wait_timeout: Max time to wait for the debugger finish unloading
+
+        Returns:
+            True if successful, False otherwise
+        """
         if not self.cmd_sync(f'stop'):
             return False
         return self.wait_until_not_debugging(wait_timeout)
 
-    def stepi(self, step_count = 1, pass_exceptions = False, swallow_exceptions = False, wait_for_ready=True, wait_timeout=2) -> bool:
+    def stepi(self, step_count: int = 1, pass_exceptions: bool = False, swallow_exceptions: bool = False, wait_for_ready: bool = True, wait_timeout: int = 2) -> bool:
+        """
+        Steps into N instructions.
+        
+        Args:
+            step_count: Number of instructions to step through
+            pass_exceptions: Pass exceptions to the debugee during step
+            swallow_exceptions: Swallow exceptions during step
+            wait_for_ready: Block until debugger is stopped
+            wait_timeout: Maximum time in seconds to wait for debugger to stop
+        Returns:
+            bool: True if stepping operation was successful, False otherwise.
+        Raises:
+            ValueError: If both pass_exceptions and swallow_exceptions are True.
+        """
         if pass_exceptions == True and swallow_exceptions == True:
             raise ValueError("Cannot pass and swallow exceptions at the same time")
-        prefix = 'e' if pass_exceptions else 'se'
+        if pass_exceptions:
+            prefix = 'e'
+        elif swallow_exceptions:
+            prefix = 'se'
+        else:
+            prefix = ''
         res = self.cmd_sync(f"{prefix}sti 0x{step_count:x}")
         if res and wait_for_ready:
             self.wait_until_stopped(wait_timeout)
         return res
     
-    def stepo(self, step_count = 1, pass_exceptions = False, swallow_exceptions = False, wait_for_ready=True, wait_timeout=2) -> bool:
+    def stepo(self, step_count: int = 1, pass_exceptions: bool = False, swallow_exceptions: bool = False, wait_for_ready: bool = True, wait_timeout: int = 2) -> bool:
+        """
+        Steps over N instructions.
+        
+        Args:
+            step_count: Number of instructions to step through
+            pass_exceptions: Pass exceptions to the debugee during step
+            swallow_exceptions: Swallow exceptions during step
+            wait_for_ready: Block until debugger is stopped
+            wait_timeout: Maximum time in seconds to wait for debugger to stop
+        Returns:
+            bool: True if stepping operation was successful, False otherwise.
+        Raises:
+            ValueError: If both pass_exceptions and swallow_exceptions are True.
+        """
         if pass_exceptions == True and swallow_exceptions == True:
             raise ValueError("Cannot pass and swallow exceptions at the same time")
-        prefix = 'e' if pass_exceptions else 'se'
+        if pass_exceptions:
+            prefix = 'e'
+        elif swallow_exceptions:
+            prefix = 'se'
+        else:
+            prefix = ''
         res = self.cmd_sync(f"{prefix}sto 0x{step_count:x}")
         if res and wait_for_ready:
             self.wait_until_stopped(wait_timeout)
         return res
     
-    def skip(self, skip_count = 1, wait_for_ready=True, wait_timeout=2) -> bool:
+    def skip(self, skip_count: int = 1, wait_for_ready: bool = True, wait_timeout: int = 2) -> bool:
+        """
+        Skips over N instructions.
+        
+        Args:
+            skip_count: Number of instructions to skip
+            wait_for_ready: Block until debugger is stopped
+            wait_timeout: Maximum time in seconds to wait for debugger to stop
+        Returns:
+            bool: True if stepping operation was successful, False otherwise.
+        """
         res = self.cmd_sync(f"skip {skip_count}")
         if res and wait_for_ready:
             self.wait_until_stopped(wait_timeout)
         return res
     
-    def ret(self, frames = 1, wait_timeout=10) -> bool:
+    def ret(self, frames: int = 1, wait_timeout: int = 10) -> bool:
+        """
+        Steps until a ret instruction is encountered.
+        
+        Args:
+            frames: Number of ret instructions to seek
+            wait_timeout: Maximum time in seconds to wait for debugger to stop
+        Returns:
+            bool: True if stepping operation was successful, False otherwise.
+        """
         if not self.cmd_sync(f"rtr {frames}"):
             return False
         return self.wait_cmd_ready(wait_timeout)
     
-    def go(self, pass_exceptions = False, swallow_exceptions = False) -> bool:
+    def go(self, pass_exceptions: bool = False, swallow_exceptions: bool = False) -> bool:
+        """
+        Resumes the debugee. This method will block until the debugee is in the running state.
+
+        Args:
+            pass_exceptions: Pass exceptions to the debugee
+            swallow_exceptions: Swallow exceptions
+
+        Returns:
+            True if successful, False otherwise
+        """
         if pass_exceptions == True and swallow_exceptions == True:
             raise ValueError("Cannot pass and swallow exceptions at the same time")
-        prefix = 'e' if pass_exceptions else 'se'
+        if pass_exceptions:
+            prefix = 'e'
+        elif swallow_exceptions:
+            prefix = 'se'
+        else:
+            prefix = ''
         if not self.cmd_sync(f"{prefix}go"):
             return False
         return self.wait_until_running()
@@ -108,6 +201,12 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return res
     
     def pause(self) -> bool:
+        """
+        Pauses the debugee. This method will block until the debugee is in the stopped state.
+
+        Returns:
+            True if successful, False otherwise
+        """
         if not self.cmd_sync(f"pause"):
             return False
         return self.wait_until_stopped()
@@ -190,7 +289,14 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
                 return pid
         return None
 
-    def debugee_thread_create(self, addr: int, arg: int = 0) -> int | None:
+    def thread_create(self, addr: int, arg: int = 0) -> int | None:
+        """
+        Create a new thread in the debugee.
+
+        Args:
+            addr: Address of the thread entry point
+            arg: Argument to pass to the thread
+        """
         success = self.cmd_sync(f'createthread 0x{addr:x}, 0x{arg:x}')
         if not success:
             return None
@@ -199,16 +305,40 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             return None
         return tid
 
-    def debugee_thread_terminate(self, tid: int):
+    def thread_terminate(self, tid: int):
+        """
+        Kills a thread in the debugee.
+
+        Args:
+            tid: Thread ID to kill
+        """
         return self.cmd_sync(f'killthread 0x{tid:x}')
 
-    def debugee_thread_pause(self, tid: int):
+    def thread_pause(self, tid: int):
+        """
+        Pauses a thread in the debugee.
+
+        Args:
+            tid: Thread ID to kill
+        """
         return self.cmd_sync(f'suspendthread 0x{tid:x}')
 
-    def debugee_threads_resume(self, tid: int):
+    def thread_resume(self, tid: int):
+        """
+        Resumes a thread in the debugee.
+
+        Args:
+            tid: Thread ID to kill
+        """
         return self.cmd_sync(f'resumethread 0x{tid:x}')
 
-    def debugee_switch_thread(self, tid: int):
+    def switch_thread(self, tid: int):
+        """
+        Switches the currently observed debugger thread.
+
+        Args:
+            tid: Thread ID to kill
+        """
         return self.cmd_sync(f'switchthread 0x{tid:x}')
     
     def assemble_at(self, addr: int, instr: str) -> int | None:

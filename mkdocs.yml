@@ -4,7 +4,9 @@ nav:
   - "Installation": installation.md
   - "Quickstart": quickstart.md
   - "Api Reference":
-    - "Session Control": sessions.md
+    - "Session Control": api/sessions.md
+    - "Debug Control": api/debug-control.md
+    - "Registers and Memory": api/reg-and-mem.md
 plugins:
   - search
   - mkdocstrings

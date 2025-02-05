@@ -245,8 +245,8 @@ class XAutoCommandsMixin(XAutoClientBase):
         while True:
             if self.debugee_is_running():
                 return True
-            time.sleep(0.1)
-            slept += 0.1
+            time.sleep(0.08)
+            slept += 0.08
             if slept >= timeout:
                 return False
     
@@ -255,8 +255,8 @@ class XAutoCommandsMixin(XAutoClientBase):
         while True:
             if not self.debugee_is_running() or not self.is_debugging():
                 return True
-            time.sleep(0.1)
-            slept += 0.1
+            time.sleep(0.2)
+            slept += 0.2
             if slept >= timeout:
                 return False
     

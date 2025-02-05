@@ -382,11 +382,11 @@ def test_thread_control(client: X64DbgClient):
     shellcode = client.virt_alloc()
     client.write_memory(shellcode, b'\xeb\xfe') # jmp $-2
 
-    tid = client.debugee_thread_create(shellcode)
+    tid = client.thread_create(shellcode)
     time.sleep(.2) # todo: method to check if thread is running?
     assert tid > 0
-    assert client.debugee_thread_pause(tid)
-    assert client.debugee_switch_thread(tid)
-    assert client.debugee_threads_resume(tid)
-    assert client.debugee_thread_terminate(tid)
-    assert client.debugee_threads_resume(tid) == False
+    assert client.thread_pause(tid)
+    assert client.switch_thread(tid)
+    assert client.thread_resume(tid)
+    assert client.thread_terminate(tid)
+    assert client.thread_resume(tid) == False

@@ -3,13 +3,16 @@ from pydantic import BaseModel
 
 
 class DebugSession(BaseModel):
-    pid: int
-    lockfile_path: str
-    cmdline: list[str]
-    cwd: str
-    window_title: str
-    sess_req_rep_port: int
-    sess_pub_sub_port: int
+    """
+    Represents a debug session in x64dbg Automate
+    """
+    pid: int # The process ID of the debugger
+    lockfile_path: str # The path to the lockfile for the session
+    cmdline: list[str] # The command line arguments used to start the session
+    cwd: str # The current working directory of the session
+    window_title: str # The title of the x64dbg window
+    sess_req_rep_port: int # The port used for zmq request/reply communication
+    sess_pub_sub_port: int # The port used for zmq publish/subscribe communication
 
 
 class MemPage(BaseModel):
