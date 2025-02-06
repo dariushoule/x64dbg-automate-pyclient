@@ -242,6 +242,10 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         """
         Set a single register or subregister to a value
 
+        Args:
+            reg: Register to set
+            val: Value to set
+
         Returns:
             Success
         """
@@ -253,6 +257,9 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
     def get_reg(self, reg: MutableRegister | str) -> int:
         """
         Get a single register or subregister
+
+        Args:
+            reg: Register to get
 
         Returns:
             Success
