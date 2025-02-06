@@ -289,6 +289,37 @@ client.terminate_session()
         <p>Get a single register or subregister</p>
 
 
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>reg</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.MutableRegister" href="#x64dbg_automate.models.MutableRegister">MutableRegister</a> | str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Register to get</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     <p><span class="doc-section-title">Returns:</span></p>
     <table>
       <thead>
@@ -316,6 +347,9 @@ client.terminate_session()
               <pre class="highlight"><code class="language-python">def get_reg(self, reg: MutableRegister | str) -&gt; int:
     """
     Get a single register or subregister
+
+    Args:
+        reg: Register to get
 
     Returns:
         Success
@@ -429,6 +463,53 @@ client.terminate_session()
         <p>Set a single register or subregister to a value</p>
 
 
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>reg</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="x64dbg_automate.models.MutableRegister" href="#x64dbg_automate.models.MutableRegister">MutableRegister</a> | str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Register to set</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>val</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Value to set</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
     <p><span class="doc-section-title">Returns:</span></p>
     <table>
       <thead>
@@ -456,6 +537,10 @@ client.terminate_session()
               <pre class="highlight"><code class="language-python">def set_reg(self, reg: MutableRegister | str, val: int) -&gt; bool:
     """
     Set a single register or subregister to a value
+
+    Args:
+        reg: Register to set
+        val: Value to set
 
     Returns:
         Success
