@@ -133,16 +133,55 @@ class XAutoCommandsMixin(XAutoClientBase):
             pages.append(MemPage(**{k: v for k, v in zip(MemPage.model_fields.keys(), page)}))
         return pages
     
+    def read_word(self, addr: int) -> int:
+        """
+        Reads word size data from the debugee's memory
+
+        Args:
+            addr: The address to read from
+
+        Returns:
+            The word read from memory
+        """
+        mem = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, 2)
+        return int.from_bytes(mem, 'little')
+    
+    def read_dword(self, addr: int) -> int:
+        """
+        Reads dword size data from the debugee's memory
+
+        Args:
+            addr: The address to read from
+
+        Returns:
+            The dword read from memory
+        """
+        mem = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, 4)
+        return int.from_bytes(mem, 'little')
+    
+    def read_qword(self, addr: int) -> int:
+        """
+        Reads qword size data from the debugee's memory
+
+        Args:
+            addr: The address to read from
+
+        Returns:
+            The qword read from memory
+        """
+        mem = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, 8)
+        return int.from_bytes(mem, 'little')
+    
     def read_memory(self, addr: int, size: int) -> bytes:
         """
-        Reads data frpm the debugee's memory
+        Reads data from the debugee's memory
 
         Args:
             addr: The address to read from
             size: The number of bytes to read
 
         Returns:
-            Success
+            Bytes read from memory
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, size)
      

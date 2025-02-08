@@ -149,6 +149,24 @@ client.terminate_session()
         show_root_full_path: false
 
 
+::: x64dbg_automate.X64DbgClient.read_word
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.read_dword
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.read_qword
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
 ::: x64dbg_automate.X64DbgClient.memmap
     options:
         show_root_heading: true

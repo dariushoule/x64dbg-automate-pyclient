@@ -498,3 +498,11 @@ def test_breakpoint_toggle_and_clear_memory_with_name_and_symbols(client: X64Dbg
     assert bps[0].enabled == True
     client.clear_memory_breakpoint(addr_base)
     assert len(client.get_breakpoints(BreakpointType.BpMemory)) == 0
+
+
+def test_read_word(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    addr, _ = client.eval_sync('winver')
+    assert client.read_word(addr) == 0x5a4d
+    assert client.read_dword(addr) == 0x905a4d
+    assert client.read_qword(addr) == 0x300905a4d
