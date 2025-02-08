@@ -140,6 +140,18 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.read_word" class="nav-link">read_word</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.read_dword" class="nav-link">read_dword</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.read_qword" class="nav-link">read_qword</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.memmap" class="nav-link">memmap</a>
               <ul class="nav flex-column">
               </ul>
@@ -427,7 +439,7 @@ client.terminate_session()
 
     <div class="doc doc-contents first">
 
-        <p>Reads data frpm the debugee's memory</p>
+        <p>Reads data from the debugee's memory</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -492,7 +504,7 @@ client.terminate_session()
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Success</p>
+                <p>Bytes read from memory</p>
               </div>
             </td>
           </tr>
@@ -503,16 +515,274 @@ client.terminate_session()
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def read_memory(self, addr: int, size: int) -&gt; bytes:
     """
-    Reads data frpm the debugee's memory
+    Reads data from the debugee's memory
 
     Args:
         addr: The address to read from
         size: The number of bytes to read
 
     Returns:
-        Success
+        Bytes read from memory
     """
     return self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, size)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.read_word" class="doc doc-heading">
+            <code class="highlight language-python">read_word(addr)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Reads word size data from the debugee's memory</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>addr</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The address to read from</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The word read from memory</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def read_word(self, addr: int) -&gt; int:
+    """
+    Reads word size data from the debugee's memory
+
+    Args:
+        addr: The address to read from
+
+    Returns:
+        The word read from memory
+    """
+    mem = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, 2)
+    return int.from_bytes(mem, 'little')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.read_dword" class="doc doc-heading">
+            <code class="highlight language-python">read_dword(addr)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Reads dword size data from the debugee's memory</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>addr</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The address to read from</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dword read from memory</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def read_dword(self, addr: int) -&gt; int:
+    """
+    Reads dword size data from the debugee's memory
+
+    Args:
+        addr: The address to read from
+
+    Returns:
+        The dword read from memory
+    """
+    mem = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, 4)
+    return int.from_bytes(mem, 'little')</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.read_qword" class="doc doc-heading">
+            <code class="highlight language-python">read_qword(addr)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Reads qword size data from the debugee's memory</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>addr</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The address to read from</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The qword read from memory</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def read_qword(self, addr: int) -&gt; int:
+    """
+    Reads qword size data from the debugee's memory
+
+    Args:
+        addr: The address to read from
+
+    Returns:
+        The qword read from memory
+    """
+    mem = self._send_request(XAutoCommand.XAUTO_REQ_DBG_READ_MEMORY, addr, 8)
+    return int.from_bytes(mem, 'little')</code></pre>
             </details>
     </div>
 
