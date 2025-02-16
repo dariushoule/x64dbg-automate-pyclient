@@ -1,4 +1,4 @@
-
+import os
 from x64dbg_automate.commands_xauto import XAutoCommandsMixin
 from x64dbg_automate.models import HardwareBreakpointType, MemPage, \
     MemoryBreakpointType, MutableRegister, PageRightsConfiguration, StandardBreakpointType
@@ -26,6 +26,7 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         current_dir = current_dir.replace('"', r'\"')
         if len(current_dir) == 0:
             current_dir = "."
+        target_exe = os.path.abspath(target_exe)
         if not self.cmd_sync(f'init {target_exe}, "{cmdline}", "{current_dir}"'):
             return False
         return self.wait_cmd_ready(wait_timeout)

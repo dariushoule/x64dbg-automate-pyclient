@@ -135,7 +135,9 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.attach_session(self.session_pid)
 
         if target_exe.strip() != "":
-            self.load_executable(target_exe.strip(), cmdline, current_dir)
+            if not self.load_executable(target_exe.strip(), cmdline, current_dir):
+                self.terminate_session()
+                raise RuntimeError("Failed to load executable")
             self.wait_cmd_ready()
         return self.session_pid
     
