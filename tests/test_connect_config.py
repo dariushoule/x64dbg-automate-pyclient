@@ -1,3 +1,4 @@
+import os
 import subprocess
 from tests.conftest import TEST_BITNESS, X64DBG_PATH
 from x64dbg_automate import X64DbgClient
@@ -42,6 +43,21 @@ def test_dbg_is_debugging(client: X64DbgClient):
 
 def test_dbg_is_running(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.is_running() == False
+    assert client.cmd_sync('g') == True
+    assert client.is_running() == True
+
+
+def test_dbg_load_cwd(client: X64DbgClient):
+    client.start_session(r'winver.exe', "", r'c:\Windows\system32')
+    assert client.is_running() == False
+    assert client.cmd_sync('g') == True
+    assert client.is_running() == True
+
+
+def test_dbg_load_shortpath(client: X64DbgClient):
+    os.chdir(r'c:\Windows\system32')
+    client.start_session(r'winver.exe')
     assert client.is_running() == False
     assert client.cmd_sync('g') == True
     assert client.is_running() == True

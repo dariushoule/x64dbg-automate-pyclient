@@ -26,7 +26,10 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         current_dir = current_dir.replace('"', r'\"')
         if len(current_dir) == 0:
             current_dir = "."
-        target_exe = os.path.abspath(target_exe)
+        if current_dir == "." or current_dir == "":
+            target_exe = os.path.abspath(target_exe)
+        else:
+            target_exe = os.path.abspath(os.path.join(current_dir, target_exe))
         if not self.cmd_sync(f'init {target_exe}, "{cmdline}", "{current_dir}"'):
             return False
         return self.wait_cmd_ready(wait_timeout)
