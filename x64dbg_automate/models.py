@@ -192,6 +192,7 @@ class RegDump32(RegDump):
 
 
 class MutableRegister(StrEnum):
+    cip = 'cip'
     rax = 'rax'
     rbx = 'rbx'
     rcx = 'rcx'

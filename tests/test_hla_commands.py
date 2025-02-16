@@ -389,6 +389,7 @@ def test_thread_control(client: X64DbgClient):
     assert client.switch_thread(tid)
     assert client.thread_resume(tid)
     assert client.thread_terminate(tid)
+    time.sleep(.2)
     assert client.thread_resume(tid) == False
 
 

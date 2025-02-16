@@ -153,9 +153,11 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             prefix = 'se'
         else:
             prefix = ''
+        ip_start = self.get_reg('cip')
         if not self.cmd_sync(f"{prefix}go"):
             return False
-        self.wait_until_running(timeout=1)
+        if self.get_reg('cip') == ip_start:
+            self.wait_until_running(timeout=1)
         return True
 
     
