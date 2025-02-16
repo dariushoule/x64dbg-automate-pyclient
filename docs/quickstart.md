@@ -59,7 +59,7 @@ client.set_reg('rdx', mem)
 client.go()
 
 print('[+] Bye bye! Go check out the title bar of the winver window! 🥳')
-client.deattach_session()
+client.detach_session()
 ```
 
 **Output**
