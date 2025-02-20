@@ -113,10 +113,10 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def _assert_connection_compat(self) -> None:
         v = self._get_xauto_compat_version()
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
-        
+
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
         """
-        Start a new x64dbg session and optionally load an executable into it. If target_exe is not provided, 
+        Start a new x64dbg session and optionally load an executable into it. If target_exe is not provided,
         the debugger starts without any executable. This is useful for performing configuration before the debuggee is loaded.
 
         Args:
@@ -129,7 +129,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         """
         if len(target_exe.strip()) == 0 and (len(cmdline) > 0 or len(current_dir) > 0):
             raise ValueError("cmdline and current_dir cannot be provided without target_exe")
-        
+
         self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
         self.session_pid = self.proc.pid
         self.attach_session(self.session_pid)
@@ -139,6 +139,29 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                 self.terminate_session()
                 raise RuntimeError("Failed to load executable")
             self.wait_cmd_ready()
+        return self.session_pid
+
+    def start_session_attach(self, pid: int) -> int:
+        """
+        Start a new x64dbg session and attach to an existing process identified by pid.
+
+        Args:
+            pid (int): Process Identifier (PID) of the process to attach to.
+
+        Returns:
+            int: The debug session ID (the PID of the x64dbg process).
+
+        Raises:
+            RuntimeError: If attaching to the process fails.
+        """
+        self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
+        self.session_pid = self.proc.pid
+
+        if not self.attach(pid):
+            self.terminate_session()
+            raise RuntimeError("Failed to attach to process")
+
+        self.wait_until_debugging()
         return self.session_pid
     
     @staticmethod
