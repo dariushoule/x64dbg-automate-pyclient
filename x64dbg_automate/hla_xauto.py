@@ -34,6 +34,37 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             return False
         return self.wait_cmd_ready(wait_timeout)
 
+    def attach(self, pid: int, wait_timeout: int = 10) -> bool:
+        """
+        Attaches the debugger to a running process. This method does *NOT* block until a breakpoint has been reached.
+
+        Args:
+            pid (int): Process Identifier (PID) of the running process.
+            wait_timeout (int): Maximum time (in seconds) to wait for the debugger to be ready.
+
+        Returns:
+            bool: True if the debugger attaches successfully, False otherwise.
+        """
+        hex_pid = format(pid, 'x')
+        if not self.cmd_sync(f"attach {hex_pid}"):
+            return False
+        return self.wait_until_debugging(wait_timeout)
+
+    def detach(self, wait_timeout: int = 10) -> bool:
+        """
+        Detaches the debugger from the currently debugged process.
+        This method will block until we are no longer debugging.
+
+        Args:
+            wait_timeout (int): Maximum time (in seconds) to wait for the debugger to be ready.
+
+        Returns:
+            bool: True if the debugger detaches successfully, False otherwise.
+        """
+        if not self.cmd_sync("detach"):
+            return False
+        return self.wait_until_not_debugging(wait_timeout)
+
     def unload_executable(self, wait_timeout: int = 10) -> bool:
         """
         Unloads the currently loaded executable. This method will block until the debugger is no longer debugging.
