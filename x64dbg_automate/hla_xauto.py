@@ -45,8 +45,7 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         Returns:
             bool: True if the debugger attaches successfully, False otherwise.
         """
-        hex_pid = format(pid, 'x')
-        if not self.cmd_sync(f"attach {hex_pid}"):
+        if not self.cmd_sync(f"attach 0x{pid:x}"):
             return False
         return self.wait_until_debugging(wait_timeout)
 

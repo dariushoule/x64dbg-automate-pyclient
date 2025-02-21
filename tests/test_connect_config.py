@@ -73,7 +73,7 @@ def test_config_get_set(client: X64DbgClient):
     assert client.get_setting_int('Deleted Tabs', 'BreakpointsTab') == 9000
 
 
-def test_attach(client: X64DbgClient):
+def test_attach_session(client: X64DbgClient):
     proc = subprocess.Popen([X64DBG_PATH])
     client.wait_for_session(proc.pid)
     client.attach_session(proc.pid)
