@@ -140,6 +140,14 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.attach" class="nav-link">attach</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.detach" class="nav-link">detach</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.go" class="nav-link">go</a>
               <ul class="nav flex-column">
               </ul>
@@ -575,6 +583,200 @@ client.detach_session()
         True if successful, False otherwise
     """
     if not self.cmd_sync(f'stop'):
+        return False
+    return self.wait_until_not_debugging(wait_timeout)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.attach" class="doc doc-heading">
+            <code class="highlight language-python">attach(pid, wait_timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Attaches the debugger to a running process. This method does <em>NOT</em> block until a breakpoint has been reached.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>pid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Process Identifier (PID) of the running process.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum time (in seconds) to wait for the debugger to be ready.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>bool</code></td>            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugger attaches successfully, False otherwise.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def attach(self, pid: int, wait_timeout: int = 10) -&gt; bool:
+    """
+    Attaches the debugger to a running process. This method does *NOT* block until a breakpoint has been reached.
+
+    Args:
+        pid (int): Process Identifier (PID) of the running process.
+        wait_timeout (int): Maximum time (in seconds) to wait for the debugger to be ready.
+
+    Returns:
+        bool: True if the debugger attaches successfully, False otherwise.
+    """
+    hex_pid = format(pid, 'x')
+    if not self.cmd_sync(f"attach {hex_pid}"):
+        return False
+    return self.wait_until_debugging(wait_timeout)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.detach" class="doc doc-heading">
+            <code class="highlight language-python">detach(wait_timeout=10)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Detaches the debugger from the currently debugged process.
+This method will block until we are no longer debugging.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>wait_timeout</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum time (in seconds) to wait for the debugger to be ready.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>bool</code></td>            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the debugger detaches successfully, False otherwise.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def detach(self, wait_timeout: int = 10) -&gt; bool:
+    """
+    Detaches the debugger from the currently debugged process.
+    This method will block until we are no longer debugging.
+
+    Args:
+        wait_timeout (int): Maximum time (in seconds) to wait for the debugger to be ready.
+
+    Returns:
+        bool: True if the debugger detaches successfully, False otherwise.
+    """
+    if not self.cmd_sync("detach"):
         return False
     return self.wait_until_not_debugging(wait_timeout)</code></pre>
             </details>

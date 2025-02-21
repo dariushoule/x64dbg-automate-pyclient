@@ -136,6 +136,10 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.start_session_attach" class="nav-link">start_session_attach</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.attach_session" class="nav-link">attach_session</a>
               <ul class="nav flex-column">
               </ul>
@@ -367,6 +371,126 @@ the debugger starts without any executable. This is useful for performing config
             self.terminate_session()
             raise RuntimeError("Failed to load executable")
         self.wait_cmd_ready()
+    return self.session_pid</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.start_session_attach" class="doc doc-heading">
+            <code class="highlight language-python">start_session_attach(pid)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Start a new x64dbg session and attach to an existing process identified by pid.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>pid</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Process Identifier (PID) of the process to attach to.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>int</code></td>            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The debug session ID (the PID of the x64dbg process).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>RuntimeError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If attaching to the process fails.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
+              <pre class="highlight"><code class="language-python">def start_session_attach(self, pid: int) -&gt; int:
+    """
+    Start a new x64dbg session and attach to an existing process identified by pid.
+
+    Args:
+        pid (int): Process Identifier (PID) of the process to attach to.
+
+    Returns:
+        int: The debug session ID (the PID of the x64dbg process).
+
+    Raises:
+        RuntimeError: If attaching to the process fails.
+    """
+    self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
+    self.session_pid = self.proc.pid
+    self.attach_session(self.session_pid)
+
+    if not self.attach(pid):
+        self.terminate_session()
+        raise RuntimeError("Failed to attach to process")
+
+    self.wait_until_debugging()
     return self.session_pid</code></pre>
             </details>
     </div>
