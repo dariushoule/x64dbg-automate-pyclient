@@ -78,3 +78,34 @@ def test_attach(client: X64DbgClient):
     client.wait_for_session(proc.pid)
     client.attach_session(proc.pid)
     assert client.is_debugging() == False
+
+
+def test_attach_debugee_1(client: X64DbgClient):
+    if TEST_BITNESS == 32:
+        debugee_proc = subprocess.Popen([r"c:\Windows\SysWOW64\winver.exe"], executable=r"c:\Windows\SysWOW64\winver.exe")
+    else:
+        debugee_proc = subprocess.Popen([r"c:\Windows\system32\winver.exe"], executable=r"c:\Windows\system32\winver.exe")
+    client.start_session_attach(debugee_proc.pid)
+    assert client.is_debugging() == True
+    assert client.is_running() == True
+    assert client.eval_sync('winver')[0] > 0
+    assert client.detach() == True
+    assert client.wait_until_not_debugging() == True
+    debugee_proc.terminate()
+    debugee_proc.wait()
+
+
+def test_attach_debugee_2(client: X64DbgClient):
+    if TEST_BITNESS == 32:
+        debugee_proc = subprocess.Popen([r"c:\Windows\SysWOW64\winver.exe"], executable=r"c:\Windows\SysWOW64\winver.exe")
+    else:
+        debugee_proc = subprocess.Popen([r"c:\Windows\system32\winver.exe"], executable=r"c:\Windows\system32\winver.exe")
+    client.start_session()
+    client.attach(debugee_proc.pid)
+    assert client.is_debugging() == True
+    assert client.is_running() == True
+    assert client.eval_sync('winver')[0] > 0
+    assert client.detach() == True
+    assert client.wait_until_not_debugging() == True
+    debugee_proc.terminate()
+    debugee_proc.wait()

@@ -106,6 +106,18 @@ client.detach_session()
         show_root_full_path: false
 
 
+::: x64dbg_automate.X64DbgClient.attach
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.detach
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
 ::: x64dbg_automate.X64DbgClient.go
     options:
         show_root_heading: true

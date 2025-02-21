@@ -88,6 +88,12 @@ client2.terminate_session()
         show_root_full_path: false
 
 
+::: x64dbg_automate.X64DbgClient.start_session_attach
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
 ::: x64dbg_automate.X64DbgClient.attach_session
     options:
         show_root_heading: true

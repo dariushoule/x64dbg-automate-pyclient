@@ -156,6 +156,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         """
         self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
         self.session_pid = self.proc.pid
+        self.attach_session(self.session_pid)
 
         if not self.attach(pid):
             self.terminate_session()

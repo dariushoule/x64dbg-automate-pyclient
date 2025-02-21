@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "x64dbg_automate"
-version = "0.1.3"
+version = "0.2.3"
 description = ""
 authors = ["Darius Houle <darius@x64.ooo>"]
 readme = "README.md"
