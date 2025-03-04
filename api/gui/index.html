@@ -136,6 +136,14 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.gui_show_reference_view" class="nav-link">gui_show_reference_view</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.models.ReferenceViewRef" class="nav-link">ReferenceViewRef</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
               </ul>
             </li>
         </ul>
@@ -144,7 +152,39 @@
                     <div class="col-md-9" role="main">
 
 <h1 id="gui-control">GUI Control</h1>
-<p>User interface control is largely unimplemented at this point. </p>
+<p>User interface control is partially implemented at this point. There exists the ability to trigger a refresh and populate a reference view.</p>
+<h3 id="example-populate-a-reference-view">Example: Populate a Reference View</h3>
+<pre><code class="language-python">&quot;&quot;&quot;
+Example: Populate Reference View (32/64 bit)
+&quot;&quot;&quot;
+import sys
+from x64dbg_automate import X64DbgClient
+from x64dbg_automate.models import ReferenceViewRef
+
+if len(sys.argv) != 2:
+    print(&quot;Usage: python sessions.py &lt;x64dbg_path&gt;&quot;)
+    quit(1)
+
+client = X64DbgClient(x64dbg_path=sys.argv[1])
+client.start_session(r'c:\Windows\system32\winver.exe')
+
+print('[+] Creating a reference view')
+client.gui_show_reference_view(
+    'Example Reference View', [
+        ReferenceViewRef(
+            address=client.eval_sync('cip')[0],
+            text='Example Reference 1: &quot;Current Instruction Pointer&quot;'
+        ),
+        ReferenceViewRef(
+            address=client.eval_sync('IsDebuggerPresent')[0],
+            text='Example Reference 2: &quot;IsDebuggerPresent&quot;'
+        )
+    ]
+)
+
+print('[+] Cleaning up')
+client.detach_session()
+</code></pre>
 <h3 id="api-method-reference">API Method Reference</h3>
 
 
@@ -173,7 +213,7 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -195,6 +235,144 @@
     """
     return self._send_request(XAutoCommand.XAUTO_REQ_GUI_REFRESH_VIEWS)</code></pre>
             </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.gui_show_reference_view" class="doc doc-heading">
+            <code class="highlight language-python">gui_show_reference_view(name, refs)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Shows a reference view populated with refs.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>refs</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="ReferenceViewRef (x64dbg_automate.models.ReferenceViewRef)" href="#x64dbg_automate.models.ReferenceViewRef">ReferenceViewRef</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of addresses and text to display in the reference view</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def gui_show_reference_view(self, name: str, refs: list[ReferenceViewRef]) -&gt; bool:
+    """
+    Shows a reference view populated with refs.
+
+    Args:
+        refs: A list of addresses and text to display in the reference view
+
+    Returns:
+        Success
+    """
+    name = name.replace('"', '\\"')
+    if not self.cmd_sync(f'refinit "{name}"'):
+        return False
+    for ref in refs:
+        text = ref.text.replace('"', '\\"')
+        if not self.cmd_sync(f'refadd 0x{ref.address:x}, "{text}"'):
+            return False</code></pre>
+            </details>
+    </div>
+
+</div><h3 id="api-model-reference">API Model Reference</h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.models.ReferenceViewRef" class="doc doc-heading">
+            <code>ReferenceViewRef</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
+                <pre class="highlight"><code class="language-python">class ReferenceViewRef(BaseModel):
+    address: int
+    text: str</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
     </div>
 
 </div></div>
