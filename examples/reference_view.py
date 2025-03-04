@@ -1,10 +1,3 @@
-# GUI Control
-
-User interface control is partially implemented at this point. There exists the ability to trigger a refresh and populate a reference view.
-
-### Example: Populate a Reference View
-
-```python
 """
 Example: Populate Reference View (32/64 bit)
 """
@@ -35,27 +28,3 @@ client.gui_show_reference_view(
 
 print('[+] Cleaning up')
 client.detach_session()
-```
-
-
-### API Method Reference
-
-::: x64dbg_automate.X64DbgClient.gui_refresh_views
-    options:
-        show_root_heading: true
-        show_root_full_path: false
-
-
-::: x64dbg_automate.X64DbgClient.gui_show_reference_view
-    options:
-        show_root_heading: true
-        show_root_full_path: false
-
-
-### API Model Reference
-
-::: x64dbg_automate.models.ReferenceViewRef
-    options:
-        show_root_heading: true
-        show_root_full_path: false
-        show_bases: false

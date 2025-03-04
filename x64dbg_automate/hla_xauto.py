@@ -1,7 +1,7 @@
 import os
 from x64dbg_automate.commands_xauto import XAutoCommandsMixin
 from x64dbg_automate.models import HardwareBreakpointType, MemPage, \
-    MemoryBreakpointType, MutableRegister, PageRightsConfiguration, StandardBreakpointType
+    MemoryBreakpointType, MutableRegister, PageRightsConfiguration, ReferenceViewRef, StandardBreakpointType
 
 
 class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
@@ -629,3 +629,23 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         if not ins:
             return None
         return ins.instr_size
+    
+    # GUI Commands
+
+    def gui_show_reference_view(self, name: str, refs: list[ReferenceViewRef]) -> bool:
+        """
+        Shows a reference view populated with refs.
+
+        Args:
+            refs: A list of addresses and text to display in the reference view
+
+        Returns:
+            Success
+        """
+        name = name.replace('"', '\\"')
+        if not self.cmd_sync(f'refinit "{name}"'):
+            return False
+        for ref in refs:
+            text = ref.text.replace('"', '\\"')
+            if not self.cmd_sync(f'refadd 0x{ref.address:x}, "{text}"'):
+                return False
