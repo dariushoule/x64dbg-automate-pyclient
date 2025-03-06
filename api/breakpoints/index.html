@@ -250,7 +250,7 @@ client.clear_hardware_breakpoint('GetCurrentProcessId')
 
 print('[+] Resetting and setting a memory breakpoint at GetCurrentProcessId')
 client.set_reg('rip', sys_entry)
-client.set_memory_breakpoint('GetCurrentProcessId', restore=False)
+client.set_memory_breakpoint('GetCurrentProcessId', singleshoot=True)
 client.go()
 
 print('[+] Waiting until the debugee is stopped at the memory breakpoint')
