@@ -473,7 +473,7 @@ def test_breakpoint_toggle_and_clear_memory_with_name_and_symbols(client: X64Dbg
     addr, _ = client.eval_sync('GetCurrentProcessId')
     mem = client.virt_query(addr)
     addr_base = mem.base_address
-    assert client.set_memory_breakpoint(addr, MemoryBreakpointType.a, 4)
+    assert client.set_memory_breakpoint(addr, MemoryBreakpointType.a, singleshoot=True)
     bps = client.get_breakpoints(BreakpointType.BpMemory)
     assert len(bps) == 1
     assert bps[0].type == BreakpointType.BpMemory
@@ -492,7 +492,7 @@ def test_breakpoint_toggle_and_clear_memory_with_name_and_symbols(client: X64Dbg
 
     assert client.clear_memory_breakpoint("GetCurrentProcessId") == False
     assert len(client.get_breakpoints(BreakpointType.BpMemory)) == 1
-    assert client.set_memory_breakpoint('GetCurrentProcessId', bp_type=MemoryBreakpointType.x)
+    assert client.set_memory_breakpoint('GetCurrentProcessId', bp_type=MemoryBreakpointType.x, singleshoot=False)
     bps = client.get_breakpoints(BreakpointType.BpMemory)
     assert len(bps) == 1
     assert bps[0].type == BreakpointType.BpMemory
