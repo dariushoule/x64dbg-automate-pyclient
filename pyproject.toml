@@ -1,8 +1,8 @@
-[tool.poetry]
+[project]
 name = "x64dbg_automate"
 version = "0.4.0"
 description = "A Python library to automate x64dbg"
-authors = ["Darius Houle <darius@x64.ooo>"]
+authors = [{ name = "Darius Houle", email = "darius@x64.ooo" }]
 readme = "README.md"
 keywords = ["x64dbg", "debugger", "instrumentation", "plugin"]
 
