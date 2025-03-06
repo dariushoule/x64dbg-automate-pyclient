@@ -654,7 +654,7 @@ client.terminate_session()
 
 
 <h2 id="x64dbg_automate.X64DbgClient.set_memory_breakpoint" class="doc doc-heading">
-            <code class="highlight language-python">set_memory_breakpoint(address_or_symbol, bp_type=MemoryBreakpointType.a, restore=True)</code>
+            <code class="highlight language-python">set_memory_breakpoint(address_or_symbol, bp_type=MemoryBreakpointType.a, singleshoot=False)</code>
 
 </h2>
 
@@ -709,18 +709,18 @@ client.terminate_session()
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>restore</code>
+                <code>singleshoot</code>
             </td>
             <td>
                   <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Restore the original memory protection</p>
+                <p>Set a single-shot breakpoint</p>
               </div>
             </td>
             <td>
-                  <code>True</code>
+                  <code>False</code>
             </td>
           </tr>
       </tbody>
@@ -751,22 +751,22 @@ client.terminate_session()
 
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
-              <pre class="highlight"><code class="language-python">def set_memory_breakpoint(self, address_or_symbol: int | str, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, restore: bool = True) -&gt; bool:
+              <pre class="highlight"><code class="language-python">def set_memory_breakpoint(self, address_or_symbol: int | str, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, singleshoot: bool = False) -&gt; bool:
     """
     Sets a memory breakpoint at the specified address or symbol.
 
     Args:
         address_or_symbol: Address or symbol to set the breakpoint at
         bp_type: Type of software breakpoint to set
-        restore: Restore the original memory protection
+        singleshoot: Set a single-shot breakpoint
 
     Returns:
         Success
     """
     if isinstance(address_or_symbol, int):
-        return self.cmd_sync(f'bpm 0x{address_or_symbol:x}, {int(restore)}, {bp_type}')
+        return self.cmd_sync(f'bpm 0x{address_or_symbol:x}, {int(not singleshoot)}, {bp_type}')
     else:
-        return self.cmd_sync(f'bpm {address_or_symbol}, {int(restore)}, {bp_type}')</code></pre>
+        return self.cmd_sync(f'bpm {address_or_symbol}, {int(not singleshoot)}, {bp_type}')</code></pre>
             </details>
     </div>
 
