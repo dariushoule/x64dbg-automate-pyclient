@@ -342,6 +342,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def get_breakpoints(self, bp_type: BreakpointType) -&gt; list[Breakpoint]:
@@ -495,6 +496,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def set_breakpoint(self, address_or_symbol: int | str, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot: bool = False) -&gt; bool:
@@ -625,6 +627,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def set_hardware_breakpoint(self, address_or_symbol: int | str, bp_type: HardwareBreakpointType = HardwareBreakpointType.x, size: int = 1) -&gt; bool:
@@ -749,6 +752,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def set_memory_breakpoint(self, address_or_symbol: int | str, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, singleshoot: bool = False) -&gt; bool:
@@ -839,6 +843,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def clear_breakpoint(self, address_name_symbol_or_none: int | str | None = None) -&gt; bool:
@@ -928,6 +933,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def clear_hardware_breakpoint(self, address_symbol_or_none: int | str | None = None) -&gt; bool:
@@ -1016,6 +1022,7 @@ client.terminate_session()
           </tr>
       </tbody>
     </table>
+
 
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
@@ -1121,6 +1128,7 @@ client.terminate_session()
           </tr>
       </tbody>
     </table>
+
 
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
@@ -1230,6 +1238,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def toggle_hardware_breakpoint(self, address_symbol_or_none: int | str | None = None, on: bool = True) -&gt; bool:
@@ -1338,6 +1347,7 @@ client.terminate_session()
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def toggle_memory_breakpoint(self, address_symbol_or_none: int | str | None = None, on: bool = True) -&gt; bool:
@@ -1376,6 +1386,7 @@ client.terminate_session()
 
 
     <div class="doc doc-contents first">
+
 
 
 
@@ -1445,6 +1456,7 @@ client.terminate_session()
 
 
 
+
               <details class="quote">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class BreakpointType(IntEnum):
@@ -1488,6 +1500,7 @@ client.terminate_session()
 
 
     <div class="doc doc-contents first">
+
 
 
 
@@ -1543,6 +1556,7 @@ client.terminate_session()
 
 
 
+
               <details class="quote">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class HardwareBreakpointType(StrEnum):
@@ -1583,6 +1597,7 @@ client.terminate_session()
 
 
     <div class="doc doc-contents first">
+
 
 
 
