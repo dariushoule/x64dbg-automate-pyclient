@@ -1,17 +1,23 @@
 # Installation
 
-### Step 1: Plugin
+### Step 1: Dependencies
+
+Ensure you have the latest Visual C++ Runtime Redistributable. 
+
+Available at: [https://aka.ms/vs/17/release/vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
+### Step 2: Plugin
 
 Download the latest plugin release from [https://github.com/dariushoule/x64dbg-automate/releases](https://github.com/dariushoule/x64dbg-automate/releases)
 
-Extract the contents of the archive into your debugger's plugin directory, creating it as needed.
+Extract the entire contents of the archive into your debugger's `plugins` directory, creating it as needed.
 
 | Install directory | Bitness |
 | ----------------- | ------- |
 | x64dbg\release\x64\plugins | 64-bit |
 | x64dbg\release\x32\plugins | 32-bit |
 
-### Step 2: Client Library
+### Step 3: Client Library
 
 ```sh
 pip install x64dbg_automate --upgrade
