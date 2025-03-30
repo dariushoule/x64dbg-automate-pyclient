@@ -1,7 +1,7 @@
 import os
 from x64dbg_automate.commands_xauto import XAutoCommandsMixin
 from x64dbg_automate.models import HardwareBreakpointType, MemPage, \
-    MemoryBreakpointType, MutableRegister, PageRightsConfiguration, StandardBreakpointType
+    MemoryBreakpointType, MutableRegister, PageRightsConfiguration, ReferenceViewRef, StandardBreakpointType
 
 
 class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
@@ -361,22 +361,22 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         else:
             return self.cmd_sync(f'bph {address_or_symbol}, {bp_type}, {size}')
     
-    def set_memory_breakpoint(self, address_or_symbol: int | str, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, restore: bool = True) -> bool:
+    def set_memory_breakpoint(self, address_or_symbol: int | str, bp_type: MemoryBreakpointType = MemoryBreakpointType.a, singleshoot: bool = False) -> bool:
         """
         Sets a memory breakpoint at the specified address or symbol.
 
         Args:
             address_or_symbol: Address or symbol to set the breakpoint at
             bp_type: Type of software breakpoint to set
-            restore: Restore the original memory protection
+            singleshoot: Set a single-shot breakpoint
 
         Returns:
             Success
         """
         if isinstance(address_or_symbol, int):
-            return self.cmd_sync(f'bpm 0x{address_or_symbol:x}, {int(restore)}, {bp_type}')
+            return self.cmd_sync(f'bpm 0x{address_or_symbol:x}, {int(not singleshoot)}, {bp_type}')
         else:
-            return self.cmd_sync(f'bpm {address_or_symbol}, {int(restore)}, {bp_type}')
+            return self.cmd_sync(f'bpm {address_or_symbol}, {int(not singleshoot)}, {bp_type}')
 
     def clear_breakpoint(self, address_name_symbol_or_none: int | str | None = None) -> bool:
         """
@@ -629,3 +629,23 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         if not ins:
             return None
         return ins.instr_size
+    
+    # GUI Commands
+
+    def gui_show_reference_view(self, name: str, refs: list[ReferenceViewRef]) -> bool:
+        """
+        Shows a reference view populated with refs.
+
+        Args:
+            refs: A list of addresses and text to display in the reference view
+
+        Returns:
+            Success
+        """
+        name = name.replace('"', '\\"')
+        if not self.cmd_sync(f'refinit "{name}"'):
+            return False
+        for ref in refs:
+            text = ref.text.replace('"', '\\"')
+            if not self.cmd_sync(f'refadd 0x{ref.address:x}, "{text}"'):
+                return False

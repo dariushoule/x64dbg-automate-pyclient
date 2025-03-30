@@ -1,8 +1,8 @@
 # x64dbg Automate: Reference Python Client
 
-This repository contains the source code for the reference client of x64dbg Automate.
+This is the reference client of x64dbg Automate. The library builds on x64dbg's command execution engine and plugin API to provide an expressive, modern, and easy to use Python client. x64dbg Automate is useful in a wide variety of malware analysis, reverse engineering, and vulnerability hunting tasks. 
 
-The client implements the full RPC protocol provided by [x64dbg-automate](https://github.com/dariushoule/x64dbg-automate), as well as builds on it for enhanced functionality. 
+The client implements the full RPC protocol provided by [x64dbg-automate](https://github.com/dariushoule/x64dbg-automate). 
 
 ## Documentation
 

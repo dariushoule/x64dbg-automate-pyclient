@@ -391,3 +391,8 @@ class Symbol(BaseModel):
     undecoratedSymbol: str
     type: int
     ordinal: int
+
+
+class ReferenceViewRef(BaseModel):
+    address: int
+    text: str
