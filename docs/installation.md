@@ -4,7 +4,7 @@
 
 Ensure you have the latest Visual C++ Runtime Redistributable. 
 
-Available at: [https://aka.ms/vs/17/release/vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+Available from Microsoft at: [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe) and [vc_redist.x86.exe](https://aka.ms/vs/17/release/vc_redist.x86.exe) (64 and 32 bit respectively).
 
 ### Step 2: Plugin
 
