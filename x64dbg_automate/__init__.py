@@ -7,6 +7,7 @@ import threading
 import time
 import msgpack
 import psutil
+import shutil
 import zmq
 
 from x64dbg_automate.events import DebugEventQueueMixin
@@ -30,12 +31,27 @@ def ctrl_c_handler(sig_t: int) -> bool:
 ctrl_c_handler = SetConsoleCtrlHandler.argtypes[0](ctrl_c_handler)
 SetConsoleCtrlHandler(ctrl_c_handler, True)
 
+# https://stackoverflow.com/a/55395210/6879778
+def is_tool(name):
+    try:
+        devnull = open(os.devnull)
+        subprocess.Popen([name], stdout=devnull, stderr=devnull).communicate()
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            return False
+    return True
+
+def find_prog(prog):
+    if is_tool(prog):
+        cmd = "where" if platform.system() == "Windows" else "which"
+        return subprocess.call([cmd, prog])
+
 
 class ClientConnectionFailedError(Exception):
     pass
 
 class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
-    def __init__(self, x64dbg_path: str):
+    def __init__(self, x64dbg_path: str = "x64dbg"):
         self.x64dbg_path = x64dbg_path
         self.session_pid = None
         self.context = zmq.Context()
@@ -113,6 +129,16 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def _assert_connection_compat(self) -> None:
         v = self._get_xauto_compat_version()
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
+        
+    @staticmethod
+    def sanitize_x64dbg_path(name: str = "x64dbg") -> str:
+        return shutil.which(name)
+        
+    def _launch_x64dbg(self) -> int:
+        self.sanitized_x64dbg_path = self.sanitize_x64dbg_path(self.x64dbg_path)
+        self.proc = subprocess.Popen([self.sanitized_x64dbg_path], executable=self.sanitized_x64dbg_path)
+        self.session_pid = self.proc.pid
+        self.attach_session(self.session_pid)
 
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
         """
@@ -130,9 +156,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         if len(target_exe.strip()) == 0 and (len(cmdline) > 0 or len(current_dir) > 0):
             raise ValueError("cmdline and current_dir cannot be provided without target_exe")
 
-        self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
-        self.session_pid = self.proc.pid
-        self.attach_session(self.session_pid)
+        self._launch_x64dbg()
 
         if target_exe.strip() != "":
             if not self.load_executable(target_exe.strip(), cmdline, current_dir):
@@ -154,9 +178,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         Raises:
             RuntimeError: If attaching to the process fails.
         """
-        self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
-        self.session_pid = self.proc.pid
-        self.attach_session(self.session_pid)
+        self._launch_x64dbg()
 
         if not self.attach(pid):
             self.terminate_session()
