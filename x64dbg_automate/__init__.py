@@ -2,6 +2,7 @@ import ctypes
 import glob
 import logging
 import os
+from pathlib import Path
 import subprocess
 import threading
 import time
@@ -38,6 +39,10 @@ class ClientConnectionFailedError(Exception):
 class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def __init__(self, x64dbg_path: str = "x64dbg"):
         self.x64dbg_path = x64dbg_path
+        if not Path(self.x64dbg_path).is_file():
+            self.x64dbg_path = shutil.which(x64dbg_path)
+        if not Path(self.x64dbg_path).is_file():
+            raise FileNotFoundError(f"x64dbg executable not found at {x64dbg_path} or in PATH")
         self.session_pid = None
         self.context = zmq.Context()
         self.req_socket = None
@@ -115,13 +120,8 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         v = self._get_xauto_compat_version()
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
         
-    @staticmethod
-    def sanitize_x64dbg_path(name: str = "x64dbg") -> str:
-        return shutil.which(name)
-        
     def _launch_x64dbg(self) -> int:
-        self.sanitized_x64dbg_path = self.sanitize_x64dbg_path(self.x64dbg_path)
-        self.proc = subprocess.Popen([self.sanitized_x64dbg_path], executable=self.sanitized_x64dbg_path)
+        self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
         self.session_pid = self.proc.pid
         self.attach_session(self.session_pid)
 
