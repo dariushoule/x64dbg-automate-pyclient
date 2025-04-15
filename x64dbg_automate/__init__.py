@@ -31,21 +31,6 @@ def ctrl_c_handler(sig_t: int) -> bool:
 ctrl_c_handler = SetConsoleCtrlHandler.argtypes[0](ctrl_c_handler)
 SetConsoleCtrlHandler(ctrl_c_handler, True)
 
-# https://stackoverflow.com/a/55395210/6879778
-def is_tool(name):
-    try:
-        devnull = open(os.devnull)
-        subprocess.Popen([name], stdout=devnull, stderr=devnull).communicate()
-    except OSError as e:
-        if e.errno == os.errno.ENOENT:
-            return False
-    return True
-
-def find_prog(prog):
-    if is_tool(prog):
-        cmd = "where" if platform.system() == "Windows" else "which"
-        return subprocess.call([cmd, prog])
-
 
 class ClientConnectionFailedError(Exception):
     pass
