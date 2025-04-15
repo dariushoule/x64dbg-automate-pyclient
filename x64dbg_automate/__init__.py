@@ -41,7 +41,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.x64dbg_path = x64dbg_path
         if not Path(self.x64dbg_path).is_file():
             self.x64dbg_path = shutil.which(x64dbg_path)
-        if not Path(self.x64dbg_path).is_file():
+        if self.x64dbg_path is None or not Path(self.x64dbg_path).is_file():
             raise FileNotFoundError(f"x64dbg executable not found at {x64dbg_path} or in PATH")
         self.session_pid = None
         self.context = zmq.Context()
