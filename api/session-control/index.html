@@ -363,9 +363,7 @@ the debugger starts without any executable. This is useful for performing config
     if len(target_exe.strip()) == 0 and (len(cmdline) &gt; 0 or len(current_dir) &gt; 0):
         raise ValueError("cmdline and current_dir cannot be provided without target_exe")
 
-    self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
-    self.session_pid = self.proc.pid
-    self.attach_session(self.session_pid)
+    self._launch_x64dbg()
 
     if target_exe.strip() != "":
         if not self.load_executable(target_exe.strip(), cmdline, current_dir):
@@ -484,9 +482,7 @@ the debugger starts without any executable. This is useful for performing config
     Raises:
         RuntimeError: If attaching to the process fails.
     """
-    self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
-    self.session_pid = self.proc.pid
-    self.attach_session(self.session_pid)
+    self._launch_x64dbg()
 
     if not self.attach(pid):
         self.terminate_session()
