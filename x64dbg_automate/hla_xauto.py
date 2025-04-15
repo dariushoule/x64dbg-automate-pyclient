@@ -30,7 +30,7 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
             target_exe = os.path.abspath(target_exe)
         else:
             target_exe = os.path.abspath(os.path.join(current_dir, target_exe))
-        if not self.cmd_sync(f'init {target_exe}, "{cmdline}", "{current_dir}"'):
+        if not self.cmd_sync(f'init "{target_exe}", "{cmdline}", "{current_dir}"'):
             return False
         return self.wait_cmd_ready(wait_timeout)
 
