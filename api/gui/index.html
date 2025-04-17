@@ -132,6 +132,10 @@
             
             <li class="nav-item" data-bs-level="1"><a href="#gui-control" class="nav-link">GUI Control</a>
               <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.log" class="nav-link">log</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.gui_refresh_views" class="nav-link">gui_refresh_views</a>
               <ul class="nav flex-column">
               </ul>
@@ -187,6 +191,93 @@ client.detach_session()
 </code></pre>
 <h3 id="api-method-reference">API Method Reference</h3>
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.log" class="doc doc-heading">
+            <code class="highlight language-python">log(fmt_str)</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Logs a string to the x64dbg log window</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>fmt_str</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>format String to log</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Success</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def log(self, fmt_str: str) -&gt; int | None:
+    """
+    Logs a string to the x64dbg log window
+
+    Args:
+        fmt_str: format String to log
+
+    Returns:
+        Success
+    """
+    sanitized_str = fmt_str.replace('"', '\\"')
+    return self.cmd_sync(f'log "{sanitized_str}"')</code></pre>
+            </details>
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
