@@ -631,6 +631,19 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         return ins.instr_size
     
     # GUI Commands
+    
+    def log(self, fmt_str: str) -> int | None:
+        """
+        Logs a string to the x64dbg log window
+
+        Args:
+            fmt_str: format String to log
+
+        Returns:
+            Success
+        """
+        sanitized_str = fmt_str.replace('"', '\\"')
+        return self.cmd_sync(f'log "{sanitized_str}"')
 
     def gui_show_reference_view(self, name: str, refs: list[ReferenceViewRef]) -> bool:
         """

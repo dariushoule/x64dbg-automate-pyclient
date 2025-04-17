@@ -507,3 +507,11 @@ def test_read_word(client: X64DbgClient):
     assert client.read_word(addr) == 0x5a4d
     assert client.read_dword(addr) == 0x905a4d
     assert client.read_qword(addr) == 0x300905a4d
+
+
+def test_log(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    if TEST_BITNESS == 64:
+        assert client.log('this is a test {mem;8@rsp}')
+    else:
+        assert client.log('this is a test {mem;4@esp}')
