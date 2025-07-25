@@ -10,7 +10,7 @@ Available from Microsoft at: [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc
 
 Download the latest plugin release from [https://github.com/dariushoule/x64dbg-automate/releases](https://github.com/dariushoule/x64dbg-automate/releases)
 
-Extract the entire contents of the archive into your debugger's `plugins` directory, creating it as needed.
+Extract the entire contents of the archive's `Release` directory into your debugger's `plugins` directory (creating it as needed).
 
 | Install directory | Bitness |
 | ----------------- | ------- |
