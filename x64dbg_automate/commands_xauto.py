@@ -220,8 +220,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         if bitness == 64:
             ctx = {k: v for k, v in zip(Context64.model_fields.keys(), raw_regs[0])}
             ctx['x87_fpu'] = X87Fpu(**{k: v for k, v in zip(X87Fpu.model_fields.keys(), ctx['x87_fpu'])})
-            ctx['xmm_regs'] = [ctx['xmm_regs'][i:i+16] for i in range(0, len(ctx['xmm_regs']), 16)]
-            ctx['ymm_regs'] = [ctx['ymm_regs'][i:i+32] for i in range(0, len(ctx['ymm_regs']), 32)]
+            ctx['zmm_regs'] = [ctx['zmm_regs'][i:i+64] for i in range(0, len(ctx['zmm_regs']), 64)]
             return RegDump64(
                 context=Context64(**ctx),
                 flags=Flags(**{k: v for k, v in zip(Flags.model_fields.keys(), raw_regs[1])}),
@@ -236,8 +235,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         else:
             ctx = {k: v for k, v in zip(Context32.model_fields.keys(), raw_regs[0])}
             ctx['x87_fpu'] = X87Fpu(**{k: v for k, v in zip(X87Fpu.model_fields.keys(), ctx['x87_fpu'])})
-            ctx['xmm_regs'] = [ctx['xmm_regs'][i:i+16] for i in range(0, len(ctx['xmm_regs']), 16)]
-            ctx['ymm_regs'] = [ctx['ymm_regs'][i:i+32] for i in range(0, len(ctx['ymm_regs']), 32)]
+            ctx['zmm_regs'] = [ctx['zmm_regs'][i:i+64] for i in range(0, len(ctx['zmm_regs']), 8)]
             return RegDump32(
                 context=Context32(**ctx),
                 flags=Flags(**{k: v for k, v in zip(Flags.model_fields.keys(), raw_regs[1])}),
@@ -428,7 +426,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         """
         res = self._send_request(XAutoCommand.XAUTO_REQ_GET_SYMBOL, addr)
         if not res[0]:
-            return ""
+            return None
         return Symbol(
             addr=res[1],
             decoratedSymbol=res[2],

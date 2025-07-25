@@ -102,8 +102,7 @@ class Context64(BaseModel):
     reg_area: bytes
     x87_fpu: X87Fpu
     mxcsr: int
-    xmm_regs: list[bytes]
-    ymm_regs: list[bytes]
+    zmm_regs: list[bytes]
 
 
 class Context32(BaseModel):
@@ -132,8 +131,7 @@ class Context32(BaseModel):
     reg_area: bytes
     x87_fpu: X87Fpu
     mxcsr: int
-    xmm_regs: list[bytes]
-    ymm_regs: list[bytes]
+    zmm_regs: list[bytes]
 
 
 class Flags(BaseModel):

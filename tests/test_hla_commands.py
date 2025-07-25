@@ -33,6 +33,7 @@ def test_go_and_pause(client: X64DbgClient):
     assert client.go()
     assert client.wait_until_stopped()
     assert client.go()
+    assert client.wait_until_running()
     assert client.pause()
 
 
@@ -204,7 +205,9 @@ def test_event_exit_thread(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
     assert client.set_setting_int('Events', 'TlsCallbacks', 0)
     assert client.set_setting_int('Events', 'TlsCallbacksSystem', 0)
-    
+    # Todo... I don't know if these take effect immediately, or if we need to restart the session
+    # I think if these breaks are on when we start it borks the rest of the tests
+
     page = client.virt_alloc()
     if TEST_BITNESS == 64:
         mov_siz = client.assemble_at(page, 'mov rax, 0x10101010')

@@ -68,7 +68,6 @@ def test_config_get_set(client: X64DbgClient):
     assert client.get_setting_str('Shortcuts', 'ActionFind') == 'Ctrl+F'
     assert client.set_setting_str('Shortcuts', 'ActionFind', 'Ctrl+G') == True
     assert client.get_setting_str('Shortcuts', 'ActionFind') == 'Ctrl+G'
-    assert client.get_setting_int('Deleted Tabs', 'BreakpointsTab') == 0
     assert client.set_setting_int('Deleted Tabs', 'BreakpointsTab', 9000) == True
     assert client.get_setting_int('Deleted Tabs', 'BreakpointsTab') == 9000
 

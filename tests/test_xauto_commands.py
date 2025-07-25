@@ -1,5 +1,7 @@
+import queue
 from tests.conftest import TEST_BITNESS
 from x64dbg_automate import X64DbgClient
+from x64dbg_automate.events import DbgEvent, EventType
 from x64dbg_automate.models import BreakpointType, DisasmInstrType, SegmentReg
 
 
@@ -137,7 +139,35 @@ def test_rw_memory(client: X64DbgClient):
     assert client.read_memory(ip, 16).startswith(b'\x90\x90\x90\x90')
 
 
-def test_get_symbol_at(client: X64DbgClient):
+def test_get_symbol_at_event_not_exists(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    x, _ = client.eval_sync('NtQueryInformationProcess')
-    assert client.get_symbol_at(x).decoratedSymbol in ('NtQueryInformationProcess', 'ZwQueryInformationProcess')
+
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_BREAKPOINT, callback)
+
+    ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
+    assert client.clear_breakpoint()
+    ip = client.get_reg(ip_reg)
+    assert client.write_memory(ip, b'\x90\x90\x90\x90')
+    assert client.set_breakpoint(ip+3)
+    assert client.go()
+
+    event = received.get()
+    assert event.event_type == EventType.EVENT_BREAKPOINT
+    assert received.empty()
+
+    symbol = client.get_symbol_at(event.event_data.addr)
+    assert symbol is None
+
+
+def test_get_symbol_at_exists(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
+    symbol_addr, _ = client.eval_sync('GetCurrentProcessId')
+    symbol = client.get_symbol_at(symbol_addr)
+    assert symbol.addr > 0
+    assert symbol.decoratedSymbol == 'GetCurrentProcessId'
+    assert symbol.undecoratedSymbol == ''
+    assert symbol.type == 1
+
