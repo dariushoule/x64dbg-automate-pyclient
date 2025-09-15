@@ -518,3 +518,15 @@ def test_log(client: X64DbgClient):
         assert client.log('this is a test {mem;8@rsp}')
     else:
         assert client.log('this is a test {mem;4@esp}')
+
+
+def test_breakpoint_multiple_get(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.clear_breakpoint()
+    assert client.set_breakpoint("GetCurrentProcessId")
+    assert client.set_breakpoint("Sleep")
+    assert client.set_breakpoint("GetModuleHandleA")
+    assert client.set_breakpoint("CreateFileW")
+    for i in range(4):
+        assert client.get_breakpoints(BreakpointType.BpNormal)[i].enabled == True
+    
