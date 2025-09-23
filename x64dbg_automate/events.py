@@ -13,6 +13,8 @@ class EventType(StrEnum):
     EVENT_UNLOAD_DLL = "EVENT_UNLOAD_DLL"
     EVENT_OUTPUT_DEBUG_STRING = "EVENT_OUTPUT_DEBUG_STRING"
     EVENT_EXCEPTION = "EVENT_EXCEPTION"
+    EVENT_STEPPED = "EVENT_STEPPED"
+    EVENT_DEBUG = "EVENT_DEBUG"
 
 
 class BreakpointEventData(BaseModel):
@@ -74,8 +76,14 @@ class ExceptionEventData(BaseModel):
     dwFirstChance: bool
 
 
+class DebugEventData(BaseModel):
+    dwDebugEventCode: int
+    dwProcessId: int
+    dwThreadId: int
+
+
 EventTypes = BreakpointEventData | SysBreakpointEventData | CreateThreadEventData | ExitThreadEventData | \
-    LoadDllEventData | UnloadDllEventData | OutputDebugStringEventData | ExceptionEventData
+    LoadDllEventData | UnloadDllEventData | OutputDebugStringEventData | ExceptionEventData | DebugEventData
 
 
 class DbgEvent():
@@ -130,6 +138,14 @@ class DbgEvent():
         elif event_type == EventType.EVENT_OUTPUT_DEBUG_STRING:
             self.event_data = OutputDebugStringEventData(
                 lpDebugStringData=event_data[0]
+            )
+        elif event_type == EventType.EVENT_STEPPED:
+            pass
+        elif event_type == EventType.EVENT_DEBUG:
+            self.event_data = DebugEventData(
+                dwDebugEventCode=event_data[0],
+                dwProcessId=event_data[1],
+                dwThreadId=event_data[2]
             )
         elif event_type == EventType.EVENT_EXCEPTION:
             self.event_data = ExceptionEventData(
