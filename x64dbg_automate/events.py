@@ -14,7 +14,14 @@ class EventType(StrEnum):
     EVENT_OUTPUT_DEBUG_STRING = "EVENT_OUTPUT_DEBUG_STRING"
     EVENT_EXCEPTION = "EVENT_EXCEPTION"
     EVENT_STEPPED = "EVENT_STEPPED"
-    EVENT_DEBUG = "EVENT_DEBUG"
+    EVENT_RESUME_DEBUG = "EVENT_RESUME_DEBUG"
+    EVENT_PAUSE_DEBUG = "EVENT_PAUSE_DEBUG"
+    EVENT_ATTACH = "EVENT_ATTACH"
+    EVENT_DETACH = "EVENT_DETACH"
+    EVENT_INIT_DEBUG = "EVENT_INIT_DEBUG"
+    EVENT_STOP_DEBUG = "EVENT_STOP_DEBUG"
+    EVENT_CREATE_PROCESS = "EVENT_CREATE_PROCESS"
+    EVENT_EXIT_PROCESS = "EVENT_EXIT_PROCESS"
 
 
 class BreakpointEventData(BaseModel):
@@ -76,19 +83,41 @@ class ExceptionEventData(BaseModel):
     dwFirstChance: bool
 
 
-class DebugEventData(BaseModel):
-    dwDebugEventCode: int
+class AttachEventData(BaseModel):
+    dwProcessId: int
+
+
+class DetachEventData(BaseModel):
+    dwProcessId: int
+
+
+class InitDebugEventData(BaseModel):
+    filename: str
+
+
+class CreateProcessEventData(BaseModel):
     dwProcessId: int
     dwThreadId: int
+    lpStartAddress: int
+    debugFileName: str
+
+
+class ExitProcessEventData(BaseModel):
+    dwExitCode: int
 
 
 EventTypes = BreakpointEventData | SysBreakpointEventData | CreateThreadEventData | ExitThreadEventData | \
-    LoadDllEventData | UnloadDllEventData | OutputDebugStringEventData | ExceptionEventData | DebugEventData
+    LoadDllEventData | UnloadDllEventData | OutputDebugStringEventData | ExceptionEventData | AttachEventData | \
+    DetachEventData | InitDebugEventData | CreateProcessEventData | ExitProcessEventData | None
 
 
 class DbgEvent():
+    event_type: EventType
+    event_data: EventTypes
+
     def __init__(self, event_type: str, event_data: list[any]):
-        self.event_type = event_type
+        self.event_type = EventType(event_type)
+        self.event_data = None
 
         if event_type == EventType.EVENT_BREAKPOINT:
             self.event_data = BreakpointEventData(
@@ -141,11 +170,34 @@ class DbgEvent():
             )
         elif event_type == EventType.EVENT_STEPPED:
             pass
-        elif event_type == EventType.EVENT_DEBUG:
-            self.event_data = DebugEventData(
-                dwDebugEventCode=event_data[0],
-                dwProcessId=event_data[1],
-                dwThreadId=event_data[2]
+        elif event_type == EventType.EVENT_RESUME_DEBUG:
+            pass
+        elif event_type == EventType.EVENT_PAUSE_DEBUG:
+            pass
+        elif event_type == EventType.EVENT_ATTACH:
+            self.event_data = AttachEventData(
+                dwProcessId=event_data[0]
+            )
+        elif event_type == EventType.EVENT_DETACH:
+            self.event_data = DetachEventData(
+                dwProcessId=event_data[0]
+            )
+        elif event_type == EventType.EVENT_INIT_DEBUG:
+            self.event_data = InitDebugEventData(
+                filename=event_data[0]
+            )
+        elif event_type == EventType.EVENT_STOP_DEBUG:
+            pass
+        elif event_type == EventType.EVENT_CREATE_PROCESS:
+            self.event_data = CreateProcessEventData(
+                dwProcessId=event_data[0],
+                dwThreadId=event_data[1],
+                lpStartAddress=event_data[2],
+                debugFileName=event_data[3]
+            )
+        elif event_type == EventType.EVENT_EXIT_PROCESS:
+            self.event_data = ExitProcessEventData(
+                dwExitCode=event_data[0]
             )
         elif event_type == EventType.EVENT_EXCEPTION:
             self.event_data = ExceptionEventData(
@@ -167,6 +219,7 @@ class DebugEventQueueMixin():
 
     def debug_event_publish(self, raw_event_data: list[any]):
         event = DbgEvent(raw_event_data[0], raw_event_data[1:])
+        print('debug event:', event.event_type, event.event_data)
         while len(self._debug_events_q) > 100:
             self._debug_events_q.pop(0)
         self._debug_events_q.append(event)

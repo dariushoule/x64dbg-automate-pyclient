@@ -17,7 +17,7 @@ from x64dbg_automate.models import DebugSession
 from x64dbg_automate.win32 import GetTempPathW, SetConsoleCtrlHandler, EnumWindows, GetWindowTextW, GetWindowThreadProcessId
 
 
-COMPAT_VERSION = "pingpong_bat" # TODO: externalize
+COMPAT_VERSION = "green_pepe" # TODO: externalize
 logger = logging.getLogger(__name__)
 all_instances: list['X64DbgClient'] = []
 
