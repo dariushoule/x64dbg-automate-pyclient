@@ -13,7 +13,7 @@ from x64dbg_automate import X64DbgClient
 from x64dbg_automate.models import ReferenceViewRef
 
 if len(sys.argv) != 2:
-    print("Usage: python sessions.py <x64dbg_path>")
+    print("Usage: python reference_view.py <x64dbg_path>")
     quit(1)
 
 client = X64DbgClient(x64dbg_path=sys.argv[1])

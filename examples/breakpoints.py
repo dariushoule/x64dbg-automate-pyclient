@@ -6,7 +6,7 @@ from x64dbg_automate import X64DbgClient
 from x64dbg_automate.events import EventType
 
 if len(sys.argv) != 2:
-    print("Usage: python sessions.py <x64dbg_path>")
+    print("Usage: python breakpoints.py <x64dbg_path>")
     quit(1)
 
 print('[+] Creating the x64dbg Automate session')

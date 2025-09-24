@@ -21,7 +21,7 @@ from x64dbg_automate import X64DbgClient
 from x64dbg_automate.models import RegDump64
 
 if len(sys.argv) != 2:
-    print("Usage: python hello64.py <x64dbg_path>")
+    print("Usage: python expressions_and_registers.py <x64dbg_path>")
     quit(1)
 
 print('[+] Creating a new x64dbg Automate session')

@@ -5,7 +5,7 @@ import sys
 from x64dbg_automate import X64DbgClient
 
 if len(sys.argv) != 2:
-    print("Usage: python sessions.py <x64dbg_path>")
+    print("Usage: python debug_control.py <x64dbg_path>")
     quit(1)
 
 print('[+] Creating the x64dbg Automate session')

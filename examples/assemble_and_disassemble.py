@@ -5,7 +5,7 @@ import sys
 from x64dbg_automate import X64DbgClient
 
 if len(sys.argv) != 2:
-    print("Usage: python hello64.py <x64dbg_path>")
+    print("Usage: python assemble_and_disassemble.py <x64dbg_path>")
     quit(1)
 
 print('[+] Creating a new x64dbg Automate session')

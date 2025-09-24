@@ -8,7 +8,7 @@ from x64dbg_automate.events import DbgEvent, EventType
 from x64dbg_automate.models import MemPage, PageRightsConfiguration
 
 if len(sys.argv) != 2:
-    print("Usage: python hello64.py <x64dbg_path>")
+    print("Usage: python memory_control.py <x64dbg_path>")
     quit(1)
 
 print('[+] Creating a new x64dbg Automate session')
