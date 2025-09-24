@@ -219,7 +219,6 @@ class DebugEventQueueMixin():
 
     def debug_event_publish(self, raw_event_data: list[any]):
         event = DbgEvent(raw_event_data[0], raw_event_data[1:])
-        print('debug event:', event.event_type, event.event_data)
         while len(self._debug_events_q) > 100:
             self._debug_events_q.pop(0)
         self._debug_events_q.append(event)
