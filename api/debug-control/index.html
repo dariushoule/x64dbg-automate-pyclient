@@ -2895,8 +2895,12 @@ Raises:
               <details class="quote">
                 <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
                 <pre class="highlight"><code class="language-python">class DbgEvent():
+    event_type: EventType
+    event_data: EventTypes
+
     def __init__(self, event_type: str, event_data: list[any]):
-        self.event_type = event_type
+        self.event_type = EventType(event_type)
+        self.event_data = None
 
         if event_type == EventType.EVENT_BREAKPOINT:
             self.event_data = BreakpointEventData(
@@ -2946,6 +2950,37 @@ Raises:
         elif event_type == EventType.EVENT_OUTPUT_DEBUG_STRING:
             self.event_data = OutputDebugStringEventData(
                 lpDebugStringData=event_data[0]
+            )
+        elif event_type == EventType.EVENT_STEPPED:
+            pass
+        elif event_type == EventType.EVENT_RESUME_DEBUG:
+            pass
+        elif event_type == EventType.EVENT_PAUSE_DEBUG:
+            pass
+        elif event_type == EventType.EVENT_ATTACH:
+            self.event_data = AttachEventData(
+                dwProcessId=event_data[0]
+            )
+        elif event_type == EventType.EVENT_DETACH:
+            self.event_data = DetachEventData(
+                dwProcessId=event_data[0]
+            )
+        elif event_type == EventType.EVENT_INIT_DEBUG:
+            self.event_data = InitDebugEventData(
+                filename=event_data[0]
+            )
+        elif event_type == EventType.EVENT_STOP_DEBUG:
+            pass
+        elif event_type == EventType.EVENT_CREATE_PROCESS:
+            self.event_data = CreateProcessEventData(
+                dwProcessId=event_data[0],
+                dwThreadId=event_data[1],
+                lpStartAddress=event_data[2],
+                debugFileName=event_data[3]
+            )
+        elif event_type == EventType.EVENT_EXIT_PROCESS:
+            self.event_data = ExitProcessEventData(
+                dwExitCode=event_data[0]
             )
         elif event_type == EventType.EVENT_EXCEPTION:
             self.event_data = ExceptionEventData(
@@ -3013,7 +3048,16 @@ Raises:
     EVENT_LOAD_DLL = "EVENT_LOAD_DLL"
     EVENT_UNLOAD_DLL = "EVENT_UNLOAD_DLL"
     EVENT_OUTPUT_DEBUG_STRING = "EVENT_OUTPUT_DEBUG_STRING"
-    EVENT_EXCEPTION = "EVENT_EXCEPTION"</code></pre>
+    EVENT_EXCEPTION = "EVENT_EXCEPTION"
+    EVENT_STEPPED = "EVENT_STEPPED"
+    EVENT_RESUME_DEBUG = "EVENT_RESUME_DEBUG"
+    EVENT_PAUSE_DEBUG = "EVENT_PAUSE_DEBUG"
+    EVENT_ATTACH = "EVENT_ATTACH"
+    EVENT_DETACH = "EVENT_DETACH"
+    EVENT_INIT_DEBUG = "EVENT_INIT_DEBUG"
+    EVENT_STOP_DEBUG = "EVENT_STOP_DEBUG"
+    EVENT_CREATE_PROCESS = "EVENT_CREATE_PROCESS"
+    EVENT_EXIT_PROCESS = "EVENT_EXIT_PROCESS"</code></pre>
               </details>
 
 
