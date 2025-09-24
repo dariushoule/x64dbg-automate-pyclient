@@ -2,6 +2,7 @@ import os
 import subprocess
 from tests.conftest import TEST_BITNESS, X64DBG_PATH
 from x64dbg_automate import X64DbgClient
+import time
 
 
 def test_connect(client: X64DbgClient):
@@ -87,6 +88,7 @@ def test_attach_debugee_1(client: X64DbgClient):
     client.start_session_attach(debugee_proc.pid)
     assert client.is_debugging() == True
     assert client.is_running() == True
+    time.sleep(1.2) # High-tech synchronization primitive
     assert client.eval_sync('winver')[0] > 0
     assert client.detach() == True
     assert client.wait_until_not_debugging() == True
@@ -103,6 +105,7 @@ def test_attach_debugee_2(client: X64DbgClient):
     client.attach(debugee_proc.pid)
     assert client.is_debugging() == True
     assert client.is_running() == True
+    time.sleep(1.2) # High-tech synchronization primitive
     assert client.eval_sync('winver')[0] > 0
     assert client.detach() == True
     assert client.wait_until_not_debugging() == True

@@ -1,4 +1,5 @@
 import queue
+import subprocess
 import time
 import pytest
 from tests.conftest import TEST_BITNESS
@@ -302,6 +303,7 @@ def test_event_output_dbg_str(client: X64DbgClient):
     client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
     client.go()
     client.wait_until_stopped()
+    client.clear_breakpoint()
     client.go()
 
     shellcode = client.virt_alloc()
@@ -337,33 +339,156 @@ def test_event_output_dbg_str(client: X64DbgClient):
     ev = received.get(timeout=3)
     assert ev.event_type == EventType.EVENT_OUTPUT_DEBUG_STRING
     assert ev.event_data.lpDebugStringData == b'duck duck goose\0'
+    assert received.empty()
 
 
-def test_event_exception(client: X64DbgClient):
+def test_event_single_step(client: X64DbgClient):
     received: queue.Queue[DbgEvent] = queue.Queue()
     callback = lambda x: received.put(x)
-    client.watch_debug_event(EventType.EVENT_EXCEPTION, callback)
+    client.watch_debug_event(EventType.EVENT_STEPPED, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.stepi()
+    client.wait_for_debug_event(EventType.EVENT_STEPPED)
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_STEPPED
+    assert received.empty()
+
+
+def test_event_resume_debug(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_RESUME_DEBUG, callback)
     client.start_session(r'c:\Windows\system32\winver.exe')
     client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
-
-    if TEST_BITNESS == 64:
-        i = client.get_reg('rip')
-        i = i + client.assemble_at(i, 'mov rcx, 0x1234')
-        i = i + client.assemble_at(i, 'call rcx')
-    else:
-        i = client.get_reg('eip')
-        i = i + client.assemble_at(i, 'mov ecx, 0x1234')
-        i = i + client.assemble_at(i, 'call ecx')
     client.go()
 
     ev = received.get(timeout=3)
-    xcpt_data: ExceptionEventData = ev.event_data
-    assert ev.event_type == EventType.EVENT_EXCEPTION
-    assert xcpt_data.ExceptionCode == 0xC0000005
-    assert xcpt_data.dwFirstChance == True
-    assert xcpt_data.ExceptionAddress == 0x1234
-    assert xcpt_data.NumberParameters == 2
-    assert xcpt_data.ExceptionInformation == [8, 4660]
+    assert ev.event_type == EventType.EVENT_RESUME_DEBUG
+    assert received.empty()
+
+
+def test_event_pause_debug(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_PAUSE_DEBUG, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_PAUSE_DEBUG
+    assert received.empty()
+
+    client.stepi()
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_PAUSE_DEBUG
+    assert received.empty()
+
+
+def test_event_init_debug(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_INIT_DEBUG, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_INIT_DEBUG
+    assert ev.event_data.filename.lower().endswith('winver.exe')
+    assert received.empty()
+
+
+def test_event_stop_debug(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_STOP_DEBUG, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.cmd_sync('stop')
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_STOP_DEBUG
+    assert received.empty()
+
+
+def test_event_attach(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_ATTACH, callback)
+
+    if TEST_BITNESS == 32:
+        debugee_proc = subprocess.Popen([r"c:\Windows\SysWOW64\winver.exe"], executable=r"c:\Windows\SysWOW64\winver.exe")
+    else:
+        debugee_proc = subprocess.Popen([r"c:\Windows\system32\winver.exe"], executable=r"c:\Windows\system32\winver.exe")
+    client.start_session_attach(debugee_proc.pid)
+    assert client.is_debugging() == True
+    assert client.is_running() == True
+    time.sleep(1.2) # High-tech synchronization primitive
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_ATTACH
+    assert received.empty()
+
+
+def test_event_detach(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_DETACH, callback)
+
+    if TEST_BITNESS == 32:
+        debugee_proc = subprocess.Popen([r"c:\Windows\SysWOW64\winver.exe"], executable=r"c:\Windows\SysWOW64\winver.exe")
+    else:
+        debugee_proc = subprocess.Popen([r"c:\Windows\system32\winver.exe"], executable=r"c:\Windows\system32\winver.exe")
+    client.start_session_attach(debugee_proc.pid)
+    assert client.is_debugging() == True
+    assert client.is_running() == True
+    time.sleep(1.2) # High-tech synchronization primitive
+
+    assert client.detach() == True
+    debugee_proc.terminate()
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_DETACH
+    assert received.empty()
+
+
+def test_create_process(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_CREATE_PROCESS, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_CREATE_PROCESS
+    assert ev.event_data.dwProcessId > 0
+    assert ev.event_data.dwThreadId > 0
+    assert ev.event_data.lpStartAddress > 0
+    assert ev.event_data.debugFileName.lower().endswith(r'winver.exe')
+    assert received.empty()
+
+
+def test_exit_process(client: X64DbgClient):
+    received: queue.Queue[DbgEvent] = queue.Queue()
+    callback = lambda x: received.put(x)
+    client.watch_debug_event(EventType.EVENT_EXIT_PROCESS, callback)
+    client.start_session(r'c:\Windows\system32\winver.exe')
+
+    client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
+    if TEST_BITNESS == 64:
+        i = client.get_reg('rip')
+        i = i + client.assemble_at(i, f'mov rcx, 0x66BA')
+        i = i + client.assemble_at(i, f'mov rax, ExitProcess')
+        i = i + client.assemble_at(i, 'call rax')
+    else:
+        i = client.get_reg('eip')
+        i = i + client.assemble_at(i, f'push 0x66BA')
+        i = i + client.assemble_at(i, f'mov eax, ExitProcess')
+        i = i + client.assemble_at(i, 'call eax')
+    client.go()
+
+    ev = received.get(timeout=3)
+    assert ev.event_type == EventType.EVENT_EXIT_PROCESS
+    assert ev.event_data.dwExitCode == 0x66BA
+    assert received.empty()
 
 
 def test_debug_hide_peb(client: X64DbgClient):
