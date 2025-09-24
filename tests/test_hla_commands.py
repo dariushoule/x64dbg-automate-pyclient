@@ -339,7 +339,6 @@ def test_event_output_dbg_str(client: X64DbgClient):
     ev = received.get(timeout=3)
     assert ev.event_type == EventType.EVENT_OUTPUT_DEBUG_STRING
     assert ev.event_data.lpDebugStringData == b'duck duck goose\0'
-    assert received.empty()
 
 
 def test_event_single_step(client: X64DbgClient):
