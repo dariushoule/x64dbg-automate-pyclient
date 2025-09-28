@@ -1,6 +1,6 @@
 [project]
 name = "x64dbg_automate"
-version = "0.6.0"
+version = "0.6.1"
 description = "A Python library to automate x64dbg"
 authors = [{ name = "Darius Houle", email = "darius@x64.ooo" }]
 readme = "README.md"
