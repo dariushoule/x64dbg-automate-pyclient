@@ -66,7 +66,7 @@ class XAutoCommandsMixin(XAutoClientBase):
         Evaluates an expression that results in a numerical output
         
         Returns:
-            A list containing the result and a boolean indicating success
+            A tuple containing the result and a boolean indicating success
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_EVAL, eval_str)
     
