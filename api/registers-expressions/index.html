@@ -580,7 +580,7 @@ client.terminate_session()
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="list">list</span>[<span title="int">int</span>, <span title="bool">bool</span>]</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="bool">bool</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -594,7 +594,7 @@ client.terminate_session()
 
             <details class="quote">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
-              <pre class="highlight"><code class="language-python">def eval_sync(self, eval_str) -&gt; list[int, bool]:
+              <pre class="highlight"><code class="language-python">def eval_sync(self, eval_str) -&gt; tuple[int, bool]:
     """
     Evaluates an expression that results in a numerical output
 
