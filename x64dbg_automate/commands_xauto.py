@@ -61,7 +61,7 @@ class XAutoCommandsMixin(XAutoClientBase):
     def _xauto_terminate_session(self):
         assert self._send_request(XAutoCommand.XAUTO_REQ_QUIT) == "OK_QUITTING", "Failed to terminate x64dbg session"
     
-    def eval_sync(self, eval_str) -> list[int, bool]:
+    def eval_sync(self, eval_str) -> tuple[int, bool]:
         """
         Evaluates an expression that results in a numerical output
         

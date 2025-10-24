@@ -109,10 +109,10 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
 
     def _send_request(self, request_type: str, *args) -> tuple:
         self.req_socket.send(msgpack.packb((request_type, *args)))
-        msg = msgpack.unpackb(self.req_socket.recv())
+        msg = msgpack.unpackb(self.req_socket.recv(), use_list=False)
         if msg is None:
             raise RuntimeError("Empty response from x64dbg")
-        if isinstance(msg, list) and len(msg) == 2 and isinstance(msg[0], str) and msg[0].startswith("XERROR_"):
+        if isinstance(msg, tuple) and len(msg) == 2 and isinstance(msg[0], str) and msg[0].startswith("XERROR_"):
             raise RuntimeError(msg)
         return msg
 
