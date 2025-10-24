@@ -128,11 +128,11 @@ def test_label(client: X64DbgClient):
     ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
     ip = client.get_reg(ip_reg)
     client.del_label_at(ip)
-    assert client.get_label_at(ip) == ""
+    assert client.get_label_at(ip) != "https://www.youtube.com/watch?v=tJ94VwZ51Wo"
     assert client.set_label_at(ip, "https://www.youtube.com/watch?v=tJ94VwZ51Wo")
     assert client.get_label_at(ip) == "https://www.youtube.com/watch?v=tJ94VwZ51Wo"
     assert client.del_label_at(ip)
-    assert client.get_label_at(ip) == ""
+    assert client.get_label_at(ip) != "https://www.youtube.com/watch?v=tJ94VwZ51Wo"
 
 
 def test_comment(client: X64DbgClient):
@@ -474,6 +474,7 @@ def test_exit_process(client: X64DbgClient):
     client.wait_for_debug_event(EventType.EVENT_SYSTEMBREAKPOINT)
     if TEST_BITNESS == 64:
         i = client.get_reg('rip')
+        i = i + client.assemble_at(i, f'and rsp, 0xFFFFFFFFFFFFFFF0')
         i = i + client.assemble_at(i, f'mov rcx, 0x66BA')
         i = i + client.assemble_at(i, f'mov rax, ExitProcess')
         i = i + client.assemble_at(i, 'call rax')

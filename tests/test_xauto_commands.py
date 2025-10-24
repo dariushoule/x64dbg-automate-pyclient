@@ -7,14 +7,14 @@ from x64dbg_automate.models import BreakpointType, DisasmInstrType, SegmentReg
 
 def test_dbg_eval_not_debugging(client: X64DbgClient):
     client.start_session()
-    assert client.eval_sync('9*9') == [81, True]
-    assert client.eval_sync('9*') == [0, False]
+    assert client.eval_sync('9*9') == (81, True)
+    assert client.eval_sync('9*') == (0, False)
 
 
 def test_dbg_eval_debugging(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    assert client.eval_sync('9*9') == [81, True]
-    assert client.eval_sync('9*') == [0, False]
+    assert client.eval_sync('9*9') == (81, True)
+    assert client.eval_sync('9*') == (0, False)
     addr, success = client.eval_sync('GetModuleHandleA+1')
     assert success
     assert addr > 0
