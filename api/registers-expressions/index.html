@@ -584,7 +584,7 @@ client.terminate_session()
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A list containing the result and a boolean indicating success</p>
+                <p>A tuple containing the result and a boolean indicating success</p>
               </div>
             </td>
           </tr>
@@ -599,7 +599,7 @@ client.terminate_session()
     Evaluates an expression that results in a numerical output
 
     Returns:
-        A list containing the result and a boolean indicating success
+        A tuple containing the result and a boolean indicating success
     """
     return self._send_request(XAutoCommand.XAUTO_REQ_DBG_EVAL, eval_str)</code></pre>
             </details>
