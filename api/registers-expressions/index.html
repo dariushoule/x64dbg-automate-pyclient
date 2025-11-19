@@ -343,7 +343,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def get_reg(self, reg: MutableRegister | str) -&gt; int:
     """
@@ -402,7 +402,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def get_regs(self) -&gt; list[RegDump32] | list[RegDump64]:
     """
@@ -533,7 +533,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def set_reg(self, reg: MutableRegister | str, val: int) -&gt; bool:
     """
@@ -592,7 +592,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def eval_sync(self, eval_str) -&gt; tuple[int, bool]:
     """
@@ -675,7 +675,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def get_symbol_at(self, addr: int) -&gt; Symbol | None:
     """
@@ -726,7 +726,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class RegDump(BaseModel):
     flags: Flags
@@ -783,7 +784,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class RegDump64(RegDump):
     context: Context64</code></pre>
@@ -833,7 +835,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class RegDump32(RegDump):
     context: Context32</code></pre>
@@ -883,7 +886,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class Context64(BaseModel):
     rax: int
@@ -966,7 +970,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class Context32(BaseModel):
     eax: int
@@ -1041,7 +1046,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class X87Fpu(BaseModel):
     ControlWord: int
@@ -1098,7 +1104,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class Flags(BaseModel):
     c: bool
@@ -1156,7 +1163,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class FpuReg(BaseModel):
     data: bytes
@@ -1208,7 +1216,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class MxcsrFields(BaseModel):
     FZ: bool
@@ -1272,7 +1281,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class X87StatusWordFields(BaseModel):
     B: bool
@@ -1335,7 +1345,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class X87ControlWordFields(BaseModel):
     IC: bool
@@ -1394,7 +1405,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class Symbol(BaseModel):
     addr: int
@@ -1448,7 +1460,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class SymbolType(IntEnum):
     SymImport = 0
@@ -1500,7 +1513,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class MutableRegister(StrEnum):
     cip = 'cip'

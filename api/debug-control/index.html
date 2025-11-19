@@ -473,7 +473,7 @@ client.detach_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def load_executable(self, target_exe: str, cmdline: str = "", current_dir: str = "", wait_timeout: int = 10) -&gt; bool:
     """
@@ -572,7 +572,7 @@ client.detach_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def unload_executable(self, wait_timeout: int = 10) -&gt; bool:
     """
@@ -676,7 +676,7 @@ client.detach_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def attach(self, pid: int, wait_timeout: int = 10) -&gt; bool:
     """
@@ -766,7 +766,7 @@ This method will block until we are no longer debugging.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def detach(self, wait_timeout: int = 10) -&gt; bool:
     """
@@ -871,7 +871,7 @@ This method will block until we are no longer debugging.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def go(self, pass_exceptions: bool = False, swallow_exceptions: bool = False) -&gt; bool:
     """
@@ -940,7 +940,7 @@ This method will block until we are no longer debugging.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def pause(self) -&gt; bool:
     """
@@ -1070,7 +1070,7 @@ Raises:
     ValueError: If both pass_exceptions and swallow_exceptions are True.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def stepi(self, step_count: int = 1, pass_exceptions: bool = False, swallow_exceptions: bool = False, wait_for_ready: bool = True, wait_timeout: int = 2) -&gt; bool:
     """
@@ -1217,7 +1217,7 @@ Raises:
     ValueError: If both pass_exceptions and swallow_exceptions are True.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def stepo(self, step_count: int = 1, pass_exceptions: bool = False, swallow_exceptions: bool = False, wait_for_ready: bool = True, wait_timeout: int = 2) -&gt; bool:
     """
@@ -1330,7 +1330,7 @@ Raises:
     bool: True if stepping operation was successful, False otherwise.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def skip(self, skip_count: int = 1, wait_for_ready: bool = True, wait_timeout: int = 2) -&gt; bool:
     """
@@ -1415,7 +1415,7 @@ Raises:
     bool: True if stepping operation was successful, False otherwise.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def ret(self, frames: int = 1, wait_timeout: int = 10) -&gt; bool:
     """
@@ -1496,7 +1496,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def thread_create(self, addr: int, arg: int = 0) -&gt; int | None:
     """
@@ -1563,7 +1563,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def thread_terminate(self, tid: int):
     """
@@ -1623,7 +1623,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def thread_pause(self, tid: int):
     """
@@ -1683,7 +1683,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def thread_resume(self, tid: int):
     """
@@ -1743,7 +1743,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def switch_thread(self, tid: int):
     """
@@ -1844,7 +1844,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
               <pre class="highlight"><code class="language-python">def wait_for_debug_event(self, event_type: EventType, timeout: int = 5) -&gt; DbgEvent | None:
     """
@@ -1918,7 +1918,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
               <pre class="highlight"><code class="language-python">def clear_debug_events(self, event_type: EventType | None = None) -&gt; None:
     """
@@ -1999,7 +1999,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
               <pre class="highlight"><code class="language-python">def watch_debug_event(self, event_type: EventType, callback: callable):
     """
@@ -2076,7 +2076,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
               <pre class="highlight"><code class="language-python">def unwatch_debug_event(self, event_type: EventType, callback: callable):
     """
@@ -2106,7 +2106,7 @@ Raises:
         <p>Get the latest debug event that occurred in the debugee. The event is removed from the queue.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
               <pre class="highlight"><code class="language-python">def get_latest_debug_event(self) -&gt; DbgEvent | None:
     """
@@ -2134,7 +2134,7 @@ Raises:
         <p>Get the latest debug event that occurred in the debugee. The event is not removed from the queue.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
               <pre class="highlight"><code class="language-python">def peek_latest_debug_event(self) -&gt; DbgEvent | None:
     """
@@ -2216,7 +2216,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def wait_until_debugging(self, timeout: int = 10) -&gt; bool:
     """
@@ -2309,7 +2309,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def wait_until_not_debugging(self, timeout: int = 10) -&gt; bool:
     """
@@ -2402,7 +2402,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def wait_until_running(self, timeout: int = 10) -&gt; bool:
     """
@@ -2495,7 +2495,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def wait_until_stopped(self, timeout: int = 10) -&gt; bool:
     """
@@ -2588,7 +2588,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def wait_cmd_ready(self, timeout: int = 10) -&gt; bool:
     """
@@ -2643,7 +2643,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def hide_debugger_peb(self) -&gt; bool:
     """
@@ -2695,7 +2695,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def debugee_pid(self) -&gt; int | None:
     """
@@ -2751,7 +2751,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def get_debugger_pid(self) -&gt; int:
     """
@@ -2803,7 +2803,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def is_running(self) -&gt; bool:
     """
@@ -2855,7 +2855,7 @@ Raises:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def is_debugging(self) -&gt; bool:
     """
@@ -2892,7 +2892,8 @@ Raises:
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
                 <pre class="highlight"><code class="language-python">class DbgEvent():
     event_type: EventType
@@ -3038,7 +3039,8 @@ Raises:
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
                 <pre class="highlight"><code class="language-python">class EventType(StrEnum):
     EVENT_BREAKPOINT = "EVENT_BREAKPOINT"

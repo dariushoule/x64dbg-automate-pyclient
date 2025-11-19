@@ -410,7 +410,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def write_memory(self, addr: int, data: bytes) -&gt; bool:
     """
@@ -513,7 +513,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def read_memory(self, addr: int, size: int) -&gt; bytes:
     """
@@ -600,7 +600,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def read_word(self, addr: int) -&gt; int:
     """
@@ -687,7 +687,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def read_dword(self, addr: int) -&gt; int:
     """
@@ -774,7 +774,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def read_qword(self, addr: int) -&gt; int:
     """
@@ -830,7 +830,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def memmap(self) -&gt; list[MemPage]:
     """
@@ -933,7 +933,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def virt_alloc(self, n: int = 0x1000, addr: int = 0) -&gt; int:
     """
@@ -1057,7 +1057,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def virt_protect(self, addr: int, page_rights: PageRightsConfiguration, guard: bool = False) -&gt; bool:
     """
@@ -1150,7 +1150,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def virt_query(self, addr: int) -&gt; MemPage | None:
     """
@@ -1240,7 +1240,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def virt_free(self, addr: int) -&gt; bool:
     """
@@ -1360,7 +1360,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/hla_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def memset(self, addr: int, byte_val: int, size: int) -&gt; bool:
     """
@@ -1450,7 +1450,7 @@ client.terminate_session()
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
               <pre class="highlight"><code class="language-python">def check_valid_read_ptr(self, addr: int) -&gt; bool:
     """
@@ -1490,7 +1490,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class MemPage(BaseModel):
     base_address: int
@@ -1546,7 +1547,8 @@ client.terminate_session()
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class PageRightsConfiguration(StrEnum):
     Execute = "Execute"

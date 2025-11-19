@@ -345,7 +345,7 @@ the debugger starts without any executable. This is useful for performing config
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -&gt; int:
     """
@@ -467,7 +467,7 @@ the debugger starts without any executable. This is useful for performing config
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">def start_session_attach(self, pid: int) -&gt; int:
     """
@@ -540,7 +540,7 @@ the debugger starts without any executable. This is useful for performing config
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">def attach_session(self, session_pid: int) -&gt; None:
     """
@@ -573,7 +573,7 @@ the debugger starts without any executable. This is useful for performing config
         <p>Detach from the current x64dbg session, leaving the debugger process running.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">def detach_session(self) -&gt; None:
     """
@@ -599,7 +599,7 @@ the debugger starts without any executable. This is useful for performing config
         <p>End the current x64dbg session, terminating the debugger process.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">def terminate_session(self) -&gt; None:
     """
@@ -659,7 +659,7 @@ the debugger starts without any executable. This is useful for performing config
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">@staticmethod
 def list_sessions() -&gt; list[DebugSession]:
@@ -800,7 +800,7 @@ def list_sessions() -&gt; list[DebugSession]:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">@staticmethod
 def wait_for_session(session_pid: int, timeout: int = 10) -&gt; DebugSession:
@@ -842,6 +842,7 @@ def wait_for_session(session_pid: int, timeout: int = 10) -&gt; DebugSession:
     <div class="doc doc-contents first">
 
 
+
         <p>Represents a debug session in x64dbg Automate</p>
 
 
@@ -851,7 +852,7 @@ def wait_for_session(session_pid: int, timeout: int = 10) -&gt; DebugSession:
 
 
 
-              <details class="quote">
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class DebugSession(BaseModel):
     """
