@@ -7,6 +7,7 @@ from x64dbg_automate import X64DbgClient
 from x64dbg_automate.events import CreateThreadEventData, DbgEvent, EventType, ExceptionEventData
 from x64dbg_automate.models import BreakpointType, HardwareBreakpointType, MemoryBreakpointType, PageRightsConfiguration, StandardBreakpointType
 from x64dbg_automate.win32 import OpenProcess, CreateRemoteThread, WaitForSingleObject, CloseHandle
+import threading
 
 
 def test_stepi(client: X64DbgClient):
@@ -14,6 +15,26 @@ def test_stepi(client: X64DbgClient):
     assert client.stepi(2)
     assert client.stepi(swallow_exceptions=True)
     assert client.stepi(pass_exceptions=True)
+    with pytest.raises(ValueError):
+        assert client.stepi(pass_exceptions=True, swallow_exceptions=True)
+
+
+def test_stepi_thread_safe(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+
+    def thread_step():
+        assert client.stepi(1)
+    
+    threads = []
+    for _ in range(4):
+        t = threading.Thread(target=thread_step)
+        threads.append(t)
+        t.start()
+    
+    for t in threads:
+        t.join()
+    assert client.stepi(1)
+
     with pytest.raises(ValueError):
         assert client.stepi(pass_exceptions=True, swallow_exceptions=True)
 

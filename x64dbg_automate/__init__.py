@@ -49,6 +49,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.sub_socket = None
         self.sess_req_rep_port = 0
         self.sess_pub_sub_port = 0
+        self._req_lock = threading.Lock()
         all_instances.append(self)
 
     def __del__(self):
@@ -108,8 +109,9 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.sess_pub_sub_port = 0
 
     def _send_request(self, request_type: str, *args) -> tuple:
-        self.req_socket.send(msgpack.packb((request_type, *args)))
-        msg = msgpack.unpackb(self.req_socket.recv(), use_list=False)
+        with self._req_lock:
+            self.req_socket.send(msgpack.packb((request_type, *args)))
+            msg = msgpack.unpackb(self.req_socket.recv(), use_list=False)
         if msg is None:
             raise RuntimeError("Empty response from x64dbg")
         if isinstance(msg, tuple) and len(msg) == 2 and isinstance(msg[0], str) and msg[0].startswith("XERROR_"):
