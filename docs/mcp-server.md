@@ -19,7 +19,10 @@ pip install x64dbg_automate[mcp] --upgrade
 Add the following to your Claude Code MCP settings. You can do this via the CLI:
 
 ```sh
-claude mcp add x64dbg -- x64dbg-automate-mcp
+# User level
+claude mcp add --scope user x64dbg -- x64dbg-automate-mcp
+# Project level
+claude mcp add --scope project x64dbg -- x64dbg-automate-mcp
 ```
 
 Or manually create/edit `.mcp.json` in your project root:
