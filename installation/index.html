@@ -49,6 +49,9 @@
                             <li class="nav-item">
                                 <a href="../quickstart/" class="nav-link">Quickstart</a>
                             </li>
+                            <li class="nav-item">
+                                <a href="../mcp-server/" class="nav-link">MCP Server</a>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Client Reference</a>
                                 <ul class="dropdown-menu">
@@ -166,6 +169,9 @@
 </table>
 <h3 id="step-3-client-library">Step 3: Client Library</h3>
 <pre><code class="language-sh">pip install x64dbg_automate --upgrade
+</code></pre>
+<p>To also install the MCP server for use with Claude Code or other MCP-compatible clients:</p>
+<pre><code class="language-sh">pip install x64dbg_automate[mcp] --upgrade
 </code></pre>
 <p>🔔 Important: The Microsoft Store builds of Python are restricted such that the client library may not function well. Use them at your own risk.</p>
 <h3 id="troubleshooting">Troubleshooting</h3>

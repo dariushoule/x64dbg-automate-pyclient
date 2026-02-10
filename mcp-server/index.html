@@ -13,7 +13,7 @@
         <meta property="og:title" content="x64dbg Automate">
         <meta property="og:description" content="Full documentation for the x64dbg Automate plugin - Easy Scriptable and Repeatable Debug Sessions">
         <meta property="og:image" content="">
-        <title>Quickstart - x64dbg Automate</title>
+        <title>MCP Server - x64dbg Automate</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/fontawesome.min.css" rel="stylesheet">
         <link href="../css/brands.min.css" rel="stylesheet">
@@ -47,10 +47,10 @@
                                 <a href="../installation/" class="nav-link">Installation</a>
                             </li>
                             <li class="nav-item">
-                                <a href="./" class="nav-link active" aria-current="page">Quickstart</a>
+                                <a href="../quickstart/" class="nav-link">Quickstart</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../mcp-server/" class="nav-link">MCP Server</a>
+                                <a href="./" class="nav-link active" aria-current="page">MCP Server</a>
                             </li>
                             <li class="nav-item dropdown">
                                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Client Reference</a>
@@ -106,12 +106,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../installation/" class="nav-link">
+                                <a rel="prev" href="../quickstart/" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../mcp-server/" class="nav-link">
+                                <a rel="next" href="../api/session-control/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -133,12 +133,7 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-bs-level="1"><a href="#x64dbg-automate-quickstart" class="nav-link">x64dbg Automate Quickstart</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            
-            <li class="nav-item" data-bs-level="1"><a href="#more-examples" class="nav-link">More Examples</a>
+            <li class="nav-item" data-bs-level="1"><a href="#mcp-server" class="nav-link">MCP Server</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -147,66 +142,140 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="x64dbg-automate-quickstart">x64dbg Automate Quickstart</h1>
-<p>An automation session can be launched with four steps:</p>
-<p><strong>One: Instantiate <code>X64DbgClient</code> and orient it against your installation</strong></p>
-<pre><code>from x64dbg_automate import X64DbgClient
-client = X64DbgClient(x64dbg_path=r&quot;C:\x64dbg\release\x64\x64dbg.exe&quot;)
+<h1 id="mcp-server">MCP Server</h1>
+<h3 id="what-is-the-mcp-server">What is the MCP Server?</h3>
+<p>The x64dbg Automate MCP server exposes the debugger's capabilities as <a href="https://modelcontextprotocol.io/">Model Context Protocol</a> tools. This allows LLM clients like Claude Code to directly control x64dbg for reverse engineering, malware analysis, and debugging tasks.</p>
+<p>The MCP server wraps the same Python API documented in the Client Reference sections, so all the same functionality is available.</p>
+<h3 id="installation">Installation</h3>
+<p>Install the client library with the <code>mcp</code> extra:</p>
+<pre><code class="language-sh">pip install x64dbg_automate[mcp] --upgrade
 </code></pre>
-<p><strong>Two: Start a new debug session or attach to an existing one</strong></p>
-<pre><code>client.start_session(r'my_cool_program.exe')
+<h3 id="claude-code-configuration">Claude Code Configuration</h3>
+<p>Add the following to your Claude Code MCP settings. You can do this via the CLI:</p>
+<pre><code class="language-sh">claude mcp add x64dbg -- x64dbg-automate-mcp
 </code></pre>
-<p><strong>Three: Act!</strong></p>
-<pre><code>client.set_breakpoint('GetModuleHandleA')
-client.go()
+<p>Or manually create/edit <code>.mcp.json</code> in your project root:</p>
+<pre><code class="language-json">{
+  &quot;mcpServers&quot;: {
+    &quot;x64dbg&quot;: {
+      &quot;command&quot;: &quot;x64dbg-automate-mcp&quot;
+    }
+  }
+}
 </code></pre>
-<p><em>See Client Reference sections for full capabilities.</em></p>
-<p><strong>Four: Clean up</strong></p>
-<pre><code>client.detach_session()
+<p>Restart Claude Code after adding the configuration. You will be prompted to approve the MCP server on first use.</p>
+<h3 id="available-tools">Available Tools</h3>
+<p>The MCP server provides ~40 tools organized into the following groups:</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Tools</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Session</td>
+<td><code>list_sessions</code>, <code>start_session</code>, <code>connect_to_session</code>, <code>disconnect</code>, <code>terminate_session</code></td>
+<td>Manage debugger instances</td>
+</tr>
+<tr>
+<td>Debug Control</td>
+<td><code>go</code>, <code>pause</code>, <code>step_into</code>, <code>step_over</code>, <code>skip_instruction</code>, <code>run_to_return</code>, <code>get_debugger_status</code></td>
+<td>Control execution</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td><code>read_memory</code>, <code>write_memory</code>, <code>allocate_memory</code>, <code>free_memory</code>, <code>get_memory_map</code></td>
+<td>Read/write debuggee memory</td>
+</tr>
+<tr>
+<td>Registers</td>
+<td><code>get_register</code>, <code>set_register</code>, <code>get_all_registers</code></td>
+<td>Register access</td>
+</tr>
+<tr>
+<td>Expressions</td>
+<td><code>eval_expression</code>, <code>execute_command</code></td>
+<td>x64dbg expression evaluator and raw commands</td>
+</tr>
+<tr>
+<td>Breakpoints</td>
+<td><code>set_breakpoint</code>, <code>clear_breakpoint</code>, <code>toggle_breakpoint</code>, <code>list_breakpoints</code></td>
+<td>Software, hardware, and memory breakpoints</td>
+</tr>
+<tr>
+<td>Assembly</td>
+<td><code>disassemble</code>, <code>assemble</code></td>
+<td>Disassemble and assemble instructions</td>
+</tr>
+<tr>
+<td>Annotations</td>
+<td><code>set_label</code>, <code>get_label</code>, <code>set_comment</code>, <code>get_comment</code>, <code>get_symbol</code></td>
+<td>Labels, comments, and symbol lookup</td>
+</tr>
+<tr>
+<td>Threads</td>
+<td><code>create_thread</code>, <code>terminate_thread</code>, <code>pause_resume_thread</code>, <code>switch_thread</code></td>
+<td>Thread management</td>
+</tr>
+<tr>
+<td>Events</td>
+<td><code>get_latest_event</code>, <code>wait_for_event</code></td>
+<td>Debug event queue</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td><code>get_setting</code>, <code>set_setting</code></td>
+<td>x64dbg configuration</td>
+</tr>
+<tr>
+<td>GUI</td>
+<td><code>log_message</code>, <code>refresh_gui</code></td>
+<td>Debugger UI interaction</td>
+</tr>
+</tbody>
+</table>
+<h3 id="walkthrough-debugging-with-claude">Walkthrough: Debugging with Claude</h3>
+<p>This walkthrough demonstrates a typical analysis session using the MCP server from Claude Code. The x64dbg plugin must be installed and the MCP server configured as described above.</p>
+<p><strong>Step 1: Start a session</strong></p>
+<p>Ask Claude to start a debug session:</p>
+<pre><code>Launch x64dbg from C:\x64dbg\release and debug C:\targets\to_analyze.exe
 </code></pre>
-<h3 id="example-hello-world">Example: Hello World</h3>
-<pre><code class="language-python">&quot;&quot;&quot;
-Example: Hello x64dbg Automate (64 bit)
-&quot;&quot;&quot;
-import sys
-from x64dbg_automate import X64DbgClient
-
-if len(sys.argv) != 2:
-    print(&quot;Usage: python hello64.py &lt;x64dbg_path&gt;&quot;)
-    quit(1)
-
-print('[+] Creating a new x64dbg Automate session')
-client = X64DbgClient(x64dbg_path=sys.argv[1])
-client.start_session(r'c:\Windows\system32\winver.exe')
-
-print('[+] Allocating memory in the debugee and writing a string to it')
-mem = client.virt_alloc()
-client.write_memory(mem, 'x64dbg Automate Rocks!'.encode('utf-16le'))
-
-print('[+] Breakpointing ShellAboutW and running until we hit it')
-client.set_breakpoint('ShellAboutW', singleshoot=True)
-client.go() # Entrypoint breakpoint
-client.wait_until_stopped()
-client.go() # ShellAboutW
-client.wait_until_stopped()
-
-print('[+] Replacing the ShellAboutW App name with our string')
-client.set_reg('rdx', mem)
-client.go()
-
-print('[+] Bye bye! Go check out the title bar of the winver window! 🥳')
-client.detach_session()
+<p>Claude will call <code>start_session</code> with your x64dbg path and target executable. </p>
+<p><strong>Step 2: Explore the target</strong></p>
+<p>Ask Claude to look around:</p>
+<pre><code>Disassemble the first 20 instructions at the entry point
 </code></pre>
-<p><strong>Output</strong></p>
-<pre><code>[+] Creating a new x64dbg Automate session
-[+] Allocating memory in the debugee and writing a string to it
-[+] Breakpointing ShellAboutW and running until we hit it
-[+] Replacing the ShellAboutW App name with our string
-[+] Bye bye! Go check out the title bar of the winver window! 🥳
+<p>Claude will call <code>disassemble</code> with <code>RIP</code> as the address (resolved via x64dbg's expression evaluator), giving you annotated disassembly output.</p>
+<pre><code>Show me the memory map and read 256 bytes at RSP
 </code></pre>
-<p><img alt="Output in Winver" src="../rocks.png" /></p>
-<h1 id="more-examples">More Examples</h1>
-<p>More examples of x64dbg Automate's capabilities can be seen in: <a href="https://github.com/dariushoule/x64dbg-automate-pyclient/tree/main/examples">https://github.com/dariushoule/x64dbg-automate-pyclient/tree/main/examples</a></p></div>
+<p>Claude will call <code>get_memory_map</code> and <code>read_memory</code>, returning a hex dump with ASCII sidebar.</p>
+<p><strong>Step 3: Set breakpoints and run</strong></p>
+<pre><code>Set a breakpoint on MessageBoxA and resume execution
+</code></pre>
+<p>Claude will call <code>set_breakpoint</code> with the symbol name and then <code>go</code> to resume.</p>
+<p><strong>Step 4: Inspect state at a breakpoint</strong></p>
+<pre><code>Show me all registers and disassemble 10 instructions at the current position
+</code></pre>
+<p>Claude will call <code>get_all_registers</code> and <code>disassemble</code> with <code>RIP</code>, giving you a full picture of the current state.</p>
+<p><strong>Step 5: Modify and continue</strong></p>
+<pre><code>Write 0x90 0x90 (NOPs) at 0x401032 and step over 5 instructions
+</code></pre>
+<p>Claude will call <code>write_memory</code> to patch the bytes and <code>step_over</code> to advance.</p>
+<p><strong>Step 6: Clean up</strong></p>
+<pre><code>Disconnect from the debugger
+</code></pre>
+<p>Claude will call <code>disconnect</code>, leaving x64dbg running for manual inspection, or <code>terminate_session</code> to close it entirely.</p>
+<h3 id="tips">Tips</h3>
+<ul>
+<li><strong>Let Claude drive</strong>: Describe your analysis goal in plain language. Claude can chain multiple tools together to investigate, set breakpoints, read memory, and modify state.</li>
+<li><strong>Expressions work everywhere</strong>: Any tool that takes an address also accepts registers, symbols, and arithmetic expressions — just like the x64dbg command bar.</li>
+<li><strong>Memory reads are capped</strong>: <code>read_memory</code> is limited to 4096 bytes per call and <code>disassemble</code> to 100 instructions. Ask for multiple reads if you need more.</li>
+<li><strong>Events for synchronization</strong>: Use <code>wait_for_event</code> to wait for breakpoints, DLL loads, or other debug events before inspecting state.</li>
+<li><strong>Raw commands</strong>: If a feature isn't exposed as a dedicated tool, <code>execute_command</code> passes any command directly to x64dbg's command interpreter. See the <a href="https://help.x64dbg.com/en/latest/commands/">x64dbg command reference</a>.</li>
+</ul></div>
             </div>
         </div>
 
