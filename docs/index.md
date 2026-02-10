@@ -15,6 +15,7 @@ The heart of the project is the native plugin that externalizes the bridge and s
 - **Maintained/Modern Plugin and Client**: Automate aims to target both the latest x64dbg and Python versions.
 - **Clear Documentation**: The features of Automate are easy to understand and well documented.
 - **Extensible**: Build on top of Automate to extend its capabilities even further.
+- **Agent Friendly**: Supports the MCP protocol for agentic access.
 
 ## Getting Started
 

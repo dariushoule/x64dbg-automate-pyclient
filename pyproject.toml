@@ -1,6 +1,6 @@
 [project]
 name = "x64dbg_automate"
-version = "0.6.3"
+version = "0.7.0"
 description = "A Python library to automate x64dbg"
 authors = [{ name = "Darius Houle", email = "darius@x64.ooo" }]
 readme = "README.md"
@@ -17,6 +17,13 @@ pyzmq = "^26.2.0"
 msgpack = "^1.1.0"
 pydantic = "^2.10.6"
 psutil = "^6.1.1"
+mcp = {version = "^1.26.0", optional = true}
+
+[tool.poetry.extras]
+mcp = ["mcp"]
+
+[tool.poetry.scripts]
+x64dbg-automate-mcp = "x64dbg_automate.mcp_server:main"
 
 [tool.poetry.group.dev]
 optional = true

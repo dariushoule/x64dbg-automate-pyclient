@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "x64dbg": {
+      "command": "poetry",
+      "args": ["run", "x64dbg-automate-mcp"],
+      "cwd": "."
+    }
+  }
+}

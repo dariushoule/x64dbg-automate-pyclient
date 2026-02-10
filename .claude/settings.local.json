@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(find:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest:*)",
+      "mcp__x64dbg__get_all_registers",
+      "mcp__x64dbg__step_into",
+      "mcp__x64dbg__get_register",
+      "mcp__x64dbg__disassemble",
+      "mcp__x64dbg__start_session",
+      "mcp__x64dbg__get_debugger_status",
+      "mcp__x64dbg__get_symbol",
+      "mcp__x64dbg__read_memory"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "x64dbg"
+  ]
+}

@@ -23,6 +23,12 @@ Extract the entire contents of the archive's `Release` directory into your debug
 pip install x64dbg_automate --upgrade
 ```
 
+To also install the MCP server for use with Claude Code or other MCP-compatible clients:
+
+```sh
+pip install x64dbg_automate[mcp] --upgrade
+```
+
 🔔 Important: The Microsoft Store builds of Python are restricted such that the client library may not function well. Use them at your own risk.
 
 
