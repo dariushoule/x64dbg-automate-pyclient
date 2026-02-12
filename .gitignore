@@ -38,3 +38,4 @@ ENV/
 
 # docs build output
 site/
+.claude/settings.local.json

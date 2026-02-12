@@ -12,7 +12,10 @@
       "mcp__x64dbg__start_session",
       "mcp__x64dbg__get_debugger_status",
       "mcp__x64dbg__get_symbol",
-      "mcp__x64dbg__read_memory"
+      "mcp__x64dbg__read_memory",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__x64dbg__trace_into"
     ]
   },
   "enableAllProjectMcpServers": true,

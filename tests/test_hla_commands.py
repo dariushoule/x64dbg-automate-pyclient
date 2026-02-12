@@ -1,3 +1,4 @@
+from pathlib import Path
 import queue
 import subprocess
 import time
@@ -675,4 +676,74 @@ def test_breakpoint_multiple_get(client: X64DbgClient):
     assert client.set_breakpoint("CreateFileW")
     for i in range(4):
         assert client.get_breakpoints(BreakpointType.BpNormal)[i].enabled == True
+
+
+def test_trace_into(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
+    ip = client.get_reg(ip_reg)
+    # Write NOPs followed by an INT3 so the trace has a clear stopping point
+    client.write_memory(ip, b'\x90' * 8)
+    target = ip + 4
+    assert client.trace_into(f"cip == 0x{target:x}", max_steps=100)
+    assert client.get_reg(ip_reg) == target
+
+
+def test_trace_over(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
+    ip = client.get_reg(ip_reg)
+    # Write NOPs so the trace has a clear stopping point
+    client.write_memory(ip, b'\x90' * 8)
+    target = ip + 4
+    assert client.trace_over(f"cip == 0x{target:x}", max_steps=100)
+    assert client.get_reg(ip_reg) == target
+
+
+def test_trace_into_with_log(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
+    ip = client.get_reg(ip_reg)
+    client.write_memory(ip, b'\x90' * 8)
+    target = ip + 4
+    assert client.trace_into(
+        f"cip == 0x{target:x}",
+        max_steps=100,
+        log_text="{p:cip} {i:cip}",
+    )
+    assert client.get_reg(ip_reg) == target
+
+
+def test_trace_exception_validation(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    with pytest.raises(ValueError):
+        client.trace_into("cip == 0", pass_exceptions=True, swallow_exceptions=True)
+    with pytest.raises(ValueError):
+        client.trace_over("cip == 0", pass_exceptions=True, swallow_exceptions=True)
+
+
+def test_trace_set_log_file(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    log_path = Path(__file__).parent / "trace_test.log"
+    assert client.trace_set_log_file(str(log_path))
+    
+    # Do some operations to generate trace output
+    ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
+    ip = client.get_reg(ip_reg)
+    client.write_memory(ip, b'\x90' * 8)
+    target = ip + 4
+    assert client.trace_into(
+        f"cip == 0x{target:x}",
+        max_steps=100,
+        log_text="{p:cip} {i:cip}",
+    )
+    assert client.get_reg(ip_reg) == target
+    
+    # Verify log file exists and has content
+    assert log_path.exists(), f"Log file {log_path} was not created"
+    log_content = log_path.read_text()
+    assert len(log_content) > 0, "Log file is empty"
+    
+    # Cleanup
+    log_path.unlink()
     

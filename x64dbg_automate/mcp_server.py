@@ -339,6 +339,104 @@ def run_to_return(frames: int = 1) -> str:
         return f"Error: {e}"
 
 
+@mcp.tool()
+def trace_into(
+    break_condition: str,
+    max_steps: int = 50000,
+    log_text: str | None = None,
+    log_condition: str | None = None,
+    command_text: str | None = None,
+    command_condition: str | None = None,
+    log_file: str | None = None,
+    pass_exceptions: bool = False,
+    swallow_exceptions: bool = False,
+    wait_timeout: int = 60,
+) -> str:
+    """Trace into (single-step into calls) until a condition is met.
+
+    Steps one instruction at a time, following into calls, until break_condition
+    evaluates to non-zero or max_steps is reached. Optionally logs each step.
+
+    Args:
+        break_condition: x64dbg expression that stops the trace when non-zero (e.g. 'cip == 0x401000')
+        max_steps: Maximum steps before giving up (default 50000)
+        log_text: Formatted text to log each step (e.g. '{p:cip} {i:cip}')
+        log_condition: Expression controlling when log_text is printed
+        command_text: x64dbg command to execute each step
+        command_condition: Expression controlling when command_text runs
+        log_file: Path to redirect trace log output to a file
+        pass_exceptions: Pass exceptions to the debuggee
+        swallow_exceptions: Swallow exceptions
+        wait_timeout: Max seconds to wait for trace completion
+    """
+    try:
+        client = _require_client()
+        result = client.trace_into(
+            break_condition=break_condition,
+            max_steps=max_steps,
+            log_text=log_text,
+            log_condition=log_condition,
+            command_text=command_text,
+            command_condition=command_condition,
+            log_file=log_file,
+            pass_exceptions=pass_exceptions,
+            swallow_exceptions=swallow_exceptions,
+            wait_timeout=wait_timeout,
+        )
+        return "Trace into completed." if result else "Trace into failed."
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def trace_over(
+    break_condition: str,
+    max_steps: int = 50000,
+    log_text: str | None = None,
+    log_condition: str | None = None,
+    command_text: str | None = None,
+    command_condition: str | None = None,
+    log_file: str | None = None,
+    pass_exceptions: bool = False,
+    swallow_exceptions: bool = False,
+    wait_timeout: int = 60,
+) -> str:
+    """Trace over (single-step over calls) until a condition is met.
+
+    Steps one instruction at a time, stepping over calls, until break_condition
+    evaluates to non-zero or max_steps is reached. Optionally logs each step.
+
+    Args:
+        break_condition: x64dbg expression that stops the trace when non-zero (e.g. 'cip == 0x401000')
+        max_steps: Maximum steps before giving up (default 50000)
+        log_text: Formatted text to log each step (e.g. '{p:cip} {i:cip}')
+        log_condition: Expression controlling when log_text is printed
+        command_text: x64dbg command to execute each step
+        command_condition: Expression controlling when command_text runs
+        log_file: Path to redirect trace log output to a file
+        pass_exceptions: Pass exceptions to the debuggee
+        swallow_exceptions: Swallow exceptions
+        wait_timeout: Max seconds to wait for trace completion
+    """
+    try:
+        client = _require_client()
+        result = client.trace_over(
+            break_condition=break_condition,
+            max_steps=max_steps,
+            log_text=log_text,
+            log_condition=log_condition,
+            command_text=command_text,
+            command_condition=command_condition,
+            log_file=log_file,
+            pass_exceptions=pass_exceptions,
+            swallow_exceptions=swallow_exceptions,
+            wait_timeout=wait_timeout,
+        )
+        return "Trace over completed." if result else "Trace over failed."
+    except Exception as e:
+        return f"Error: {e}"
+
+
 # ---------------------------------------------------------------------------
 # Memory
 # ---------------------------------------------------------------------------

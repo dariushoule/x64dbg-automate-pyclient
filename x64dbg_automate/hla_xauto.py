@@ -645,6 +645,183 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         sanitized_str = fmt_str.replace('"', '\\"')
         return self.cmd_sync(f'log "{sanitized_str}"')
 
+    def trace_into(
+        self,
+        break_condition: str,
+        max_steps: int = 50000,
+        log_text: str | None = None,
+        log_condition: str | None = None,
+        command_text: str | None = None,
+        command_condition: str | None = None,
+        log_file: str | None = None,
+        pass_exceptions: bool = False,
+        swallow_exceptions: bool = False,
+        wait_timeout: int = 60,
+    ) -> bool:
+        """
+        Performs a conditional trace-into (single-stepping into calls) until the break condition
+        evaluates to true or max_steps is reached.
+
+        Optionally configures trace logging, log conditions, command execution, and log file
+        output before starting the trace. These properties persist across traces until cleared.
+
+        Args:
+            break_condition: x64dbg expression that stops the trace when it evaluates to non-zero
+                (e.g. "cip == 0x401000", "eax == 0", "[esp] > 0x100")
+            max_steps: Maximum number of steps before giving up (default 50000)
+            log_text: If set, formatted text to log on each trace step (e.g. "{p:cip} {i:cip}")
+            log_condition: Expression controlling when log_text is printed (default "1" = always)
+            command_text: If set, x64dbg command to execute on each trace step
+            command_condition: Expression controlling when command_text runs (defaults to break_condition)
+            log_file: If set, path to redirect trace log output to a file
+            pass_exceptions: Pass exceptions to the debuggee during trace
+            swallow_exceptions: Swallow exceptions during trace
+            wait_timeout: Maximum time in seconds to wait for the trace to complete
+
+        Returns:
+            True if the trace completed successfully, False otherwise
+
+        Raises:
+            ValueError: If both pass_exceptions and swallow_exceptions are True
+        """
+        return self._trace_conditional(
+            "ticnd", break_condition, max_steps, log_text, log_condition,
+            command_text, command_condition, log_file, pass_exceptions,
+            swallow_exceptions, wait_timeout,
+        )
+
+    def trace_over(
+        self,
+        break_condition: str,
+        max_steps: int = 50000,
+        log_text: str | None = None,
+        log_condition: str | None = None,
+        command_text: str | None = None,
+        command_condition: str | None = None,
+        log_file: str | None = None,
+        pass_exceptions: bool = False,
+        swallow_exceptions: bool = False,
+        wait_timeout: int = 60,
+    ) -> bool:
+        """
+        Performs a conditional trace-over (single-stepping over calls) until the break condition
+        evaluates to true or max_steps is reached.
+
+        Optionally configures trace logging, log conditions, command execution, and log file
+        output before starting the trace. These properties persist across traces until cleared.
+
+        Args:
+            break_condition: x64dbg expression that stops the trace when it evaluates to non-zero
+                (e.g. "cip == 0x401000", "eax == 0", "[esp] > 0x100")
+            max_steps: Maximum number of steps before giving up (default 50000)
+            log_text: If set, formatted text to log on each trace step (e.g. "{p:cip} {i:cip}")
+            log_condition: Expression controlling when log_text is printed (default "1" = always)
+            command_text: If set, x64dbg command to execute on each trace step
+            command_condition: Expression controlling when command_text runs (defaults to break_condition)
+            log_file: If set, path to redirect trace log output to a file
+            pass_exceptions: Pass exceptions to the debuggee during trace
+            swallow_exceptions: Swallow exceptions during trace
+            wait_timeout: Maximum time in seconds to wait for the trace to complete
+
+        Returns:
+            True if the trace completed successfully, False otherwise
+
+        Raises:
+            ValueError: If both pass_exceptions and swallow_exceptions are True
+        """
+        return self._trace_conditional(
+            "tocnd", break_condition, max_steps, log_text, log_condition,
+            command_text, command_condition, log_file, pass_exceptions,
+            swallow_exceptions, wait_timeout,
+        )
+
+    def trace_set_log_file(self, path: str) -> bool:
+        """
+        Redirects trace log output to a file.
+
+        Args:
+            path: File path to write trace log output to
+
+        Returns:
+            True if successful, False otherwise
+        """
+        path = path.replace('"', '\\"')
+        return self.cmd_sync(f'TraceSetLogFile "{path}"')
+
+    def _trace_conditional(
+        self,
+        trace_cmd: str,
+        break_condition: str,
+        max_steps: int,
+        log_text: str | None,
+        log_condition: str | None,
+        command_text: str | None,
+        command_condition: str | None,
+        log_file: str | None,
+        pass_exceptions: bool,
+        swallow_exceptions: bool,
+        wait_timeout: int,
+    ) -> bool:
+        """
+        Internal helper to configure and execute a conditional trace command.
+
+        Args:
+            trace_cmd: The x64dbg trace command to use ("ticnd" or "tocnd")
+            break_condition: Expression that stops the trace when non-zero
+            max_steps: Maximum step count
+            log_text: Optional log text for each step
+            log_condition: Optional condition for log text
+            command_text: Optional command to run each step
+            command_condition: Optional condition for command execution
+            log_file: Optional file path for log redirection
+            pass_exceptions: Pass exceptions to the debuggee
+            swallow_exceptions: Swallow exceptions
+            wait_timeout: Max seconds to wait for trace completion
+
+        Returns:
+            True if successful, False otherwise
+
+        Raises:
+            ValueError: If both pass_exceptions and swallow_exceptions are True
+        """
+        if pass_exceptions and swallow_exceptions:
+            raise ValueError("Cannot pass and swallow exceptions at the same time")
+
+        # Configure trace properties before starting
+        if log_file is not None:
+            log_file_escaped = log_file.replace('"', '\\"')
+            if not self.cmd_sync(f'TraceSetLogFile "{log_file_escaped}"'):
+                return False
+
+        if log_text is not None:
+            log_text_escaped = log_text.replace('"', '\\"')
+            cmd = f'TraceSetLog "{log_text_escaped}"'
+            if log_condition is not None:
+                cmd += f", {log_condition}"
+            if not self.cmd_sync(cmd):
+                return False
+
+        if command_text is not None:
+            command_text_escaped = command_text.replace('"', '\\"')
+            cmd = f'TraceSetCommand "{command_text_escaped}"'
+            if command_condition is not None:
+                cmd += f", {command_condition}"
+            if not self.cmd_sync(cmd):
+                return False
+
+        # Build exception prefix
+        if pass_exceptions:
+            prefix = 'e'
+        elif swallow_exceptions:
+            prefix = 'se'
+        else:
+            prefix = ''
+
+        # Execute the trace
+        if not self.cmd_sync(f'{prefix}{trace_cmd} {break_condition}, 0x{max_steps:x}'):
+            return False
+        return self.wait_cmd_ready(wait_timeout)
+
     def gui_show_reference_view(self, name: str, refs: list[ReferenceViewRef]) -> bool:
         """
         Shows a reference view populated with refs.

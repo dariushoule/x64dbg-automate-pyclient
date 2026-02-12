@@ -250,6 +250,24 @@ client.detach_session()
         show_root_full_path: false
 
 
+::: x64dbg_automate.X64DbgClient.trace_into
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.trace_over
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.trace_set_log_file
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
 ::: x64dbg_automate.X64DbgClient.hide_debugger_peb
     options:
         show_root_heading: true
