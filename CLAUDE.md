@@ -14,6 +14,15 @@ python -m mkdocs serve      # docs dev server
 - `TEST_BITNESS` — 32 or 64 (default: 64)
 - `X64DBG_PATH` — path to x64dbg executable
 
+## MCP Server
+An MCP (Model Context Protocol) server is included, exposing x64dbg automation as MCP tools for LLM-based agents (e.g. Claude Code).
+
+- **Module**: `x64dbg_automate.mcp_server` (`mcp_server.py`)
+- **Entry point**: `x64dbg-automate-mcp` (console script)
+- **Install**: `pip install x64dbg_automate[mcp]` (adds the `mcp` extra dependency)
+- **Run**: `x64dbg-automate-mcp` (stdio transport by default)
+- **Pattern**: Global `_client` managed via `start_session`/`connect_to_session`/`disconnect`/`terminate_session` tools; all other tools call `_require_client()`.
+
 ## Architecture
 Mixin chain: `XAutoClientBase` → `XAutoCommandsMixin` (low-level RPC) → `XAutoHighLevelCommandAbstractionMixin` (convenience methods) → `X64DbgClient` (also mixes in `DebugEventQueueMixin`).
 
