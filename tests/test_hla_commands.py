@@ -60,6 +60,17 @@ def test_go_and_pause(client: X64DbgClient):
     assert client.pause()
 
 
+def test_go_and_pause_2(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    assert client.set_setting_int('Events', 'TlsCallbacks', 0)
+    assert client.set_setting_int('Events', 'TlsCallbacksSystem', 0)
+    assert client.go(pass_exceptions=True)
+    assert client.wait_until_stopped()
+    assert client.go(swallow_exceptions=True)
+    assert client.wait_until_running()
+    assert client.pause()
+
+
 def test_skip(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
     assert client.skip(2)
