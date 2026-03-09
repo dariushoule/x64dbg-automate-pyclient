@@ -45,7 +45,7 @@ The MCP server provides ~40 tools organized into the following groups:
 
 | Group | Tools | Description |
 |-------|-------|-------------|
-| Session | `list_sessions`, `start_session`, `connect_to_session`, `disconnect`, `terminate_session` | Manage debugger instances |
+| Session | `list_sessions`, `start_session`, `connect_to_session`, `connect_remote`, `disconnect`, `terminate_session` | Manage debugger instances |
 | Debug Control | `go`, `pause`, `step_into`, `step_over`, `skip_instruction`, `run_to_return`, `get_debugger_status` | Control execution |
 | Memory | `read_memory`, `write_memory`, `allocate_memory`, `free_memory`, `get_memory_map` | Read/write debuggee memory |
 | Registers | `get_register`, `set_register`, `get_all_registers` | Register access |
@@ -57,6 +57,31 @@ The MCP server provides ~40 tools organized into the following groups:
 | Events | `get_latest_event`, `wait_for_event` | Debug event queue |
 | Settings | `get_setting`, `set_setting` | x64dbg configuration |
 | GUI | `log_message`, `refresh_gui` | Debugger UI interaction |
+
+### Remote Debugging (VM / Network)
+
+To connect to x64dbg running inside a VM or on a remote machine:
+
+1. Configure the x64dbg plugin to bind on an accessible address. Edit `x64dbg.ini` on the guest/remote machine:
+
+    ```ini
+    [XAutomate]
+    BindAddress=0.0.0.0
+    ReqRepPort=50000
+    PubSubPort=50001
+    ```
+
+    Or use the **Plugins > x64dbg-automate > Automate Settings...** menu in x64dbg.
+
+2. Ensure the ports are accessible (VM port forwarding, firewall rules, etc.).
+
+3. Ask Claude to connect:
+
+    ```
+    Connect to the remote x64dbg at 192.168.1.100 with REQ port 50000 and PUB port 50001
+    ```
+
+    Claude will call `connect_remote` with the host and ports. All other tools work the same after connecting.
 
 ### Walkthrough: Debugging with Claude
 

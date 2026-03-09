@@ -13,6 +13,7 @@ class DebugSession(BaseModel):
     window_title: str # The title of the x64dbg window
     sess_req_rep_port: int # The port used for zmq request/reply communication
     sess_pub_sub_port: int # The port used for zmq publish/subscribe communication
+    host: str = "localhost" # The host address for the session
 
 
 class MemPage(BaseModel):

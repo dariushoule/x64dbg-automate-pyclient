@@ -198,6 +198,28 @@ def connect_to_session(x64dbg_path: str, session_pid: int) -> str:
 
 
 @mcp.tool()
+def connect_remote(host: str, req_rep_port: int, pub_sub_port: int) -> str:
+    """Connect to a remote x64dbg instance running on another machine or VM.
+
+    Bypasses local session discovery (lockfiles). The x64dbg plugin on the
+    remote machine must be configured to bind to an accessible address
+    (e.g. 0.0.0.0) via the [XAutomate] section in x64dbg.ini.
+
+    Args:
+        host: Remote hostname or IP address (e.g. '192.168.1.100')
+        req_rep_port: The REQ/REP port the plugin is listening on
+        pub_sub_port: The PUB/SUB port the plugin is listening on
+    """
+    global _client
+    try:
+        _client = X64DbgClient.connect_remote(host, req_rep_port, pub_sub_port)
+        return f"Connected to remote x64dbg at {host}:{req_rep_port}."
+    except Exception as e:
+        _client = None
+        return f"Error: {e}"
+
+
+@mcp.tool()
 def disconnect() -> str:
     """Disconnect from the current x64dbg session without terminating the debugger."""
     global _client

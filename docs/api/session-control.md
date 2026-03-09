@@ -16,6 +16,36 @@ After launching x64dbg with the plugin installed its session ID and port binds c
 
 Sessions can also be discovered programmatically - with PIDs, command lines, working directories, and window titles provided for disambiguation.
 
+### Remote Sessions (VM / Network)
+
+For debugging across a network (e.g. host machine connecting to x64dbg inside a VM), configure the plugin to bind on an accessible address by 
+visiting the plugin's settings in the x64dbg top-level menu: `Plugins -> x64dbg-automate -> Settings`. 
+
+Bind address can also be set by editing `x64dbg.ini` directly:
+
+```ini
+[XAutomate]
+BindAddress=0.0.0.0
+ReqRepPort=27066
+PubSubPort=27067
+```
+
+Connect from the client using `connect_remote`:
+
+```python
+from x64dbg_automate import X64DbgClient
+
+client = X64DbgClient.connect_remote(
+    host="192.168.1.100",
+    req_rep_port=27066,
+    pub_sub_port=27067
+)
+client.step_into()
+regs = client.read_registers()
+```
+
+This bypasses local session discovery and works cross-platform. **The client can run on Linux or macOS.**
+
 ### Example: Sessions
 
 ```python
@@ -89,6 +119,12 @@ client2.terminate_session()
 
 
 ::: x64dbg_automate.X64DbgClient.start_session_attach
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
+::: x64dbg_automate.X64DbgClient.connect_remote
     options:
         show_root_heading: true
         show_root_full_path: false

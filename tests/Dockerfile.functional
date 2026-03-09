@@ -1,0 +1,7 @@
+FROM python:3.14-slim
+WORKDIR /app
+COPY pyproject.toml poetry.lock README.md ./
+COPY x64dbg_automate/ ./x64dbg_automate/
+COPY tests/test_functional_remote.py ./tests/
+RUN pip install --no-cache-dir poetry-core && pip install --no-cache-dir .
+CMD ["python", "tests/test_functional_remote.py"]

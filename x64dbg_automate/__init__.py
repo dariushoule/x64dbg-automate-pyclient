@@ -4,6 +4,7 @@ import logging
 import os
 from pathlib import Path
 import subprocess
+import sys
 import threading
 import time
 import msgpack
@@ -14,7 +15,11 @@ import zmq
 from x64dbg_automate.events import DebugEventQueueMixin
 from x64dbg_automate.hla_xauto import XAutoHighLevelCommandAbstractionMixin
 from x64dbg_automate.models import DebugSession
-from x64dbg_automate.win32 import GetTempPathW, SetConsoleCtrlHandler, EnumWindows, GetWindowTextW, GetWindowThreadProcessId
+
+_IS_WINDOWS = sys.platform == "win32"
+
+if _IS_WINDOWS:
+    from x64dbg_automate.win32 import GetTempPathW, SetConsoleCtrlHandler, EnumWindows, GetWindowTextW, GetWindowThreadProcessId
 
 
 COMPAT_VERSION = "green_pepe" # TODO: externalize
@@ -22,35 +27,64 @@ logger = logging.getLogger(__name__)
 all_instances: list['X64DbgClient'] = []
 
 
-def ctrl_c_handler(sig_t: int) -> bool:
-    logger.warning(f'Received exit signal {sig_t}, detaching and exiting')
-    for i in all_instances:
-        i.detach_session()
-    import psutil
-    psutil.Process().terminate()
-    return True
-ctrl_c_handler = SetConsoleCtrlHandler.argtypes[0](ctrl_c_handler)
-SetConsoleCtrlHandler(ctrl_c_handler, True)
+if _IS_WINDOWS:
+    def ctrl_c_handler(sig_t: int) -> bool:
+        logger.warning(f'Received exit signal {sig_t}, detaching and exiting')
+        for i in all_instances:
+            i.detach_session()
+        import psutil
+        psutil.Process().terminate()
+        return True
+    ctrl_c_handler = SetConsoleCtrlHandler.argtypes[0](ctrl_c_handler)
+    SetConsoleCtrlHandler(ctrl_c_handler, True)
 
 
 class ClientConnectionFailedError(Exception):
     pass
 
 class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
-    def __init__(self, x64dbg_path: str = "x64dbg"):
+    def _init_fields(self, x64dbg_path: str | None = None, remote_host: str = "localhost",
+                     req_rep_port: int = 0, pub_sub_port: int = 0):
         self.x64dbg_path = x64dbg_path
-        if not Path(self.x64dbg_path).is_file():
-            self.x64dbg_path = shutil.which(x64dbg_path)
-        if self.x64dbg_path is None or not Path(self.x64dbg_path).is_file():
-            raise FileNotFoundError(f"x64dbg executable not found at {x64dbg_path} or in PATH")
+        self.proc = None
         self.session_pid = None
         self.context = zmq.Context()
         self.req_socket = None
         self.sub_socket = None
-        self.sess_req_rep_port = 0
-        self.sess_pub_sub_port = 0
+        self.sess_req_rep_port = req_rep_port
+        self.sess_pub_sub_port = pub_sub_port
+        self.remote_host = remote_host
         self._req_lock = threading.Lock()
         all_instances.append(self)
+
+    def __init__(self, x64dbg_path: str = "x64dbg"):
+        resolved = x64dbg_path
+        if not Path(resolved).is_file():
+            resolved = shutil.which(x64dbg_path)
+        if resolved is None or not Path(resolved).is_file():
+            raise FileNotFoundError(f"x64dbg executable not found at {x64dbg_path} or in PATH")
+        self._init_fields(x64dbg_path=resolved)
+
+    @classmethod
+    def connect_remote(cls, host: str, req_rep_port: int, pub_sub_port: int) -> 'X64DbgClient':
+        """Connect to a remote x64dbg instance by host and port pair.
+
+        This bypasses local session discovery (lockfiles) and connects directly
+        to a remote x64dbg plugin configured to bind on an accessible address.
+
+        Args:
+            host: Remote hostname or IP address (e.g. '192.168.1.100')
+            req_rep_port: The REQ/REP port the plugin is listening on
+            pub_sub_port: The PUB/SUB port the plugin is listening on
+
+        Returns:
+            A connected X64DbgClient instance
+        """
+        client = cls.__new__(cls)
+        client._init_fields(remote_host=host, req_rep_port=req_rep_port, pub_sub_port=pub_sub_port)
+        client._init_connection()
+        client._assert_connection_compat()
+        return client
 
     def __del__(self):
         all_instances.remove(self)
@@ -81,7 +115,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.req_socket.setsockopt(zmq.CONNECT_TIMEOUT, 6000)
         self.req_socket.setsockopt(zmq.SNDTIMEO, 6000)
         self.req_socket.setsockopt(zmq.RCVTIMEO, 10000)
-        self.req_socket.connect(f"tcp://localhost:{self.sess_req_rep_port}")
+        self.req_socket.connect(f"tcp://{self.remote_host}:{self.sess_req_rep_port}")
         self.req_socket.send(msgpack.packb("PING"))
         if msgpack.unpackb(self.req_socket.recv()) != "PONG":
             raise ClientConnectionFailedError(f"Connection to x64dbg failed on port {self.sess_req_rep_port}")
@@ -90,7 +124,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.sub_socket.setsockopt(zmq.CONNECT_TIMEOUT, 6000)
         self.sub_socket.setsockopt(zmq.SNDTIMEO, 6000)
         self.sub_socket.setsockopt(zmq.RCVTIMEO, 10000)
-        self.sub_socket.connect(f"tcp://localhost:{self.sess_pub_sub_port}")
+        self.sub_socket.connect(f"tcp://{self.remote_host}:{self.sess_pub_sub_port}")
         self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")
         self.sub_thread = threading.Thread(target=self._sub_thread)
         self.sub_thread.start()
@@ -123,6 +157,8 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
         
     def _launch_x64dbg(self) -> int:
+        if self.x64dbg_path is None:
+            raise RuntimeError("Cannot launch x64dbg in remote mode — no x64dbg_path configured")
         self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
         self.session_pid = self.proc.pid
         self.attach_session(self.session_pid)
@@ -221,6 +257,9 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         sid = self.session_pid
         self._xauto_terminate_session()
         self._close_connection()
+        if not _IS_WINDOWS or self.x64dbg_path is None:
+            # Remote mode — cannot poll local lockfiles for confirmation
+            return
         for _ in range(100):
             time.sleep(0.2)
             if sid not in [p.pid for p in self.list_sessions()]:
@@ -229,6 +268,8 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     
     @staticmethod
     def _window_title_for_pid(pid: int) -> str:
+        if not _IS_WINDOWS:
+            return ''
         wnd_title = ctypes.create_unicode_buffer(1024)
         found_title = ''
         def EnumWindowsCb(hwnd, pid):
@@ -247,18 +288,21 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     @staticmethod
     def list_sessions() -> list[DebugSession]:
         """
-        Lists all active x64dbg sessions
+        Lists all active x64dbg sessions (local only, requires Windows).
 
         Returns:
             A list of sessions
         """
+        if not _IS_WINDOWS:
+            raise NotImplementedError("Local session discovery is only available on Windows. Use connect_remote() for remote connections.")
+
         sessions: list[DebugSession] = []
         temp_path_cstr = ctypes.create_unicode_buffer(1024)
         if GetTempPathW(1024, temp_path_cstr) == 0:
             temp_path = "c:\\windows\\temp\\"
         else:
             temp_path = temp_path_cstr.value
-        
+
         locks = glob.glob(f'{temp_path}xauto_session.*.lock')
         for lock in locks:
             while True:
@@ -266,6 +310,11 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                     with open(lock, 'r') as f:
                         sess_req_rep_port = int(f.readline().strip())
                         sess_pub_sub_port = int(f.readline().strip())
+                        host_line = f.readline().strip()
+                        host = host_line if host_line else "localhost"
+                        # For local discovery, 0.0.0.0 means connect via localhost
+                        if host == "0.0.0.0":
+                            host = "localhost"
 
                     pid = int(lock.split('.')[-2])
                     if psutil.pid_exists(pid):
@@ -277,7 +326,8 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                             cwd=process.cwd(),
                             window_title=X64DbgClient._window_title_for_pid(pid),
                             sess_req_rep_port=sess_req_rep_port,
-                            sess_pub_sub_port=sess_pub_sub_port
+                            sess_pub_sub_port=sess_pub_sub_port,
+                            host=host
                         ))
                         break
                     else:
