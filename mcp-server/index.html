@@ -180,7 +180,7 @@ claude mcp add --scope project x64dbg -- x64dbg-automate-mcp
 <tbody>
 <tr>
 <td>Session</td>
-<td><code>list_sessions</code>, <code>start_session</code>, <code>connect_to_session</code>, <code>disconnect</code>, <code>terminate_session</code></td>
+<td><code>list_sessions</code>, <code>start_session</code>, <code>connect_to_session</code>, <code>connect_remote</code>, <code>disconnect</code>, <code>terminate_session</code></td>
 <td>Manage debugger instances</td>
 </tr>
 <tr>
@@ -240,6 +240,27 @@ claude mcp add --scope project x64dbg -- x64dbg-automate-mcp
 </tr>
 </tbody>
 </table>
+<h3 id="remote-debugging-vm-network">Remote Debugging (VM / Network)</h3>
+<p>To connect to x64dbg running inside a VM or on a remote machine:</p>
+<ol>
+<li>
+<p>Configure the x64dbg plugin to bind on an accessible address. Edit <code>x64dbg.ini</code> on the guest/remote machine:</p>
+<p><code>ini
+[XAutomate]
+BindAddress=0.0.0.0
+ReqRepPort=50000
+PubSubPort=50001</code></p>
+<p>Or use the <strong>Plugins &gt; x64dbg-automate &gt; Automate Settings...</strong> menu in x64dbg.</p>
+</li>
+<li>
+<p>Ensure the ports are accessible (VM port forwarding, firewall rules, etc.).</p>
+</li>
+<li>
+<p>Ask Claude to connect:</p>
+<p><code>Connect to the remote x64dbg at 192.168.1.100 with REQ port 50000 and PUB port 50001</code></p>
+<p>Claude will call <code>connect_remote</code> with the host and ports. All other tools work the same after connecting.</p>
+</li>
+</ol>
 <h3 id="walkthrough-debugging-with-claude">Walkthrough: Debugging with Claude</h3>
 <p>This walkthrough demonstrates a typical analysis session using the MCP server from Claude Code. The x64dbg plugin must be installed and the MCP server configured as described above.</p>
 <p><strong>Step 1: Start a session</strong></p>
