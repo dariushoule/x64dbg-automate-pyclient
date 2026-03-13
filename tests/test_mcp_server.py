@@ -294,13 +294,41 @@ class TestListSessions:
     def test_with_sessions(self, mock_cls):
         session = MagicMock()
         session.pid = 1234
+        session.cmdline = ["C:\\x64dbg\\x64\\x64dbg.exe", "--arg"]
         session.window_title = "x64dbg"
         session.sess_req_rep_port = 5555
         session.sess_pub_sub_port = 5556
         mock_cls.list_sessions.return_value = [session]
         result = mcp_mod.list_sessions()
         assert "1234" in result
+        assert "C:\\x64dbg\\x64\\x64dbg.exe" in result
         assert "x64dbg" in result
+
+    @patch.object(mcp_mod, "X64DbgClient")
+    def test_with_sessions_empty_cmdline(self, mock_cls):
+        session = MagicMock()
+        session.pid = 1234
+        session.cmdline = []
+        session.window_title = "x64dbg"
+        session.sess_req_rep_port = 5555
+        session.sess_pub_sub_port = 5556
+        mock_cls.list_sessions.return_value = [session]
+        result = mcp_mod.list_sessions()
+        assert "1234" in result
+        assert "unknown" in result
+
+    @patch.object(mcp_mod, "X64DbgClient")
+    def test_with_sessions_whitespace_cmdline(self, mock_cls):
+        session = MagicMock()
+        session.pid = 1234
+        session.cmdline = ["   "]
+        session.window_title = "x64dbg"
+        session.sess_req_rep_port = 5555
+        session.sess_pub_sub_port = 5556
+        mock_cls.list_sessions.return_value = [session]
+        result = mcp_mod.list_sessions()
+        assert "1234" in result
+        assert "unknown" in result
 
 
 class TestStartSession:

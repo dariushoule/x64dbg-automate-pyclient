@@ -167,8 +167,9 @@ def list_sessions() -> str:
         return "No active x64dbg sessions found."
     lines = []
     for s in sessions:
+        exe_path = s.cmdline[0].strip() if s.cmdline and s.cmdline[0].strip() else "unknown"
         lines.append(
-            f"PID: {s.pid}  |  Window: {s.window_title}  |  "
+            f"PID: {s.pid}  |  Path: {exe_path}  |  Window: {s.window_title}  |  "
             f"REQ port: {s.sess_req_rep_port}  |  SUB port: {s.sess_pub_sub_port}"
         )
     return "\n".join(lines)
