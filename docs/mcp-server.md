@@ -31,13 +31,47 @@ Or manually create/edit `.mcp.json` in your project root:
 {
   "mcpServers": {
     "x64dbg": {
-      "command": "x64dbg-automate-mcp"
+      "command": "x64dbg-automate-mcp",
+      "env": {
+        "X64DBG_PATH": "C:\\path\\to\\x96dbg.exe"
+      }
     }
   }
 }
 ```
 
 Restart Claude Code after adding the configuration. You will be prompted to approve the MCP server on first use.
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `X64DBG_PATH` | Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe). Used as a default when `x64dbg_path` is not passed to `start_session` or `connect_to_session`. |
+
+Setting `X64DBG_PATH` via the `env` block in `.mcp.json` lets the LLM connect without searching for the debugger each time.
+
+### Local Development
+
+To run the MCP server from a local source checkout (e.g. for testing changes), use `uv`:
+
+```json
+{
+  "mcpServers": {
+    "x64dbg": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory", "C:\\path\\to\\x64dbg-automate-pyclient",
+        "--extra", "mcp",
+        "x64dbg-automate-mcp"
+      ],
+      "env": {
+        "X64DBG_PATH": "C:\\path\\to\\x96dbg.exe"
+      }
+    }
+  }
+}
+```
 
 ### Available Tools
 
