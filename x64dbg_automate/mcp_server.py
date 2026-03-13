@@ -200,19 +200,20 @@ def start_session(x64dbg_path: str = "", target_exe: str = "", cmdline: str = ""
 
 
 @mcp.tool()
-def connect_to_session(x64dbg_path: str, session_pid: int) -> str:
+def connect_to_session(x64dbg_path: str = "", session_pid: int = 0) -> str:
     """Connect to an already-running x64dbg instance.
 
     If x96dbg.exe is given, it is resolved to x64dbg.exe (default).
     The actual debugger binary must already be running.
 
     Args:
-        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe)
+        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe). Falls back to X64DBG_PATH env var if not provided.
         session_pid: PID of the x64dbg process to attach to
     """
     global _client
     try:
-        resolved = _resolve_debugger_path(x64dbg_path)
+        path = _resolve_x64dbg_path_with_env(x64dbg_path)
+        resolved = _resolve_debugger_path(path)
         _client = X64DbgClient(resolved)
         _client.attach_session(session_pid)
         return f"Connected to session PID {session_pid}."

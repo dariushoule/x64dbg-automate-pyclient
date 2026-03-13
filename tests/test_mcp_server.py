@@ -332,6 +332,33 @@ class TestStartSession:
         assert "X64DBG_PATH" in result
 
 
+class TestConnectToSession:
+    @patch.object(mcp_mod, "X64DbgClient")
+    @patch.object(mcp_mod, "_resolve_debugger_path", return_value="C:\\x64dbg\\x64dbg.exe")
+    def test_explicit_path(self, mock_resolve, mock_cls):
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        result = mcp_mod.connect_to_session(x64dbg_path="C:\\x64dbg\\x96dbg.exe", session_pid=1234)
+        mock_resolve.assert_called_once_with("C:\\x64dbg\\x96dbg.exe")
+        assert "1234" in result
+
+    @patch.object(mcp_mod, "X64DbgClient")
+    @patch.object(mcp_mod, "_resolve_debugger_path", return_value="C:\\env\\x64dbg.exe")
+    def test_env_fallback(self, mock_resolve, mock_cls, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x96dbg.exe")
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        result = mcp_mod.connect_to_session(session_pid=5678)
+        mock_resolve.assert_called_once_with("C:\\env\\x96dbg.exe")
+        assert "5678" in result
+
+    def test_no_path_no_env_error(self, monkeypatch):
+        monkeypatch.delenv("X64DBG_PATH", raising=False)
+        result = mcp_mod.connect_to_session(session_pid=9999)
+        assert "Error" in result
+        assert "X64DBG_PATH" in result
+
+
 class TestDisconnect:
     def test_no_connection(self):
         original = mcp_mod._client
