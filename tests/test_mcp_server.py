@@ -11,6 +11,7 @@ from x64dbg_automate.mcp_server import (
     _parse_address_or_expression,
     _pe_bitness,
     _resolve_debugger_path,
+    _resolve_x64dbg_path_with_env,
     _require_client,
 )
 from x64dbg_automate.models import (
@@ -219,6 +220,37 @@ class TestResolveDebuggerPath:
         launcher.write_bytes(b"")
         with pytest.raises(FileNotFoundError, match="Cannot find"):
             _resolve_debugger_path(str(launcher))
+
+
+class TestResolveX64dbgPathWithEnv:
+    def test_explicit_param_used(self):
+        result = _resolve_x64dbg_path_with_env("C:\\x64dbg\\x64dbg.exe")
+        assert result == "C:\\x64dbg\\x64dbg.exe"
+
+    def test_explicit_param_overrides_env(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x64dbg.exe")
+        result = _resolve_x64dbg_path_with_env("C:\\param\\x64dbg.exe")
+        assert result == "C:\\param\\x64dbg.exe"
+
+    def test_env_fallback(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x96dbg.exe")
+        result = _resolve_x64dbg_path_with_env("")
+        assert result == "C:\\env\\x96dbg.exe"
+
+    def test_env_fallback_when_whitespace_only(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x64dbg.exe")
+        result = _resolve_x64dbg_path_with_env("   ")
+        assert result == "C:\\env\\x64dbg.exe"
+
+    def test_no_param_no_env_raises(self, monkeypatch):
+        monkeypatch.delenv("X64DBG_PATH", raising=False)
+        with pytest.raises(FileNotFoundError, match="X64DBG_PATH"):
+            _resolve_x64dbg_path_with_env("")
+
+    def test_env_whitespace_only_raises(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "   ")
+        with pytest.raises(FileNotFoundError, match="X64DBG_PATH"):
+            _resolve_x64dbg_path_with_env("")
 
 
 def _make_minimal_pe(machine: int) -> bytes:

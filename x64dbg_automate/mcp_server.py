@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import struct
 import sys
 from pathlib import Path
@@ -99,6 +100,28 @@ def _pe_bitness(exe_path: str) -> int:
     if machine == 0x14C:
         return 32
     raise ValueError(f"Unknown PE machine type 0x{machine:X} in: {exe_path}")
+
+
+def _resolve_x64dbg_path_with_env(x64dbg_path: str) -> str:
+    """Resolve x64dbg path from parameter, falling back to X64DBG_PATH env var.
+
+    Args:
+        x64dbg_path: Explicit path from tool parameter (may be empty).
+
+    Returns:
+        Resolved path string.
+
+    Raises:
+        FileNotFoundError: If neither parameter nor env var provides a path.
+    """
+    path = x64dbg_path.strip() if x64dbg_path else ""
+    if not path:
+        path = os.environ.get("X64DBG_PATH", "").strip()
+    if not path:
+        raise FileNotFoundError(
+            "x64dbg path not provided and X64DBG_PATH environment variable is not set."
+        )
+    return path
 
 
 def _resolve_debugger_path(x64dbg_path: str, target_exe: str = "") -> str:
