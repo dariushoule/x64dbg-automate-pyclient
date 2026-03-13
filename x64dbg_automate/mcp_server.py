@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import struct
 import sys
 from pathlib import Path
@@ -101,6 +102,28 @@ def _pe_bitness(exe_path: str) -> int:
     raise ValueError(f"Unknown PE machine type 0x{machine:X} in: {exe_path}")
 
 
+def _resolve_x64dbg_path_with_env(x64dbg_path: str) -> str:
+    """Resolve x64dbg path from parameter, falling back to X64DBG_PATH env var.
+
+    Args:
+        x64dbg_path: Explicit path from tool parameter (may be empty).
+
+    Returns:
+        Resolved path string.
+
+    Raises:
+        FileNotFoundError: If neither parameter nor env var provides a path.
+    """
+    path = x64dbg_path.strip() if x64dbg_path else ""
+    if not path:
+        path = os.environ.get("X64DBG_PATH", "").strip()
+    if not path:
+        raise FileNotFoundError(
+            "x64dbg path not provided and X64DBG_PATH environment variable is not set."
+        )
+    return path
+
+
 def _resolve_debugger_path(x64dbg_path: str, target_exe: str = "") -> str:
     """Resolve x96dbg.exe to the correct x64dbg.exe or x32dbg.exe based on target bitness.
 
@@ -144,29 +167,31 @@ def list_sessions() -> str:
         return "No active x64dbg sessions found."
     lines = []
     for s in sessions:
+        exe_path = s.cmdline[0].strip() if s.cmdline and s.cmdline[0].strip() else "unknown"
         lines.append(
-            f"PID: {s.pid}  |  Window: {s.window_title}  |  "
+            f"PID: {s.pid}  |  Path: {exe_path}  |  Window: {s.window_title}  |  "
             f"REQ port: {s.sess_req_rep_port}  |  SUB port: {s.sess_pub_sub_port}"
         )
     return "\n".join(lines)
 
 
 @mcp.tool()
-def start_session(x64dbg_path: str, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> str:
+def start_session(x64dbg_path: str = "", target_exe: str = "", cmdline: str = "", current_dir: str = "") -> str:
     """Launch a new x64dbg instance and optionally load an executable.
 
     If x96dbg.exe (the launcher) is given, the correct x64dbg.exe or x32dbg.exe is
     selected automatically based on the target executable's PE bitness.
 
     Args:
-        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe)
+        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe). Falls back to X64DBG_PATH env var if not provided.
         target_exe: Path to executable to debug (optional)
         cmdline: Command-line arguments for the target (optional)
         current_dir: Working directory for the target (optional)
     """
     global _client
     try:
-        resolved = _resolve_debugger_path(x64dbg_path, target_exe)
+        path = _resolve_x64dbg_path_with_env(x64dbg_path)
+        resolved = _resolve_debugger_path(path, target_exe)
         _client = X64DbgClient(resolved)
         pid = _client.start_session(target_exe, cmdline, current_dir)
         return f"Session started with {Path(resolved).name}. Debugger PID: {pid}"
@@ -176,19 +201,20 @@ def start_session(x64dbg_path: str, target_exe: str = "", cmdline: str = "", cur
 
 
 @mcp.tool()
-def connect_to_session(x64dbg_path: str, session_pid: int) -> str:
+def connect_to_session(x64dbg_path: str = "", session_pid: int = 0) -> str:
     """Connect to an already-running x64dbg instance.
 
     If x96dbg.exe is given, it is resolved to x64dbg.exe (default).
     The actual debugger binary must already be running.
 
     Args:
-        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe)
+        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe). Falls back to X64DBG_PATH env var if not provided.
         session_pid: PID of the x64dbg process to attach to
     """
     global _client
     try:
-        resolved = _resolve_debugger_path(x64dbg_path)
+        path = _resolve_x64dbg_path_with_env(x64dbg_path)
+        resolved = _resolve_debugger_path(path)
         _client = X64DbgClient(resolved)
         _client.attach_session(session_pid)
         return f"Connected to session PID {session_pid}."

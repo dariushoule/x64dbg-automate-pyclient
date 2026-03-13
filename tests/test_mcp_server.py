@@ -11,6 +11,7 @@ from x64dbg_automate.mcp_server import (
     _parse_address_or_expression,
     _pe_bitness,
     _resolve_debugger_path,
+    _resolve_x64dbg_path_with_env,
     _require_client,
 )
 from x64dbg_automate.models import (
@@ -221,6 +222,37 @@ class TestResolveDebuggerPath:
             _resolve_debugger_path(str(launcher))
 
 
+class TestResolveX64dbgPathWithEnv:
+    def test_explicit_param_used(self):
+        result = _resolve_x64dbg_path_with_env("C:\\x64dbg\\x64dbg.exe")
+        assert result == "C:\\x64dbg\\x64dbg.exe"
+
+    def test_explicit_param_overrides_env(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x64dbg.exe")
+        result = _resolve_x64dbg_path_with_env("C:\\param\\x64dbg.exe")
+        assert result == "C:\\param\\x64dbg.exe"
+
+    def test_env_fallback(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x96dbg.exe")
+        result = _resolve_x64dbg_path_with_env("")
+        assert result == "C:\\env\\x96dbg.exe"
+
+    def test_env_fallback_when_whitespace_only(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x64dbg.exe")
+        result = _resolve_x64dbg_path_with_env("   ")
+        assert result == "C:\\env\\x64dbg.exe"
+
+    def test_no_param_no_env_raises(self, monkeypatch):
+        monkeypatch.delenv("X64DBG_PATH", raising=False)
+        with pytest.raises(FileNotFoundError, match="X64DBG_PATH"):
+            _resolve_x64dbg_path_with_env("")
+
+    def test_env_whitespace_only_raises(self, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "   ")
+        with pytest.raises(FileNotFoundError, match="X64DBG_PATH"):
+            _resolve_x64dbg_path_with_env("")
+
+
 def _make_minimal_pe(machine: int) -> bytes:
     """Build the smallest valid PE stub with a given machine type."""
     import struct
@@ -262,13 +294,97 @@ class TestListSessions:
     def test_with_sessions(self, mock_cls):
         session = MagicMock()
         session.pid = 1234
+        session.cmdline = ["C:\\x64dbg\\x64\\x64dbg.exe", "--arg"]
         session.window_title = "x64dbg"
         session.sess_req_rep_port = 5555
         session.sess_pub_sub_port = 5556
         mock_cls.list_sessions.return_value = [session]
         result = mcp_mod.list_sessions()
         assert "1234" in result
+        assert "C:\\x64dbg\\x64\\x64dbg.exe" in result
         assert "x64dbg" in result
+
+    @patch.object(mcp_mod, "X64DbgClient")
+    def test_with_sessions_empty_cmdline(self, mock_cls):
+        session = MagicMock()
+        session.pid = 1234
+        session.cmdline = []
+        session.window_title = "x64dbg"
+        session.sess_req_rep_port = 5555
+        session.sess_pub_sub_port = 5556
+        mock_cls.list_sessions.return_value = [session]
+        result = mcp_mod.list_sessions()
+        assert "1234" in result
+        assert "unknown" in result
+
+    @patch.object(mcp_mod, "X64DbgClient")
+    def test_with_sessions_whitespace_cmdline(self, mock_cls):
+        session = MagicMock()
+        session.pid = 1234
+        session.cmdline = ["   "]
+        session.window_title = "x64dbg"
+        session.sess_req_rep_port = 5555
+        session.sess_pub_sub_port = 5556
+        mock_cls.list_sessions.return_value = [session]
+        result = mcp_mod.list_sessions()
+        assert "1234" in result
+        assert "unknown" in result
+
+
+class TestStartSession:
+    @patch.object(mcp_mod, "X64DbgClient")
+    @patch.object(mcp_mod, "_resolve_debugger_path", return_value="C:\\x64dbg\\x64dbg.exe")
+    def test_explicit_path(self, mock_resolve, mock_cls):
+        mock_instance = MagicMock()
+        mock_instance.start_session.return_value = 1234
+        mock_cls.return_value = mock_instance
+        result = mcp_mod.start_session(x64dbg_path="C:\\x64dbg\\x96dbg.exe")
+        mock_resolve.assert_called_once_with("C:\\x64dbg\\x96dbg.exe", "")
+        assert "1234" in result
+
+    @patch.object(mcp_mod, "X64DbgClient")
+    @patch.object(mcp_mod, "_resolve_debugger_path", return_value="C:\\env\\x64dbg.exe")
+    def test_env_fallback(self, mock_resolve, mock_cls, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x96dbg.exe")
+        mock_instance = MagicMock()
+        mock_instance.start_session.return_value = 5678
+        mock_cls.return_value = mock_instance
+        result = mcp_mod.start_session()
+        mock_resolve.assert_called_once_with("C:\\env\\x96dbg.exe", "")
+        assert "5678" in result
+
+    def test_no_path_no_env_error(self, monkeypatch):
+        monkeypatch.delenv("X64DBG_PATH", raising=False)
+        result = mcp_mod.start_session()
+        assert "Error" in result
+        assert "X64DBG_PATH" in result
+
+
+class TestConnectToSession:
+    @patch.object(mcp_mod, "X64DbgClient")
+    @patch.object(mcp_mod, "_resolve_debugger_path", return_value="C:\\x64dbg\\x64dbg.exe")
+    def test_explicit_path(self, mock_resolve, mock_cls):
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        result = mcp_mod.connect_to_session(x64dbg_path="C:\\x64dbg\\x96dbg.exe", session_pid=1234)
+        mock_resolve.assert_called_once_with("C:\\x64dbg\\x96dbg.exe")
+        assert "1234" in result
+
+    @patch.object(mcp_mod, "X64DbgClient")
+    @patch.object(mcp_mod, "_resolve_debugger_path", return_value="C:\\env\\x64dbg.exe")
+    def test_env_fallback(self, mock_resolve, mock_cls, monkeypatch):
+        monkeypatch.setenv("X64DBG_PATH", "C:\\env\\x96dbg.exe")
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        result = mcp_mod.connect_to_session(session_pid=5678)
+        mock_resolve.assert_called_once_with("C:\\env\\x96dbg.exe")
+        assert "5678" in result
+
+    def test_no_path_no_env_error(self, monkeypatch):
+        monkeypatch.delenv("X64DBG_PATH", raising=False)
+        result = mcp_mod.connect_to_session(session_pid=9999)
+        assert "Error" in result
+        assert "X64DBG_PATH" in result
 
 
 class TestDisconnect:

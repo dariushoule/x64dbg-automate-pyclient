@@ -319,11 +319,19 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                     pid = int(lock.split('.')[-2])
                     if psutil.pid_exists(pid):
                         process = psutil.Process(pid)
+                        try:
+                            cmdline = process.cmdline()
+                        except (psutil.AccessDenied, psutil.NoSuchProcess):
+                            cmdline = []
+                        try:
+                            cwd = process.cwd()
+                        except (psutil.AccessDenied, psutil.NoSuchProcess):
+                            cwd = ""
                         sessions.append(DebugSession(
                             pid=pid,
                             lockfile_path=lock,
-                            cmdline=process.cmdline(),
-                            cwd=process.cwd(),
+                            cmdline=cmdline,
+                            cwd=cwd,
                             window_title=X64DbgClient._window_title_for_pid(pid),
                             sess_req_rep_port=sess_req_rep_port,
                             sess_pub_sub_port=sess_pub_sub_port,
@@ -335,8 +343,8 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
                             logger.warning(f"Stale lockfile {lock}, removing")
                             os.unlink(lock)
                             break
-                except FileNotFoundError:
-                    # The process exited between the glob and the open
+                except (FileNotFoundError, psutil.AccessDenied, psutil.NoSuchProcess):
+                    # The process exited or is inaccessible
                     break
 
         return sessions
