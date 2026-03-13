@@ -175,21 +175,22 @@ def list_sessions() -> str:
 
 
 @mcp.tool()
-def start_session(x64dbg_path: str, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> str:
+def start_session(x64dbg_path: str = "", target_exe: str = "", cmdline: str = "", current_dir: str = "") -> str:
     """Launch a new x64dbg instance and optionally load an executable.
 
     If x96dbg.exe (the launcher) is given, the correct x64dbg.exe or x32dbg.exe is
     selected automatically based on the target executable's PE bitness.
 
     Args:
-        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe)
+        x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe). Falls back to X64DBG_PATH env var if not provided.
         target_exe: Path to executable to debug (optional)
         cmdline: Command-line arguments for the target (optional)
         current_dir: Working directory for the target (optional)
     """
     global _client
     try:
-        resolved = _resolve_debugger_path(x64dbg_path, target_exe)
+        path = _resolve_x64dbg_path_with_env(x64dbg_path)
+        resolved = _resolve_debugger_path(path, target_exe)
         _client = X64DbgClient(resolved)
         pid = _client.start_session(target_exe, cmdline, current_dir)
         return f"Session started with {Path(resolved).name}. Debugger PID: {pid}"
