@@ -161,12 +161,50 @@ claude mcp add --scope project x64dbg -- x64dbg-automate-mcp
 <pre><code class="language-json">{
   &quot;mcpServers&quot;: {
     &quot;x64dbg&quot;: {
-      &quot;command&quot;: &quot;x64dbg-automate-mcp&quot;
+      &quot;command&quot;: &quot;x64dbg-automate-mcp&quot;,
+      &quot;env&quot;: {
+        &quot;X64DBG_PATH&quot;: &quot;C:\\path\\to\\x96dbg.exe&quot;
+      }
     }
   }
 }
 </code></pre>
 <p>Restart Claude Code after adding the configuration. You will be prompted to approve the MCP server on first use.</p>
+<h3 id="environment-variables">Environment Variables</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>X64DBG_PATH</code></td>
+<td>Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe). Used as a default when <code>x64dbg_path</code> is not passed to <code>start_session</code> or <code>connect_to_session</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Setting <code>X64DBG_PATH</code> via the <code>env</code> block in <code>.mcp.json</code> lets the LLM connect without searching for the debugger each time.</p>
+<h3 id="local-development">Local Development</h3>
+<p>To run the MCP server from a local source checkout (e.g. for testing changes), use <code>uv</code>:</p>
+<pre><code class="language-json">{
+  &quot;mcpServers&quot;: {
+    &quot;x64dbg&quot;: {
+      &quot;command&quot;: &quot;uv&quot;,
+      &quot;args&quot;: [
+        &quot;run&quot;,
+        &quot;--directory&quot;, &quot;C:\\path\\to\\x64dbg-automate-pyclient&quot;,
+        &quot;--extra&quot;, &quot;mcp&quot;,
+        &quot;x64dbg-automate-mcp&quot;
+      ],
+      &quot;env&quot;: {
+        &quot;X64DBG_PATH&quot;: &quot;C:\\path\\to\\x96dbg.exe&quot;
+      }
+    }
+  }
+}
+</code></pre>
 <h3 id="available-tools">Available Tools</h3>
 <p>The MCP server provides ~40 tools organized into the following groups:</p>
 <table>
