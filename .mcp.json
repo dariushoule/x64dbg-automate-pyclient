@@ -3,7 +3,10 @@
     "x64dbg": {
       "command": "poetry",
       "args": ["run", "x64dbg-automate-mcp"],
-      "cwd": "."
+      "cwd": ".",
+      "env": {
+        "X64DBG_PATH": "C:\\re\\x64dbg_dev\\release\\x96dbg.exe"
+      }
     }
   }
 }

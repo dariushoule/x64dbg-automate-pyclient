@@ -330,6 +330,13 @@ class TestListSessions:
         assert "1234" in result
         assert "unknown" in result
 
+    @patch.object(mcp_mod, "X64DbgClient")
+    def test_exception_returns_error(self, mock_cls):
+        mock_cls.list_sessions.side_effect = NotImplementedError("Windows only")
+        result = mcp_mod.list_sessions()
+        assert "Error" in result
+        assert "Windows only" in result
+
 
 class TestStartSession:
     @patch.object(mcp_mod, "X64DbgClient")
@@ -385,6 +392,11 @@ class TestConnectToSession:
         result = mcp_mod.connect_to_session(session_pid=9999)
         assert "Error" in result
         assert "X64DBG_PATH" in result
+
+    def test_missing_session_pid(self):
+        result = mcp_mod.connect_to_session()
+        assert "Error" in result
+        assert "session_pid" in result
 
 
 class TestDisconnect:

@@ -162,17 +162,20 @@ def _resolve_debugger_path(x64dbg_path: str, target_exe: str = "") -> str:
 @mcp.tool()
 def list_sessions() -> str:
     """List all active x64dbg debugger instances. Does not require an active connection."""
-    sessions = X64DbgClient.list_sessions()
-    if not sessions:
-        return "No active x64dbg sessions found."
-    lines = []
-    for s in sessions:
-        exe_path = s.cmdline[0].strip() if s.cmdline and s.cmdline[0].strip() else "unknown"
-        lines.append(
-            f"PID: {s.pid}  |  Path: {exe_path}  |  Window: {s.window_title}  |  "
-            f"REQ port: {s.sess_req_rep_port}  |  SUB port: {s.sess_pub_sub_port}"
-        )
-    return "\n".join(lines)
+    try:
+        sessions = X64DbgClient.list_sessions()
+        if not sessions:
+            return "No active x64dbg sessions found."
+        lines = []
+        for s in sessions:
+            exe_path = s.cmdline[0].strip() if s.cmdline and s.cmdline[0].strip() else "unknown"
+            lines.append(
+                f"PID: {s.pid}  |  Path: {exe_path}  |  Window: {s.window_title}  |  "
+                f"REQ port: {s.sess_req_rep_port}  |  SUB port: {s.sess_pub_sub_port}"
+            )
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @mcp.tool()
@@ -211,6 +214,8 @@ def connect_to_session(x64dbg_path: str = "", session_pid: int = 0) -> str:
         x64dbg_path: Path to x64dbg installation (x96dbg.exe, x64dbg.exe, or x32dbg.exe). Falls back to X64DBG_PATH env var if not provided.
         session_pid: PID of the x64dbg process to attach to
     """
+    if not session_pid:
+        return "Error: session_pid is required."
     global _client
     try:
         path = _resolve_x64dbg_path_with_env(x64dbg_path)
