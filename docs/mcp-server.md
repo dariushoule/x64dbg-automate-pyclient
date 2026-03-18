@@ -52,18 +52,21 @@ Setting `X64DBG_PATH` via the `env` block in `.mcp.json` lets the LLM connect wi
 
 ### Local Development
 
-To run the MCP server from a local source checkout (e.g. for testing changes), use `uv`:
+To run the MCP server from a local source checkout (e.g. for testing changes), install with poetry and point `.mcp.json` at the entry point:
+
+```powershell
+cd C:\path\to\x64dbg-automate-pyclient
+poetry install --extras mcp
+```
 
 ```json
 {
   "mcpServers": {
     "x64dbg": {
-      "command": "uv",
+      "command": "poetry",
       "args": [
-        "run",
-        "--directory", "C:\\path\\to\\x64dbg-automate-pyclient",
-        "--extra", "mcp",
-        "x64dbg-automate-mcp"
+        "-C", "C:\\path\\to\\x64dbg-automate-pyclient",
+        "run", "x64dbg-automate-mcp"
       ],
       "env": {
         "X64DBG_PATH": "C:\\path\\to\\x96dbg.exe"
