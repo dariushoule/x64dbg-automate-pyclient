@@ -5,7 +5,7 @@ Python client library for x64dbg Automate — RPC-based automation of x64dbg deb
 
 ## Commands
 ```powershell
-poetry install              # install deps
+poetry install --extras mcp --with dev   # install deps (mcp extra + dev tools)
 python -m pytest            # run tests (requires running x64dbg with plugin)
 python -m mkdocs serve      # docs dev server
 ```

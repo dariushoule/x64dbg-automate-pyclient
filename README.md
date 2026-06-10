@@ -41,18 +41,21 @@ Add to your `.mcp.json` (project or user level):
 
 Setting `X64DBG_PATH` lets the MCP tools resolve x64dbg automatically — no need to pass the path on every `start_session` or `connect_to_session` call.
 
-**For local development**, use `uv` to run from source:
+**For local development**, install from source with poetry and point `.mcp.json` at the entry point:
+
+```powershell
+cd C:\path\to\x64dbg-automate-pyclient
+poetry install --extras mcp
+```
 
 ```json
 {
   "mcpServers": {
     "x64dbg": {
-      "command": "uv",
+      "command": "poetry",
       "args": [
-        "run",
-        "--directory", "C:\\path\\to\\x64dbg-automate-pyclient",
-        "--extra", "mcp",
-        "x64dbg-automate-mcp"
+        "-C", "C:\\path\\to\\x64dbg-automate-pyclient",
+        "run", "x64dbg-automate-mcp"
       ],
       "env": {
         "X64DBG_PATH": "C:\\path\\to\\x96dbg.exe"
@@ -71,7 +74,7 @@ The client's environment is managed with [poetry](https://python-poetry.org/docs
 Update `tests/conftest.py` or provide the requisite environment to allow tests to pass.
 
 ```powershell
-poetry install
+poetry install --extras mcp --with dev
 poetry env activate
 python -m pytest # Test
 python .\examples\assemble_and_disassemble.py C:\<you>\x64dbg\release\x64\x64dbg.exe # Run an example
