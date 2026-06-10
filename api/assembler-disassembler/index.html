@@ -423,9 +423,10 @@ client.terminate_session()
         return None
     return Instruction(
         instruction=res[0],
-        argcount=res[1],
-        instr_size=res[2],
-        type=DisasmInstrType(res[3]),
+        symbolized_instruction=res[1],
+        argcount=res[2],
+        instr_size=res[3],
+        type=DisasmInstrType(res[4]),
         arg=[InstructionArg(
                 mnemonic=arg[0],
                 type=DisasmArgType(arg[1]),
@@ -433,7 +434,7 @@ client.terminate_session()
                 constant=arg[3],
                 value=arg[4],
                 memvalue=arg[5],
-        ) for arg in res[4]]
+        ) for arg in res[5]]
     )</code></pre>
             </details>
     </div>
@@ -467,6 +468,7 @@ client.terminate_session()
                 <summary>Source code in <code>x64dbg_automate/models.py</code></summary>
                 <pre class="highlight"><code class="language-python">class Instruction(BaseModel):
     instruction: str
+    symbolized_instruction: str
     argcount: int
     instr_size: int
     type: DisasmInstrType
