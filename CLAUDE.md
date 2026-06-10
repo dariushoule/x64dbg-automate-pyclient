@@ -28,6 +28,10 @@ Mixin chain: `XAutoClientBase` → `XAutoCommandsMixin` (low-level RPC) → `XAu
 
 ZMQ REQ/REP for sync commands, PUB/SUB for async events. Msgpack serialization. Thread-safe via `_req_lock`.
 
+## Git
+
+Keep all commits authored solely as the repo owner (Darius Houle) — do not add `Co-Authored-By` or other attribution trailers.
+
 ## Conventions
 - Type hints everywhere, modern union syntax (`X | None` not `Optional[X]`)
 - Pydantic models for data structures (`models.py`)

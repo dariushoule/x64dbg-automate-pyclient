@@ -71,6 +71,27 @@ def test_disassemble(client: X64DbgClient):
     assert instr.arg[1].mnemonic == f''
 
 
+def test_disassemble_symbolized(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
+    ip = client.get_reg(ip_reg)
+
+    # Instructions without symbol references symbolize to the raw text
+    assert client.write_memory(ip, b'\x90')
+    instr = client.disassemble_at(ip)
+    assert instr.instruction == 'nop'
+    assert instr.symbolized_instruction == 'nop'
+
+    # A call to an export resolves to its symbol in the symbolized form only
+    addr, success = client.eval_sync('GetModuleHandleA')
+    assert success
+    assert client.assemble_at(ip, f'call 0x{addr:X}')
+    instr = client.disassemble_at(ip)
+    assert instr.instruction == f'call 0x{addr:0{16 if TEST_BITNESS == 64 else 8}X}'
+    assert 'GetModuleHandleA' in instr.symbolized_instruction
+    assert 'GetModuleHandleA' not in instr.instruction
+
+
 def test_breakpoints_normal(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
     ip_reg = 'rip' if TEST_BITNESS == 64 else 'eip'
