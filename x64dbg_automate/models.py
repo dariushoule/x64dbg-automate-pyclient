@@ -342,6 +342,7 @@ class InstructionArg(BaseModel):
 
 class Instruction(BaseModel):
     instruction: str
+    symbolized_instruction: str
     argcount: int
     instr_size: int
     type: DisasmInstrType

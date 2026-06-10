@@ -687,11 +687,11 @@ class TestListBreakpoints:
 class TestDisassemble:
     def test_disassemble(self, mock_client):
         ins1 = Instruction(
-            instruction="nop", argcount=0, instr_size=1,
+            instruction="nop", symbolized_instruction="nop", argcount=0, instr_size=1,
             type=DisasmInstrType.Normal, arg=[],
         )
         ins2 = Instruction(
-            instruction="ret", argcount=0, instr_size=1,
+            instruction="ret", symbolized_instruction="ret", argcount=0, instr_size=1,
             type=DisasmInstrType.Normal, arg=[],
         )
         mock_client.disassemble_at.side_effect = [ins1, ins2]

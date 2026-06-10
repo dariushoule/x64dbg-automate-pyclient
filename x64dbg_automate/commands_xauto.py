@@ -335,9 +335,10 @@ class XAutoCommandsMixin(XAutoClientBase):
             return None
         return Instruction(
             instruction=res[0],
-            argcount=res[1],
-            instr_size=res[2],
-            type=DisasmInstrType(res[3]),
+            symbolized_instruction=res[1],
+            argcount=res[2],
+            instr_size=res[3],
+            type=DisasmInstrType(res[4]),
             arg=[InstructionArg(
                     mnemonic=arg[0],
                     type=DisasmArgType(arg[1]),
@@ -345,7 +346,7 @@ class XAutoCommandsMixin(XAutoClientBase):
                     constant=arg[3],
                     value=arg[4],
                     memvalue=arg[5],
-            ) for arg in res[4]]
+            ) for arg in res[5]]
         )
     
     def _assemble_at(self, addr: int, instr: str) -> bool:

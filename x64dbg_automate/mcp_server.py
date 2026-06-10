@@ -835,7 +835,7 @@ def disassemble(address: str, count: int = 10) -> str:
             if ins is None:
                 lines.append(f"{_format_address(current)}  ???")
                 break
-            lines.append(f"{_format_address(current)}  {ins.instruction}")
+            lines.append(f"{_format_address(current)}  {ins.symbolized_instruction}")
             current += ins.instr_size
         return "\n".join(lines)
     except Exception as e:
