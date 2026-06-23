@@ -1155,6 +1155,29 @@ def refresh_gui() -> str:
         return f"Error: {e}"
 
 
+@mcp.tool()
+def get_log(since_index: int = 0) -> str:
+    """Retrieve x64dbg log output captured since a given index.
+
+    The plugin buffers every line x64dbg writes to its log. Call with since_index=0
+    to read everything currently buffered, then pass the returned "Next index" on
+    the next call to fetch only newly-added lines (incremental polling). The buffer
+    is cleared when a new debug session starts.
+
+    Args:
+        since_index: Return only log lines at or after this index (0 for all buffered lines)
+    """
+    try:
+        client = _require_client()
+        next_index, lines = client.get_log(since_index)
+        if not lines:
+            return f"No new log lines. Next index: {next_index}"
+        body = "\n".join(lines)
+        return f"{body}\n\nNext index: {next_index}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------

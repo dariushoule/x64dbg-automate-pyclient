@@ -34,6 +34,7 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_GET_LABEL = "XAUTO_REQ_GET_LABEL"
     XAUTO_REQ_GET_COMMENT = "XAUTO_REQ_GET_COMMENT"
     XAUTO_REQ_GET_SYMBOL = "XAUTO_REQ_GET_SYMBOL"
+    XAUTO_REQ_GET_LOG = "XAUTO_REQ_GET_LOG"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -435,7 +436,30 @@ class XAutoCommandsMixin(XAutoClientBase):
             type=SymbolType(res[4]),
             ordinal=res[5]
         )
-    
+
+    def get_log(self, since_index: int = 0) -> tuple[int, list[str]]:
+        """
+        Retrieves x64dbg log lines captured since a given index.
+
+        The plugin maintains a bounded, monotonically-indexed buffer of every log
+        line x64dbg emits (capped at the most recent entries; older lines are
+        evicted). Pass the `next_index` returned by a previous call to poll only
+        for lines added since then. The buffer is cleared at the start of each
+        debug session.
+
+        Args:
+            since_index: Return only lines at or after this index. Use 0 to
+                retrieve everything currently buffered. If `since_index` predates
+                the oldest retained line, retrieval resumes from the oldest line.
+
+        Returns:
+            A tuple of `(next_index, lines)` where `next_index` is the index to
+            pass on the next call to continue where this one left off, and `lines`
+            is the list of captured log lines.
+        """
+        next_index, lines = self._send_request(XAutoCommand.XAUTO_REQ_GET_LOG, since_index)
+        return next_index, lines
+
     def wait_until_debugging(self, timeout: int = 10) -> bool:
         """
         Blocks until the debugger enters a debugging state

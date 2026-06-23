@@ -192,3 +192,31 @@ def test_get_symbol_at_exists(client: X64DbgClient):
     assert symbol.undecoratedSymbol == ''
     assert symbol.type == 1
 
+
+def test_get_log_incremental(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    next_index, lines = client.get_log()
+    assert isinstance(next_index, int)
+    assert isinstance(lines, list)
+
+    marker = "xauto-test-log-marker"
+    client.log(marker)
+    client.wait_cmd_ready()
+
+    new_index, new_lines = client.get_log(next_index)
+    # Incremental poll returns only lines added since next_index, and the index
+    # advances monotonically.
+    assert new_index >= next_index
+    assert any(marker in line for line in new_lines)
+
+
+def test_log_message_event_delivered(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+    client.clear_debug_events(EventType.EVENT_LOG_MESSAGE)
+
+    client.log("xauto-test-event-marker")
+    event = client.wait_for_debug_event(EventType.EVENT_LOG_MESSAGE, timeout=5)
+    assert event is not None
+    assert event.event_type == EventType.EVENT_LOG_MESSAGE
+    assert isinstance(event.event_data.message, str)
+
