@@ -1145,25 +1145,43 @@ def log_message(message: str) -> str:
 
 
 @mcp.tool()
-def get_log(since_index: int = 0) -> str:
+def get_log(since_index: int = 0, limit: int = 0, filter: str = "") -> str:
     """Read log messages from the current debug session.
 
     Returns all messages captured since the session started, or only new messages
-    when since_index from a previous call is provided.
+    when since_index from a previous call is provided. Head semantics: when limit
+    is set, the first `limit` matching entries are returned. Call again with the
+    returned next_index to fetch the next page.
 
     Args:
         since_index: Index returned by a previous get_log call (0 for full session log)
+        limit:       Maximum number of log lines to return (0 = unlimited). When set,
+                     the first `limit` matching lines are returned (head semantics).
+                     If remaining > 0, call again with next_index to get the next page.
+        filter:      Substring to match against each log line — only matching lines are
+                     returned. Empty string means no filtering.
 
     Returns:
-        Log lines followed by the next_index value to use on the next call.
+        Log lines followed by metadata:
+        - [next_index=N] always present; pass as since_index on the next call.
+        - [remaining=N, call again with next_index=N] when more entries exist.
+        - [WARNING: evicted=N entries lost before oldest available] when buffer cap
+          was hit and the requested since_index is older than the oldest entry.
     """
     try:
         client = _require_client()
-        next_index, messages = client.get_log(since_index)
+        next_index, messages, remaining, evicted = client.get_log(since_index, limit, filter)
+        parts = []
+        if evicted:
+            parts.append(f"[WARNING: evicted={evicted} entries lost before oldest available]")
         if not messages:
-            return f"No new log messages. next_index={next_index}"
-        body = "\n".join(m.rstrip("\n") for m in messages)
-        return f"{body}\n[next_index={next_index}]"
+            parts.append(f"No new log messages. next_index={next_index}")
+            return "\n".join(parts)
+        parts.append("\n".join(m.rstrip("\n") for m in messages))
+        if remaining:
+            parts.append(f"[remaining={remaining}, call again with next_index={next_index}]")
+        parts.append(f"[next_index={next_index}]")
+        return "\n".join(parts)
     except Exception as e:
         return f"Error: {e}"
 
