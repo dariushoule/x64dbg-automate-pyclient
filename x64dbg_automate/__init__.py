@@ -22,7 +22,7 @@ if _IS_WINDOWS:
     from x64dbg_automate.win32 import GetTempPathW, SetConsoleCtrlHandler, EnumWindows, GetWindowTextW, GetWindowThreadProcessId
 
 
-COMPAT_VERSION = "lilac_bonnet" # TODO: externalize
+COMPAT_VERSION = "ghost_fungus" # TODO: externalize
 logger = logging.getLogger(__name__)
 all_instances: list['X64DbgClient'] = []
 
