@@ -1145,6 +1145,30 @@ def log_message(message: str) -> str:
 
 
 @mcp.tool()
+def get_log(since_index: int = 0) -> str:
+    """Read log messages from the current debug session.
+
+    Returns all messages captured since the session started, or only new messages
+    when since_index from a previous call is provided.
+
+    Args:
+        since_index: Index returned by a previous get_log call (0 for full session log)
+
+    Returns:
+        Log lines followed by the next_index value to use on the next call.
+    """
+    try:
+        client = _require_client()
+        next_index, messages = client.get_log(since_index)
+        if not messages:
+            return f"No new log messages. next_index={next_index}"
+        body = "\n".join(m.rstrip("\n") for m in messages)
+        return f"{body}\n[next_index={next_index}]"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
 def refresh_gui() -> str:
     """Refresh all x64dbg GUI views."""
     try:

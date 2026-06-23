@@ -22,6 +22,7 @@ class EventType(StrEnum):
     EVENT_STOP_DEBUG = "EVENT_STOP_DEBUG"
     EVENT_CREATE_PROCESS = "EVENT_CREATE_PROCESS"
     EVENT_EXIT_PROCESS = "EVENT_EXIT_PROCESS"
+    EVENT_LOG_MESSAGE = "EVENT_LOG_MESSAGE"
 
 
 class BreakpointEventData(BaseModel):
@@ -106,9 +107,14 @@ class ExitProcessEventData(BaseModel):
     dwExitCode: int
 
 
+class LogMessageEventData(BaseModel):
+    text: str
+
+
 EventTypes = BreakpointEventData | SysBreakpointEventData | CreateThreadEventData | ExitThreadEventData | \
     LoadDllEventData | UnloadDllEventData | OutputDebugStringEventData | ExceptionEventData | AttachEventData | \
-    DetachEventData | InitDebugEventData | CreateProcessEventData | ExitProcessEventData | None
+    DetachEventData | InitDebugEventData | CreateProcessEventData | ExitProcessEventData | \
+    LogMessageEventData | None
 
 
 class DbgEvent():
@@ -198,6 +204,10 @@ class DbgEvent():
         elif event_type == EventType.EVENT_EXIT_PROCESS:
             self.event_data = ExitProcessEventData(
                 dwExitCode=event_data[0]
+            )
+        elif event_type == EventType.EVENT_LOG_MESSAGE:
+            self.event_data = LogMessageEventData(
+                text=event_data[0]
             )
         elif event_type == EventType.EVENT_EXCEPTION:
             self.event_data = ExceptionEventData(

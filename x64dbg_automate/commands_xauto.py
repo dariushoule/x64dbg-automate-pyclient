@@ -34,6 +34,7 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_GET_LABEL = "XAUTO_REQ_GET_LABEL"
     XAUTO_REQ_GET_COMMENT = "XAUTO_REQ_GET_COMMENT"
     XAUTO_REQ_GET_SYMBOL = "XAUTO_REQ_GET_SYMBOL"
+    XAUTO_REQ_GET_LOG = "XAUTO_REQ_GET_LOG"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -436,6 +437,21 @@ class XAutoCommandsMixin(XAutoClientBase):
             ordinal=res[5]
         )
     
+    def get_log(self, since_index: int = 0) -> tuple[int, list[str]]:
+        """
+        Retrieve log messages captured since the start of the current debug session.
+
+        Args:
+            since_index: Index returned by a previous call; pass 0 to get all messages
+                         from the start of the session.
+
+        Returns:
+            A tuple of (next_index, messages). Pass next_index back on the next call
+            to receive only new messages since this one.
+        """
+        next_index, messages = self._send_request(XAutoCommand.XAUTO_REQ_GET_LOG, since_index)
+        return next_index, messages
+
     def wait_until_debugging(self, timeout: int = 10) -> bool:
         """
         Blocks until the debugger enters a debugging state
