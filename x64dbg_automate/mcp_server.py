@@ -1156,24 +1156,40 @@ def refresh_gui() -> str:
 
 
 @mcp.tool()
-def get_log(since_index: int = 0) -> str:
+def get_log(since_index: int = 0, limit: int = 0, filter_str: str = "") -> str:
     """Retrieve x64dbg log output captured since a given index.
 
     The plugin buffers every line x64dbg writes to its log. Call with since_index=0
     to read everything currently buffered, then pass the returned "Next index" on
     the next call to fetch only newly-added lines (incremental polling). The buffer
-    is cleared when a new debug session starts.
+    and its index are reset when a new debug session starts, so a "Next index" from
+    a previous session restarts at the beginning of the new session's log (the
+    cursor is per-session).
+
+    For verbose logs, use `limit` and `filter_str` to bound the amount of text
+    returned: only lines containing `filter_str` are returned, and at most `limit`
+    entries per call (oldest first). When the result is truncated the response notes
+    how many matching entries remain; call again with the returned "Next index" to
+    continue.
 
     Args:
         since_index: Return only log lines at or after this index (0 for all buffered lines)
+        limit: Maximum number of matching entries to return (0 for no limit)
+        filter_str: Only return log lines containing this substring, case-sensitive and not a regex (empty for no filter)
     """
     try:
         client = _require_client()
-        next_index, lines = client.get_log(since_index)
+        next_index, lines, remaining, evicted = client.get_log(since_index, limit, filter_str)
+        notes = []
+        if remaining:
+            notes.append(f"{remaining} more matching entries remaining")
+        if evicted:
+            notes.append(f"{evicted} entries evicted before since_index")
+        suffix = f" ({'; '.join(notes)})" if notes else ""
         if not lines:
-            return f"No new log lines. Next index: {next_index}"
+            return f"No new log lines. Next index: {next_index}{suffix}"
         body = "\n".join(lines)
-        return f"{body}\n\nNext index: {next_index}"
+        return f"{body}\n\nNext index: {next_index}{suffix}"
     except Exception as e:
         return f"Error: {e}"
 

@@ -855,6 +855,36 @@ class TestGui:
         result = mcp_mod.refresh_gui()
         assert "refreshed" in result.lower()
 
+    def test_get_log_returns_lines_and_next_index(self, mock_client):
+        mock_client.get_log.return_value = (12, ["line a", "line b"], 0, 0)
+        result = mcp_mod.get_log()
+        assert "line a" in result and "line b" in result
+        assert "Next index: 12" in result
+        # default args forwarded to the client (since_index, limit, filter_str)
+        mock_client.get_log.assert_called_once_with(0, 0, "")
+
+    def test_get_log_empty(self, mock_client):
+        mock_client.get_log.return_value = (5, [], 0, 0)
+        result = mcp_mod.get_log(since_index=5)
+        assert "No new log lines" in result
+        assert "Next index: 5" in result
+
+    def test_get_log_passes_limit_and_filter(self, mock_client):
+        mock_client.get_log.return_value = (3, ["x"], 0, 0)
+        mcp_mod.get_log(since_index=1, limit=2, filter_str="foo")
+        mock_client.get_log.assert_called_once_with(1, 2, "foo")
+
+    def test_get_log_notes_remaining_and_evicted(self, mock_client):
+        mock_client.get_log.return_value = (9, ["partial"], 4, 7)
+        result = mcp_mod.get_log(limit=1)
+        assert "4 more matching entries remaining" in result
+        assert "7 entries evicted before since_index" in result
+
+    def test_get_log_error(self, mock_client):
+        mock_client.get_log.side_effect = RuntimeError("boom")
+        result = mcp_mod.get_log()
+        assert "Error" in result
+
 
 # ---------------------------------------------------------------------------
 # Error path tests

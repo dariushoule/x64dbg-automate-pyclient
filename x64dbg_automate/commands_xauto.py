@@ -437,28 +437,61 @@ class XAutoCommandsMixin(XAutoClientBase):
             ordinal=res[5]
         )
 
-    def get_log(self, since_index: int = 0) -> tuple[int, list[str]]:
+    def get_log(
+        self,
+        since_index: int = 0,
+        limit: int = 0,
+        filter_str: str = "",
+    ) -> tuple[int, list[str], int, int]:
         """
         Retrieves x64dbg log lines captured since a given index.
 
         The plugin maintains a bounded, monotonically-indexed buffer of every log
         line x64dbg emits (capped at the most recent entries; older lines are
         evicted). Pass the `next_index` returned by a previous call to poll only
-        for lines added since then. The buffer is cleared at the start of each
-        debug session.
+        for lines added since then.
+
+        The index is monotonic only *within* a single debug session: the buffer
+        and its index are reset when a new session starts, so a `next_index`
+        carried over from a previous session snaps back to the start of the new
+        session's log rather than continuing forward. Treat the cursor as
+        per-session.
+
+        `limit` and `filter_str` bound the amount of text returned for verbose
+        sessions. Filtering is applied at the line level — only lines containing
+        `filter_str` are kept, and entries with no matching lines are omitted —
+        and at most `limit` matching entries are returned per call ("head"
+        semantics, oldest first). When the result is truncated, `remaining` is
+        non-zero and `next_index` points just past the last returned entry, so a
+        follow-up call with `since_index=next_index` continues where this one
+        stopped.
 
         Args:
             since_index: Return only lines at or after this index. Use 0 to
                 retrieve everything currently buffered. If `since_index` predates
-                the oldest retained line, retrieval resumes from the oldest line.
+                the oldest retained line, retrieval resumes from the oldest line
+                and `evicted` reports how many lines were skipped.
+            limit: Maximum number of matching entries to return. 0 means no limit.
+            filter_str: Substring to filter log lines by. Only lines containing
+                this string are returned (case-sensitive plain substring — not a
+                regular expression); entries with no matching lines are omitted.
+                Empty string means no filtering.
 
         Returns:
-            A tuple of `(next_index, lines)` where `next_index` is the index to
-            pass on the next call to continue where this one left off, and `lines`
-            is the list of captured log lines.
+            A tuple of `(next_index, lines, remaining, evicted)`:
+                next_index: index to pass as `since_index` on the next call to
+                    continue where this one left off.
+                lines: the list of captured log lines.
+                remaining: matching entries beyond those returned (non-zero only
+                    when `limit` truncated the result); call again with
+                    `since_index=next_index` to fetch them.
+                evicted: entries between the requested `since_index` and the oldest
+                    still-buffered line, lost to the buffer cap.
         """
-        next_index, lines = self._send_request(XAutoCommand.XAUTO_REQ_GET_LOG, since_index)
-        return next_index, lines
+        next_index, lines, remaining, evicted = self._send_request(
+            XAutoCommand.XAUTO_REQ_GET_LOG, since_index, limit, filter_str
+        )
+        return next_index, list(lines), remaining, evicted
 
     def wait_until_debugging(self, timeout: int = 10) -> bool:
         """

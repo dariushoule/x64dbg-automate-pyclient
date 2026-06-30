@@ -1,4 +1,5 @@
 import queue
+import time
 from tests.conftest import TEST_BITNESS
 from x64dbg_automate import X64DbgClient
 from x64dbg_automate.events import DbgEvent, EventType
@@ -195,19 +196,76 @@ def test_get_symbol_at_exists(client: X64DbgClient):
 
 def test_get_log_incremental(client: X64DbgClient):
     client.start_session(r'c:\Windows\system32\winver.exe')
-    next_index, lines = client.get_log()
+    next_index, lines, remaining, evicted = client.get_log()
     assert isinstance(next_index, int)
     assert isinstance(lines, list)
+    assert isinstance(remaining, int)
+    assert isinstance(evicted, int)
 
     marker = "xauto-test-log-marker"
     client.log(marker)
     client.wait_cmd_ready()
 
-    new_index, new_lines = client.get_log(next_index)
+    # Log capture is asynchronous; poll the incremental read until the marker lands.
+    deadline = time.time() + 5
+    new_index, new_lines = next_index, []
+    while time.time() < deadline:
+        new_index, new_lines, _, _ = client.get_log(next_index)
+        if any(marker in entry for entry in new_lines):
+            break
+        time.sleep(0.2)
+
     # Incremental poll returns only lines added since next_index, and the index
     # advances monotonically.
     assert new_index >= next_index
-    assert any(marker in line for line in new_lines)
+    assert any(marker in entry for entry in new_lines)
+
+
+def test_get_log_filter_and_limit(client: X64DbgClient):
+    client.start_session(r'c:\Windows\system32\winver.exe')
+
+    base = "xauto-filter-precise"               # token we filter on
+    control = "xauto-filter-control-excluded"   # logged but must NOT match `base`
+    n = 4
+
+    client.log(control)
+    for i in range(n):
+        client.log(f"{base}-{i}")
+    client.wait_cmd_ready()
+
+    # x64dbg coalesces rapid log writes into a single multi-line entry, and capture
+    # is asynchronous, so poll until our lines land. Filtering is LINE-level within
+    # an entry, so assert on flattened lines rather than on entry count.
+    def base_lines():
+        _, matched, full_remaining, _ = client.get_log(0, filter_str=base)
+        lines = [ln for entry in matched for ln in entry.splitlines()]
+        return lines, full_remaining
+
+    deadline = time.time() + 5
+    lines, full_remaining = base_lines()
+    while sum(base in ln for ln in lines) < n and time.time() < deadline:
+        time.sleep(0.2)
+        lines, full_remaining = base_lines()
+
+    assert full_remaining == 0                          # no limit -> nothing held back
+    assert sum(base in ln for ln in lines) == n         # every base line returned
+    assert all(control not in ln for ln in lines)       # control line stripped (line-level filter)
+
+    # `limit` caps the number of ENTRIES (not lines) and reports the rest as
+    # `remaining`; verified against an unlimited read. Session startup reliably
+    # emits several distinct log entries, so there is always >1 entry to split on.
+    _, full, rem_full, _ = client.get_log(0)
+    total = len(full)
+    assert total >= 2 and rem_full == 0
+
+    next_index, head, remaining, _ = client.get_log(0, limit=1)
+    assert len(head) == 1
+    assert remaining == total - 1
+
+    # Draining from the returned cursor fetches exactly the held-back entries.
+    _, rest, rest_remaining, _ = client.get_log(next_index)
+    assert len(rest) == remaining
+    assert rest_remaining == 0
 
 
 def test_log_message_event_delivered(client: X64DbgClient):
