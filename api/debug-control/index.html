@@ -271,11 +271,19 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.X64DbgClient.get_log" class="nav-link">get_log</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.events.DbgEvent" class="nav-link">DbgEvent</a>
               <ul class="nav flex-column">
               </ul>
             </li>
             <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.events.EventType" class="nav-link">EventType</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#x64dbg_automate.events.LogMessageEventData" class="nav-link">LogMessageEventData</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -1876,10 +1884,16 @@ Raises:
     Returns:
         DbgEvent | None: The latest event of the specified type, or None if the event did not occur within the timeout.
     """
+    q = self._queue_for(event_type)
     while timeout &gt; 0:
-        for ix, event in enumerate(self._debug_events_q):
+        # Iterate a snapshot: the SUB thread may append/evict concurrently.
+        for event in list(q):
             if event.event_type == event_type:
-                return self._debug_events_q.pop(ix)
+                try:
+                    q.remove(event)
+                except ValueError:
+                    pass  # already evicted by the cap between snapshot and removal
+                return event
         time.sleep(0.25)
         timeout -= 0.25
     return None</code></pre>
@@ -1899,7 +1913,9 @@ Raises:
 
     <div class="doc doc-contents first">
 
-        <p>Clear the debug event queue. If <code>event_type</code> is specified, only events of that type will be removed.</p>
+        <p>Clear buffered debug events. If <code>event_type</code> is specified, only events of that
+type are removed (from whichever queue holds them); otherwise both the main
+event queue and the <code>EVENT_LOG_MESSAGE</code> queue are cleared.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1937,17 +1953,21 @@ Raises:
               <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
               <pre class="highlight"><code class="language-python">def clear_debug_events(self, event_type: EventType | None = None) -&gt; None:
     """
-    Clear the debug event queue. If `event_type` is specified, only events of that type will be removed.
+    Clear buffered debug events. If `event_type` is specified, only events of that
+    type are removed (from whichever queue holds them); otherwise both the main
+    event queue and the `EVENT_LOG_MESSAGE` queue are cleared.
 
     Args:
         event_type: The type of event to clear. If None, all events will be cleared.
     """
-    filtered = []
-    for _ in range(len(self._debug_events_q)):
-        event = self._debug_events_q.pop(0)
-        if event.event_type != event_type and event_type is not None:
-            filtered.append(event)
-    self._debug_events_q = filtered</code></pre>
+    if event_type is None:
+        self._debug_events_q.clear()
+        self._log_events_q.clear()
+        return
+    q = self._queue_for(event_type)
+    kept = [e for e in list(q) if e.event_type != event_type]
+    q.clear()
+    q.extend(kept)</code></pre>
             </details>
     </div>
 
@@ -2119,6 +2139,9 @@ Raises:
     <div class="doc doc-contents first">
 
         <p>Get the latest debug event that occurred in the debugee. The event is removed from the queue.</p>
+<p>Note: <code>EVENT_LOG_MESSAGE</code> events are kept in a separate queue and are not
+returned here. Retrieve them with <code>wait_for_debug_event(EventType.EVENT_LOG_MESSAGE)</code>,
+a <code>watch_debug_event</code> callback, or the <code>get_log</code> buffer.</p>
 
 
             <details class="mkdocstrings-source">
@@ -2126,6 +2149,10 @@ Raises:
               <pre class="highlight"><code class="language-python">def get_latest_debug_event(self) -&gt; DbgEvent | None:
     """
     Get the latest debug event that occurred in the debugee. The event is removed from the queue.
+
+    Note: `EVENT_LOG_MESSAGE` events are kept in a separate queue and are not
+    returned here. Retrieve them with `wait_for_debug_event(EventType.EVENT_LOG_MESSAGE)`,
+    a `watch_debug_event` callback, or the `get_log` buffer.
     """
     if len(self._debug_events_q) == 0:
         return None
@@ -2147,6 +2174,7 @@ Raises:
     <div class="doc doc-contents first">
 
         <p>Get the latest debug event that occurred in the debugee. The event is not removed from the queue.</p>
+<p>Note: <code>EVENT_LOG_MESSAGE</code> events are kept in a separate queue and are not returned here (see <code>get_latest_debug_event</code>).</p>
 
 
             <details class="mkdocstrings-source">
@@ -2154,6 +2182,8 @@ Raises:
               <pre class="highlight"><code class="language-python">def peek_latest_debug_event(self) -&gt; DbgEvent | None:
     """
     Get the latest debug event that occurred in the debugee. The event is not removed from the queue.
+
+    Note: `EVENT_LOG_MESSAGE` events are kept in a separate queue and are not returned here (see `get_latest_debug_event`).
     """
     if len(self._debug_events_q) == 0:
         return None
@@ -3550,6 +3580,175 @@ output before starting the trace. These properties persist across traces until c
             </details>
     </div>
 
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="x64dbg_automate.X64DbgClient.get_log" class="doc doc-heading">
+            <code class="highlight language-python">get_log(since_index=0, limit=0, filter='')</code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Retrieve log messages captured since the start of the current debug session.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>since_index</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Index returned by a previous call; pass 0 to get all messages
+         from the start of the session.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>limit</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum number of entries to return (0 = unlimited). Head
+         semantics: the first <code>limit</code> matching entries are returned.
+         remaining &gt; 0 signals there are more; call again with next_index.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filter</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Substring to match against each log line. Only lines containing
+         this string are returned. Empty string means no filtering.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A tuple of (next_index, messages, remaining, evicted).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <ul>
+<li>next_index: pass as since_index on the next call to continue from here.</li>
+</ul>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <ul>
+<li>remaining: matching entries not returned due to limit (0 = got everything).</li>
+</ul>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <ul>
+<li>evicted: entries lost to buffer cap before since_index (gap in replayability).</li>
+</ul>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>x64dbg_automate/commands_xauto.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_log(self, since_index: int = 0, limit: int = 0, filter: str = "") -&gt; tuple[int, list[str], int, int]:
+    """
+    Retrieve log messages captured since the start of the current debug session.
+
+    Args:
+        since_index: Index returned by a previous call; pass 0 to get all messages
+                     from the start of the session.
+        limit:       Maximum number of entries to return (0 = unlimited). Head
+                     semantics: the first `limit` matching entries are returned.
+                     remaining &gt; 0 signals there are more; call again with next_index.
+        filter:      Substring to match against each log line. Only lines containing
+                     this string are returned. Empty string means no filtering.
+
+    Returns:
+        A tuple of (next_index, messages, remaining, evicted).
+        - next_index: pass as since_index on the next call to continue from here.
+        - remaining: matching entries not returned due to limit (0 = got everything).
+        - evicted: entries lost to buffer cap before since_index (gap in replayability).
+    """
+    next_index, messages, remaining, evicted = self._send_request(
+        XAutoCommand.XAUTO_REQ_GET_LOG, since_index, limit, filter)
+    return next_index, messages, remaining, evicted</code></pre>
+            </details>
+    </div>
+
 </div><h3 id="api-model-reference">API Model Reference</h3>
 
 
@@ -3665,6 +3864,10 @@ output before starting the trace. These properties persist across traces until c
             self.event_data = ExitProcessEventData(
                 dwExitCode=event_data[0]
             )
+        elif event_type == EventType.EVENT_LOG_MESSAGE:
+            self.event_data = LogMessageEventData(
+                text=event_data[0]
+            )
         elif event_type == EventType.EVENT_EXCEPTION:
             self.event_data = ExceptionEventData(
                 ExceptionCode=event_data[0],
@@ -3741,7 +3944,66 @@ output before starting the trace. These properties persist across traces until c
     EVENT_INIT_DEBUG = "EVENT_INIT_DEBUG"
     EVENT_STOP_DEBUG = "EVENT_STOP_DEBUG"
     EVENT_CREATE_PROCESS = "EVENT_CREATE_PROCESS"
-    EVENT_EXIT_PROCESS = "EVENT_EXIT_PROCESS"</code></pre>
+    EVENT_EXIT_PROCESS = "EVENT_EXIT_PROCESS"
+    EVENT_LOG_MESSAGE = "EVENT_LOG_MESSAGE"</code></pre>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="x64dbg_automate.events.LogMessageEventData" class="doc doc-heading">
+            <code>LogMessageEventData</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Payload of an <code>EVENT_LOG_MESSAGE</code> event: a single line written to the x64dbg
+log, captured by the plugin's log hook and published as it occurs. The same
+lines are also retrievable on demand via <code>X64DbgClient.get_log</code>.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>x64dbg_automate/events.py</code></summary>
+                <pre class="highlight"><code class="language-python">class LogMessageEventData(BaseModel):
+    """
+    Payload of an `EVENT_LOG_MESSAGE` event: a single line written to the x64dbg
+    log, captured by the plugin's log hook and published as it occurs. The same
+    lines are also retrievable on demand via `X64DbgClient.get_log`.
+    """
+    text: str</code></pre>
               </details>
 
 

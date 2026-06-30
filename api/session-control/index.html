@@ -527,7 +527,7 @@ the debugger starts without any executable. This is useful for performing config
 
 
 <h2 id="x64dbg_automate.X64DbgClient.connect_remote" class="doc doc-heading">
-            <code class="highlight language-python">connect_remote(host, req_rep_port, pub_sub_port)</code>
+            <code class="highlight language-python">connect_remote(host, req_rep_port, pub_sub_port, log_event_queue_maxlen=DEFAULT_LOG_EVENT_QUEUE_MAXLEN)</code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -602,6 +602,23 @@ to a remote x64dbg plugin configured to bind on an accessible address.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_event_queue_maxlen</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum number of <code>EVENT_LOG_MESSAGE</code> events
+retained in the dedicated log-event queue (see <code>__init__</code>).</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="x64dbg_automate.events.DEFAULT_LOG_EVENT_QUEUE_MAXLEN">DEFAULT_LOG_EVENT_QUEUE_MAXLEN</span></code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -632,7 +649,8 @@ to a remote x64dbg plugin configured to bind on an accessible address.</p>
             <details class="mkdocstrings-source">
               <summary>Source code in <code>x64dbg_automate/__init__.py</code></summary>
               <pre class="highlight"><code class="language-python">@classmethod
-def connect_remote(cls, host: str, req_rep_port: int, pub_sub_port: int) -&gt; 'X64DbgClient':
+def connect_remote(cls, host: str, req_rep_port: int, pub_sub_port: int,
+                   log_event_queue_maxlen: int = DEFAULT_LOG_EVENT_QUEUE_MAXLEN) -&gt; 'X64DbgClient':
     """Connect to a remote x64dbg instance by host and port pair.
 
     This bypasses local session discovery (lockfiles) and connects directly
@@ -642,12 +660,15 @@ def connect_remote(cls, host: str, req_rep_port: int, pub_sub_port: int) -&gt; '
         host: Remote hostname or IP address (e.g. '192.168.1.100')
         req_rep_port: The REQ/REP port the plugin is listening on
         pub_sub_port: The PUB/SUB port the plugin is listening on
+        log_event_queue_maxlen: Maximum number of `EVENT_LOG_MESSAGE` events
+            retained in the dedicated log-event queue (see `__init__`).
 
     Returns:
         A connected X64DbgClient instance
     """
     client = cls.__new__(cls)
-    client._init_fields(remote_host=host, req_rep_port=req_rep_port, pub_sub_port=pub_sub_port)
+    client._init_fields(remote_host=host, req_rep_port=req_rep_port, pub_sub_port=pub_sub_port,
+                        log_event_queue_maxlen=log_event_queue_maxlen)
     client._init_connection()
     client._assert_connection_compat()
     return client</code></pre>
