@@ -12,7 +12,7 @@ import psutil
 import shutil
 import zmq
 
-from x64dbg_automate.events import DebugEventQueueMixin
+from x64dbg_automate.events import DebugEventQueueMixin, DEFAULT_LOG_EVENT_QUEUE_MAXLEN
 from x64dbg_automate.hla_xauto import XAutoHighLevelCommandAbstractionMixin
 from x64dbg_automate.models import DebugSession
 
@@ -44,7 +44,8 @@ class ClientConnectionFailedError(Exception):
 
 class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
     def _init_fields(self, x64dbg_path: str | None = None, remote_host: str = "localhost",
-                     req_rep_port: int = 0, pub_sub_port: int = 0):
+                     req_rep_port: int = 0, pub_sub_port: int = 0,
+                     log_event_queue_maxlen: int = DEFAULT_LOG_EVENT_QUEUE_MAXLEN):
         self.x64dbg_path = x64dbg_path
         self.proc = None
         self.session_pid = None
@@ -55,18 +56,30 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         self.sess_pub_sub_port = pub_sub_port
         self.remote_host = remote_host
         self._req_lock = threading.Lock()
+        self._init_event_queues(log_event_queue_maxlen)
         all_instances.append(self)
 
-    def __init__(self, x64dbg_path: str = "x64dbg"):
+    def __init__(self, x64dbg_path: str = "x64dbg",
+                 log_event_queue_maxlen: int = DEFAULT_LOG_EVENT_QUEUE_MAXLEN):
+        """
+        Args:
+            x64dbg_path: Path to the x64dbg executable (or a name resolvable on PATH).
+            log_event_queue_maxlen: Maximum number of `EVENT_LOG_MESSAGE` events
+                retained in the dedicated log-event queue. Log events are kept
+                separate from other debug events so a verbose log stream (e.g. a
+                trace) cannot evict breakpoint/step events. Can also be changed
+                later via the `log_event_queue_maxlen` property.
+        """
         resolved = x64dbg_path
         if not Path(resolved).is_file():
             resolved = shutil.which(x64dbg_path)
         if resolved is None or not Path(resolved).is_file():
             raise FileNotFoundError(f"x64dbg executable not found at {x64dbg_path} or in PATH")
-        self._init_fields(x64dbg_path=resolved)
+        self._init_fields(x64dbg_path=resolved, log_event_queue_maxlen=log_event_queue_maxlen)
 
     @classmethod
-    def connect_remote(cls, host: str, req_rep_port: int, pub_sub_port: int) -> 'X64DbgClient':
+    def connect_remote(cls, host: str, req_rep_port: int, pub_sub_port: int,
+                       log_event_queue_maxlen: int = DEFAULT_LOG_EVENT_QUEUE_MAXLEN) -> 'X64DbgClient':
         """Connect to a remote x64dbg instance by host and port pair.
 
         This bypasses local session discovery (lockfiles) and connects directly
@@ -76,12 +89,15 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
             host: Remote hostname or IP address (e.g. '192.168.1.100')
             req_rep_port: The REQ/REP port the plugin is listening on
             pub_sub_port: The PUB/SUB port the plugin is listening on
+            log_event_queue_maxlen: Maximum number of `EVENT_LOG_MESSAGE` events
+                retained in the dedicated log-event queue (see `__init__`).
 
         Returns:
             A connected X64DbgClient instance
         """
         client = cls.__new__(cls)
-        client._init_fields(remote_host=host, req_rep_port=req_rep_port, pub_sub_port=pub_sub_port)
+        client._init_fields(remote_host=host, req_rep_port=req_rep_port, pub_sub_port=pub_sub_port,
+                            log_event_queue_maxlen=log_event_queue_maxlen)
         client._init_connection()
         client._assert_connection_compat()
         return client
