@@ -93,7 +93,7 @@ The MCP server provides ~40 tools organized into the following groups:
 | Threads | `create_thread`, `terminate_thread`, `pause_resume_thread`, `switch_thread` | Thread management |
 | Events | `get_latest_event`, `wait_for_event` | Debug event queue |
 | Settings | `get_setting`, `set_setting` | x64dbg configuration |
-| GUI | `log_message`, `refresh_gui` | Debugger UI interaction |
+| GUI | `log_message`, `get_log`, `refresh_gui` | Debugger UI interaction, log capture |
 
 ### Remote Debugging (VM / Network)
 
