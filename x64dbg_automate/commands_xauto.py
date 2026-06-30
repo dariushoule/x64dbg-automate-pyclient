@@ -34,6 +34,7 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_GET_LABEL = "XAUTO_REQ_GET_LABEL"
     XAUTO_REQ_GET_COMMENT = "XAUTO_REQ_GET_COMMENT"
     XAUTO_REQ_GET_SYMBOL = "XAUTO_REQ_GET_SYMBOL"
+    XAUTO_REQ_GET_LOG = "XAUTO_REQ_GET_LOG"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -436,6 +437,29 @@ class XAutoCommandsMixin(XAutoClientBase):
             ordinal=res[5]
         )
     
+    def get_log(self, since_index: int = 0, limit: int = 0, filter: str = "") -> tuple[int, list[str], int, int]:
+        """
+        Retrieve log messages captured since the start of the current debug session.
+
+        Args:
+            since_index: Index returned by a previous call; pass 0 to get all messages
+                         from the start of the session.
+            limit:       Maximum number of entries to return (0 = unlimited). Head
+                         semantics: the first `limit` matching entries are returned.
+                         remaining > 0 signals there are more; call again with next_index.
+            filter:      Substring to match against each log line. Only lines containing
+                         this string are returned. Empty string means no filtering.
+
+        Returns:
+            A tuple of (next_index, messages, remaining, evicted).
+            - next_index: pass as since_index on the next call to continue from here.
+            - remaining: matching entries not returned due to limit (0 = got everything).
+            - evicted: entries lost to buffer cap before since_index (gap in replayability).
+        """
+        next_index, messages, remaining, evicted = self._send_request(
+            XAutoCommand.XAUTO_REQ_GET_LOG, since_index, limit, filter)
+        return next_index, messages, remaining, evicted
+
     def wait_until_debugging(self, timeout: int = 10) -> bool:
         """
         Blocks until the debugger enters a debugging state

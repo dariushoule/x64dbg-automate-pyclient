@@ -298,6 +298,12 @@ client.detach_session()
         show_root_full_path: false
 
 
+::: x64dbg_automate.X64DbgClient.get_log
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+
+
 ### API Model Reference
 
 ::: x64dbg_automate.events.DbgEvent
@@ -308,6 +314,13 @@ client.detach_session()
 
 
 ::: x64dbg_automate.events.EventType
+    options:
+        show_root_heading: true
+        show_root_full_path: false
+        show_bases: false
+
+
+::: x64dbg_automate.events.LogMessageEventData
     options:
         show_root_heading: true
         show_root_full_path: false
