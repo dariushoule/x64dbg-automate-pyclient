@@ -189,3 +189,39 @@ Claude will call `disconnect`, leaving x64dbg running for manual inspection, or 
 - **Memory reads are capped**: `read_memory` is limited to 4096 bytes per call and `disassemble` to 100 instructions. Ask for multiple reads if you need more.
 - **Events for synchronization**: Use `wait_for_event` to wait for breakpoints, DLL loads, or other debug events before inspecting state.
 - **Raw commands**: If a feature isn't exposed as a dedicated tool, `execute_command` passes any command directly to x64dbg's command interpreter. See the [x64dbg command reference](https://help.x64dbg.com/en/latest/commands/).
+- **`$result` means different things per command**: see below before relying on it.
+
+### Reading `$result`
+
+`execute_command` returns only whether the command succeeded. Commands that produce a
+value communicate it through the `$result` variable, which you read with a separate
+`eval_expression("$result")` call.
+
+What `$result` holds depends entirely on which command set it, and the two conventions
+are easy to confuse:
+
+| Command | `$result` |
+|---------|-----------|
+| `find` | **Address** of the first match, or `0` if not found |
+| `findall` | **Count** of occurrences |
+| `findallmem` / `findmemall` | **Count** of occurrences |
+| `findasm` / `asmfind` | **Count** of occurrences |
+| `reffind` / `ref` | **Count** of references found |
+| `refstr` / `strref` | **Count** of string references found |
+| `bphitcount` | Hit count of the breakpoint |
+| `loadlib` | Base address of the loaded library |
+
+So `find` gives an address while `findallmem` gives a count — reading one as the other
+silently yields nonsense.
+
+Two further caveats:
+
+- **`$result` is not cleared between commands.** A command that aborts early — `find`
+  against an unmapped address, for example — returns without touching it, so a stale
+  value from an earlier command is still there. If you need to detect "this command did
+  not set a result", set `$result` to a sentinel first with
+  `execute_command("mov $result, 0xDEADBEEF")` and check whether it changed.
+- **Commands that report to a pane do not report through `$result`.** `findall`,
+  `findallmem`, and the `ref*` family write their matches to the References pane and
+  leave only the count in `$result`; the addresses themselves are not reachable through
+  `execute_command` at all.
