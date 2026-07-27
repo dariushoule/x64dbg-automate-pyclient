@@ -89,6 +89,23 @@ def _format_memory(data: bytes, base: int) -> str:
 # transport is msgpack bytes, so this is purely a response-size guard.
 MAX_READ_BYTES = 1024 * 1024
 
+NO_DEBUGGEE_MSG = (
+    "No debuggee: nothing is attached (not started, or exited/terminated). "
+    "This is not a bad address — use get_debugger_status to confirm."
+)
+
+
+def _no_debuggee_hint(client) -> str:
+    """Return a no-debuggee suffix for failed memory access, else an empty string.
+
+    The plugin reports XERROR_READ_FAILED both for a bad address and for a dead
+    debuggee, so disambiguate on the error path only — no cost when reads succeed.
+    """
+    try:
+        return "" if client.is_debugging() else f" — {NO_DEBUGGEE_MSG}"
+    except Exception:
+        return ""
+
 
 def _encode_memory(data: bytes, addr: int, format: str) -> str:
     """Render read bytes in the requested output format."""
@@ -304,21 +321,25 @@ def terminate_session() -> str:
 
 @mcp.tool()
 def get_debugger_status() -> str:
-    """Get consolidated debugger status: debugging state, running state, PID, bitness, elevated."""
+    """Get consolidated debugger status: debuggee presence, run state, PID, bitness, elevated."""
     try:
         client = _require_client()
         debugging = client.is_debugging()
+        # DbgIsRunning() is !waitislocked(WAITID_RUN) — it means "not paused at a
+        # breakpoint", not "a process exists". With no debuggee it reports True, which
+        # reads as a bridge fault, so only report it when there is something to run.
         running = client.is_running()
-        pid = client.debugee_pid() if debugging else None
-        bitness = client.debugee_bitness() if debugging else None
         elevated = client.debugger_is_elevated()
-        parts = [
-            f"Debugging: {debugging}",
-            f"Running: {running}",
-            f"Debuggee PID: {pid}",
-            f"Bitness: {bitness}",
-            f"Elevated: {elevated}",
-        ]
+        parts = [f"Has debuggee: {debugging}"]
+        if debugging:
+            parts.append(f"State: {'running' if running else 'paused'}")
+            parts.append(f"Debuggee PID: {client.debugee_pid()}")
+            parts.append(f"Bitness: {client.debugee_bitness()}")
+        else:
+            parts.append("State: no debuggee (not started, or exited/terminated)")
+            parts.append("Debuggee PID: n/a")
+            parts.append("Bitness: n/a")
+        parts.append(f"Elevated: {elevated}")
         return "\n".join(parts)
     except Exception as e:
         return f"Error: {e}"
@@ -529,7 +550,10 @@ def read_memory(address: str, size: int = 256, format: str = "dump") -> str:
         client = _require_client()
         addr = _parse_address_or_expression(address)
         size = max(0, min(size, MAX_READ_BYTES))
-        data = client.read_memory(addr, size)
+        try:
+            data = client.read_memory(addr, size)
+        except Exception as e:
+            return f"Error: {e}{_no_debuggee_hint(client)}"
         return _encode_memory(data, addr, format)
     except Exception as e:
         return f"Error: {e}"
@@ -555,6 +579,9 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
         client = _require_client()
     except Exception as e:
         return f"Error: {e}"
+
+    if not client.is_debugging():
+        return NO_DEBUGGEE_MSG
 
     lines = []
     for spec in reads:
@@ -630,6 +657,11 @@ def get_memory_map() -> str:
     """List all memory regions in the debuggee's address space."""
     try:
         client = _require_client()
+        # DbgMemMap copies x64dbg's memoryPages cache with no debuggee check, and that
+        # cache is only refreshed on debug events. With nothing attached it returns the
+        # dead process's map, which looks like a successful result. Fail loudly instead.
+        if not client.is_debugging():
+            return NO_DEBUGGEE_MSG
         pages = client.memmap()
         if not pages:
             return "No memory regions found."

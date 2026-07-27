@@ -425,9 +425,67 @@ class TestGetDebuggerStatus:
         mock_client.debugee_bitness.return_value = 64
         mock_client.debugger_is_elevated.return_value = False
         result = mcp_mod.get_debugger_status()
-        assert "True" in result
+        assert "Has debuggee: True" in result
+        assert "State: paused" in result
         assert "4321" in result
         assert "64" in result
+
+    def test_running_when_debugging(self, mock_client):
+        mock_client.is_debugging.return_value = True
+        mock_client.is_running.return_value = True
+        mock_client.debugee_pid.return_value = 4321
+        mock_client.debugee_bitness.return_value = 64
+        mock_client.debugger_is_elevated.return_value = False
+        assert "State: running" in mcp_mod.get_debugger_status()
+
+    def test_no_debuggee_does_not_report_running(self, mock_client):
+        # DbgIsRunning() returns True once the debuggee exits; that must not surface
+        # as "Running: True", which reads as a bridge fault.
+        mock_client.is_debugging.return_value = False
+        mock_client.is_running.return_value = True
+        mock_client.debugger_is_elevated.return_value = False
+        result = mcp_mod.get_debugger_status()
+        assert "Has debuggee: False" in result
+        assert "no debuggee" in result
+        assert "running" not in result
+        mock_client.debugee_pid.assert_not_called()
+
+
+class TestNoDebuggeeDisambiguation:
+    """XERROR_READ_FAILED means both 'bad address' and 'dead debuggee' — disambiguate."""
+
+    def test_memmap_refuses_stale_cache(self, mock_client):
+        # DbgMemMap returns x64dbg's last-known memoryPages with no debuggee check,
+        # so a detached session yields a plausible-looking but dead map.
+        mock_client.is_debugging.return_value = False
+        result = mcp_mod.get_memory_map()
+        assert "No debuggee" in result
+        mock_client.memmap.assert_not_called()
+
+    def test_read_memory_failure_names_no_debuggee(self, mock_client):
+        mock_client.is_debugging.return_value = False
+        mock_client.read_memory.side_effect = RuntimeError("XERROR_READ_FAILED")
+        result = mcp_mod.read_memory("0x10000", 16)
+        assert "XERROR_READ_FAILED" in result
+        assert "No debuggee" in result
+
+    def test_read_memory_failure_with_debuggee_is_bad_address(self, mock_client):
+        mock_client.is_debugging.return_value = True
+        mock_client.read_memory.side_effect = RuntimeError("XERROR_READ_FAILED")
+        result = mcp_mod.read_memory("0x1", 16)
+        assert "XERROR_READ_FAILED" in result
+        assert "No debuggee" not in result
+
+    def test_successful_read_costs_no_extra_roundtrip(self, mock_client):
+        mock_client.read_memory.return_value = b"\x90" * 4
+        mcp_mod.read_memory("0x10000", 4)
+        mock_client.is_debugging.assert_not_called()
+
+    def test_read_many_refuses_without_debuggee(self, mock_client):
+        mock_client.is_debugging.return_value = False
+        result = mcp_mod.read_memory_many(["0x1000:4"])
+        assert "No debuggee" in result
+        mock_client.read_memory.assert_not_called()
 
 
 class TestGo:
