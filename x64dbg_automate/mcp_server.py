@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
 import struct
 import sys
@@ -19,7 +20,14 @@ from x64dbg_automate.events import EventType
 from x64dbg_automate.models import (
     BreakpointType,
     HardwareBreakpointType,
+    MEM_COMMIT,
+    MEM_FREE,
+    MEM_IMAGE,
+    MEM_MAPPED,
+    MEM_PRIVATE,
+    MEM_RESERVE,
     MemoryBreakpointType,
+    PAGE_GUARD,
 )
 
 mcp = FastMCP(
@@ -93,6 +101,73 @@ NO_DEBUGGEE_MSG = (
     "No debuggee: nothing is attached (not started, or exited/terminated). "
     "This is not a bad address — use get_debugger_status to confirm."
 )
+
+
+_STATE_NAMES = {MEM_COMMIT: "commit", MEM_RESERVE: "reserve", MEM_FREE: "free"}
+_TYPE_NAMES = {MEM_PRIVATE: "private", MEM_MAPPED: "mapped", MEM_IMAGE: "image"}
+
+# Low byte of PAGE_* protection -> rwx triplet. "C" is copy-on-write, which counts
+# as writable for filtering purposes.
+_PROTECT_NAMES = {
+    0x01: "---",  # PAGE_NOACCESS
+    0x02: "R--",  # PAGE_READONLY
+    0x04: "RW-",  # PAGE_READWRITE
+    0x08: "RC-",  # PAGE_WRITECOPY
+    0x10: "--X",  # PAGE_EXECUTE
+    0x20: "R-X",  # PAGE_EXECUTE_READ
+    0x40: "RWX",  # PAGE_EXECUTE_READWRITE
+    0x80: "RCX",  # PAGE_EXECUTE_WRITECOPY
+}
+
+
+def _decode_protect(protect: int) -> str:
+    """Render a PAGE_* protection constant as an 'RW-' style triplet.
+
+    A trailing '+G' marks PAGE_GUARD. Free regions report protect 0 and render '---'.
+    """
+    base = protect & 0xFF
+    text = _PROTECT_NAMES.get(base, "---" if base == 0 else f"?{base:02X}")
+    if protect & PAGE_GUARD:
+        text += "+G"
+    return text
+
+
+def _protect_matches(protect: int, required: str) -> bool:
+    """Check a region's protection against a filter.
+
+    `required` is either a hex literal ('0x04') matched exactly against the low byte,
+    or a subset of 'rwx' meaning the region must grant at least those permissions.
+    """
+    required = required.strip().lower()
+    if not required:
+        return True
+    if required.startswith("0x"):
+        return (protect & 0xFF) == int(required, 16)
+    if set(required) - set("rwx"):
+        raise ValueError(f"Invalid protect filter '{required}': expected a hex literal or a subset of 'rwx'")
+    triplet = _PROTECT_NAMES.get(protect & 0xFF, "---")
+    for perm in required:
+        if perm == "r" and triplet[0] != "R":
+            return False
+        # Copy-on-write regions are writable.
+        if perm == "w" and triplet[1] not in ("W", "C"):
+            return False
+        if perm == "x" and triplet[2] != "X":
+            return False
+    return True
+
+
+def _named_filter_value(value: str, names: dict[int, str], label: str) -> int | None:
+    """Resolve a friendly filter name (or hex literal) to its numeric constant."""
+    value = value.strip().lower()
+    if not value:
+        return None
+    if value.startswith("0x"):
+        return int(value, 16)
+    for num, name in names.items():
+        if name == value:
+            return num
+    raise ValueError(f"Invalid {label} filter '{value}': expected one of {sorted(names.values())} or a hex literal")
 
 
 def _no_debuggee_hint(client) -> str:
@@ -653,25 +728,93 @@ def free_memory(address: str) -> str:
 
 
 @mcp.tool()
-def get_memory_map() -> str:
-    """List all memory regions in the debuggee's address space."""
+def get_memory_map(
+    state: str = "commit",
+    protect: str = "",
+    mem_type: str = "",
+    min_size: int = 0,
+    offset: int = 0,
+    limit: int = 200,
+    as_json: bool = False,
+) -> str:
+    """List memory regions in the debuggee's address space, filtered and paginated.
+
+    Defaults to committed regions only — a full map is typically ~1000 regions and
+    too large for a single response. Pass state='' to include reserved and free ones.
+
+    Args:
+        state:    'commit' (default), 'reserve', 'free', a hex literal, or '' for all.
+        protect:  Permission filter — a subset of 'rwx' meaning the region must grant at
+                  least those (e.g. 'rw'), or a hex literal ('0x04') matched exactly.
+                  Copy-on-write counts as writable. Empty means no filter.
+        mem_type: 'private', 'mapped', 'image', a hex literal, or '' for all.
+        min_size: Skip regions smaller than this many bytes.
+        offset:   Index of the first matching region to return (for paging).
+        limit:    Maximum regions to return (0 = no limit).
+        as_json:  Return a JSON array of objects instead of the text table.
+
+    Returns:
+        One line per region — address, size, decoded rwx protection, state, type, info —
+        followed by a summary stating how many regions matched, were hidden by filters,
+        and remain beyond `limit`.
+    """
     try:
         client = _require_client()
+        want_state = _named_filter_value(state, _STATE_NAMES, "state")
+        want_type = _named_filter_value(mem_type, _TYPE_NAMES, "mem_type")
+
         # DbgMemMap copies x64dbg's memoryPages cache with no debuggee check, and that
         # cache is only refreshed on debug events. With nothing attached it returns the
         # dead process's map, which looks like a successful result. Fail loudly instead.
         if not client.is_debugging():
             return NO_DEBUGGEE_MSG
+
         pages = client.memmap()
+        total = len(pages)
         if not pages:
             return "No memory regions found."
-        lines = []
-        for p in pages:
-            lines.append(
-                f"{_format_address(p.base_address)}  Size: {_format_address(p.region_size)}  "
-                f"Protect: 0x{p.protect:X}  State: 0x{p.state:X}  Info: {p.info}"
+
+        matched = [
+            p for p in pages
+            if (want_state is None or p.state == want_state)
+            and (want_type is None or p.type == want_type)
+            and p.region_size >= min_size
+            and _protect_matches(p.protect, protect)
+        ]
+
+        offset = max(0, offset)
+        window = matched[offset:] if limit <= 0 else matched[offset:offset + limit]
+        remaining = len(matched) - offset - len(window)
+
+        if as_json:
+            payload = [
+                {
+                    "base_address": _format_address(p.base_address),
+                    "allocation_base": _format_address(p.allocation_base),
+                    "region_size": p.region_size,
+                    "protect": _decode_protect(p.protect),
+                    "protect_raw": p.protect,
+                    "state": _STATE_NAMES.get(p.state, f"0x{p.state:X}"),
+                    "type": _TYPE_NAMES.get(p.type, f"0x{p.type:X}"),
+                    "info": p.info,
+                }
+                for p in window
+            ]
+            body = json.dumps(payload, indent=2)
+        elif window:
+            body = "\n".join(
+                f"{_format_address(p.base_address)}  Size: {_format_address(p.region_size):>12s}  "
+                f"{_decode_protect(p.protect):<5s}  {_STATE_NAMES.get(p.state, f'0x{p.state:X}'):<7s}  "
+                f"{_TYPE_NAMES.get(p.type, f'0x{p.type:X}'):<7s}  {p.info}"
+                for p in window
             )
-        return "\n".join(lines)
+        else:
+            body = "No regions matched the filters."
+
+        summary = f"[{len(matched)}/{total} regions matched, {total - len(matched)} hidden by filters"
+        if remaining > 0:
+            summary += f"; {remaining} more — call again with offset={offset + len(window)}"
+        return f"{body}\n{summary}]"
     except Exception as e:
         return f"Error: {e}"
 

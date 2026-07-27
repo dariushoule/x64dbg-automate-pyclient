@@ -618,16 +618,111 @@ class TestFreeMemory:
         assert "Freed" in result
 
 
+def _page(base, *, size=0x1000, state=0x1000, protect=0x20, type=0x20000, info="mapped"):
+    return MemPage(
+        base_address=base, allocation_base=base, allocation_protect=0x40,
+        partition_id=0, region_size=size, state=state, protect=protect, type=type, info=info,
+    )
+
+
 class TestGetMemoryMap:
     def test_memmap(self, mock_client):
-        page = MemPage(
-            base_address=0x10000, allocation_base=0x10000, allocation_protect=0x40,
-            partition_id=0, region_size=0x1000, state=0x1000, protect=0x20, type=0x20000, info="mapped"
-        )
-        mock_client.memmap.return_value = [page]
+        mock_client.memmap.return_value = [_page(0x10000)]
         result = mcp_mod.get_memory_map()
         assert "0x10000" in result
         assert "mapped" in result
+
+    def test_defaults_to_committed_only(self, mock_client):
+        mock_client.memmap.return_value = [
+            _page(0x10000, state=mcp_mod.MEM_COMMIT),
+            _page(0x20000, state=mcp_mod.MEM_FREE),
+            _page(0x30000, state=mcp_mod.MEM_RESERVE),
+        ]
+        result = mcp_mod.get_memory_map()
+        assert "0x10000" in result
+        assert "0x20000" not in result
+        assert "1/3 regions matched, 2 hidden by filters" in result
+
+    def test_empty_state_includes_all(self, mock_client):
+        mock_client.memmap.return_value = [
+            _page(0x10000, state=mcp_mod.MEM_COMMIT),
+            _page(0x20000, state=mcp_mod.MEM_FREE),
+        ]
+        result = mcp_mod.get_memory_map(state="")
+        assert "0x10000" in result and "0x20000" in result
+
+    def test_committed_private_rw(self, mock_client):
+        """The motivating case: ~27 committed private RW regions out of ~1000."""
+        mock_client.memmap.return_value = [
+            _page(0x10000, protect=0x04, type=mcp_mod.MEM_PRIVATE),   # RW- private -> match
+            _page(0x20000, protect=0x20, type=mcp_mod.MEM_PRIVATE),   # R-X private -> no
+            _page(0x30000, protect=0x04, type=mcp_mod.MEM_IMAGE),     # RW- image   -> no
+            _page(0x40000, protect=0x40, type=mcp_mod.MEM_PRIVATE),   # RWX private -> match
+        ]
+        result = mcp_mod.get_memory_map(protect="rw", mem_type="private")
+        assert "0x10000" in result and "0x40000" in result
+        assert "0x20000" not in result and "0x30000" not in result
+
+    def test_min_size(self, mock_client):
+        mock_client.memmap.return_value = [_page(0xAAA000, size=0x100), _page(0xBBB000, size=0x9000)]
+        result = mcp_mod.get_memory_map(min_size=0x1000)
+        assert "0xBBB000" in result and "0xAAA000" not in result
+
+    def test_pagination(self, mock_client):
+        mock_client.memmap.return_value = [_page(0x10000 * i) for i in range(1, 6)]
+        result = mcp_mod.get_memory_map(offset=1, limit=2)
+        assert "0x20000" in result and "0x30000" in result
+        assert "0x10000" not in result and "0x40000" not in result
+        assert "2 more — call again with offset=3" in result
+
+    def test_limit_zero_is_unlimited(self, mock_client):
+        mock_client.memmap.return_value = [_page(0x10000 * i) for i in range(1, 6)]
+        result = mcp_mod.get_memory_map(limit=0)
+        assert "more" not in result
+
+    def test_as_json(self, mock_client):
+        import json as _json
+        mock_client.memmap.return_value = [_page(0x10000, protect=0x04, type=mcp_mod.MEM_PRIVATE)]
+        result = mcp_mod.get_memory_map(as_json=True)
+        payload = _json.loads(result[:result.rindex("\n[")])
+        assert payload[0]["base_address"] == "0x10000"
+        assert payload[0]["protect"] == "RW-"
+        assert payload[0]["state"] == "commit"
+        assert payload[0]["type"] == "private"
+
+    def test_no_matches(self, mock_client):
+        mock_client.memmap.return_value = [_page(0x10000, protect=0x02)]
+        assert "No regions matched" in mcp_mod.get_memory_map(protect="x")
+
+    def test_invalid_state_filter(self, mock_client):
+        mock_client.memmap.return_value = [_page(0x10000)]
+        assert "Error" in mcp_mod.get_memory_map(state="bogus")
+
+
+class TestProtectDecoding:
+    @pytest.mark.parametrize("protect,expected", [
+        (0x01, "---"), (0x02, "R--"), (0x04, "RW-"), (0x08, "RC-"),
+        (0x10, "--X"), (0x20, "R-X"), (0x40, "RWX"), (0x80, "RCX"),
+        (0x00, "---"),
+    ])
+    def test_decode(self, protect, expected):
+        assert mcp_mod._decode_protect(protect) == expected
+
+    def test_guard_flag(self):
+        assert mcp_mod._decode_protect(0x104) == "RW-+G"
+
+    @pytest.mark.parametrize("protect,filt,expected", [
+        (0x04, "rw", True),
+        (0x04, "x", False),
+        (0x40, "rwx", True),
+        (0x08, "w", True),      # copy-on-write counts as writable
+        (0x10, "r", False),     # execute-only is not readable
+        (0x02, "", True),       # empty filter matches everything
+        (0x04, "0x04", True),   # exact hex match
+        (0x04, "0x20", False),
+    ])
+    def test_matches(self, protect, filt, expected):
+        assert mcp_mod._protect_matches(protect, filt) is expected
 
 
 # ---------------------------------------------------------------------------
