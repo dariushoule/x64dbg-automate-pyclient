@@ -338,6 +338,69 @@ PubSubPort=50001</code></p>
 <li><strong>Memory reads are capped</strong>: <code>read_memory</code> is limited to 4096 bytes per call and <code>disassemble</code> to 100 instructions. Ask for multiple reads if you need more.</li>
 <li><strong>Events for synchronization</strong>: Use <code>wait_for_event</code> to wait for breakpoints, DLL loads, or other debug events before inspecting state.</li>
 <li><strong>Raw commands</strong>: If a feature isn't exposed as a dedicated tool, <code>execute_command</code> passes any command directly to x64dbg's command interpreter. See the <a href="https://help.x64dbg.com/en/latest/commands/">x64dbg command reference</a>.</li>
+<li><strong><code>$result</code> means different things per command</strong>: see below before relying on it.</li>
+</ul>
+<h3 id="reading-result">Reading <code>$result</code></h3>
+<p><code>execute_command</code> returns only whether the command succeeded. Commands that produce a
+value communicate it through the <code>$result</code> variable, which you read with a separate
+<code>eval_expression("$result")</code> call.</p>
+<p>What <code>$result</code> holds depends entirely on which command set it, and the two conventions
+are easy to confuse:</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th><code>$result</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>find</code></td>
+<td><strong>Address</strong> of the first match, or <code>0</code> if not found</td>
+</tr>
+<tr>
+<td><code>findall</code></td>
+<td><strong>Count</strong> of occurrences</td>
+</tr>
+<tr>
+<td><code>findallmem</code> / <code>findmemall</code></td>
+<td><strong>Count</strong> of occurrences</td>
+</tr>
+<tr>
+<td><code>findasm</code> / <code>asmfind</code></td>
+<td><strong>Count</strong> of occurrences</td>
+</tr>
+<tr>
+<td><code>reffind</code> / <code>ref</code></td>
+<td><strong>Count</strong> of references found</td>
+</tr>
+<tr>
+<td><code>refstr</code> / <code>strref</code></td>
+<td><strong>Count</strong> of string references found</td>
+</tr>
+<tr>
+<td><code>bphitcount</code></td>
+<td>Hit count of the breakpoint</td>
+</tr>
+<tr>
+<td><code>loadlib</code></td>
+<td>Base address of the loaded library</td>
+</tr>
+</tbody>
+</table>
+<p>So <code>find</code> gives an address while <code>findallmem</code> gives a count — reading one as the other
+silently yields nonsense.</p>
+<p>Two further caveats:</p>
+<ul>
+<li><strong><code>$result</code> is not cleared between commands.</strong> A command that aborts early — <code>find</code>
+  against an unmapped address, for example — returns without touching it, so a stale
+  value from an earlier command is still there. If you need to detect "this command did
+  not set a result", set <code>$result</code> to a sentinel first with
+  <code>execute_command("mov $result, 0xDEADBEEF")</code> and check whether it changed.</li>
+<li><strong>Commands that report to a pane do not report through <code>$result</code>.</strong> <code>findall</code>,
+  <code>findallmem</code>, and the <code>ref*</code> family write their matches to the References pane and
+  leave only the count in <code>$result</code>; the addresses themselves are not reachable through
+  <code>execute_command</code> at all.</li>
 </ul></div>
             </div>
         </div>
