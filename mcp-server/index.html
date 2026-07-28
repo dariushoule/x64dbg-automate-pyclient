@@ -229,7 +229,7 @@ poetry install --extras mcp
 </tr>
 <tr>
 <td>Memory</td>
-<td><code>read_memory</code>, <code>write_memory</code>, <code>allocate_memory</code>, <code>free_memory</code>, <code>get_memory_map</code></td>
+<td><code>read_memory</code>, <code>read_memory_many</code>, <code>write_memory</code>, <code>allocate_memory</code>, <code>free_memory</code>, <code>get_memory_map</code></td>
 <td>Read/write debuggee memory</td>
 </tr>
 <tr>
@@ -335,7 +335,9 @@ PubSubPort=50001</code></p>
 <ul>
 <li><strong>Let Claude drive</strong>: Describe your analysis goal in plain language. Claude can chain multiple tools together to investigate, set breakpoints, read memory, and modify state.</li>
 <li><strong>Expressions work everywhere</strong>: Any tool that takes an address also accepts registers, symbols, and arithmetic expressions — just like the x64dbg command bar.</li>
-<li><strong>Memory reads are capped</strong>: <code>read_memory</code> is limited to 4096 bytes per call and <code>disassemble</code> to 100 instructions. Ask for multiple reads if you need more.</li>
+<li><strong>Memory reads are capped</strong>: <code>read_memory</code> is limited to 1 MiB per call and <code>disassemble</code> to 100 instructions. Ask for multiple reads if you need more.</li>
+<li><strong>Compact output for bulk reads</strong>: <code>read_memory</code> defaults to a hex dump with an ASCII sidebar, which costs roughly 3x the raw bytes. Pass <code>format='hex'</code> or <code>format='base64'</code> when reading structures repeatedly.</li>
+<li><strong>Batch scattered reads</strong>: When walking linked structures, <code>read_memory_many(['esi+0x10:4', '0x1000:16'])</code> fetches several ranges in one call. A read that fails is reported inline, so a partially-mapped structure still yields its readable fields.</li>
 <li><strong>Events for synchronization</strong>: Use <code>wait_for_event</code> to wait for breakpoints, DLL loads, or other debug events before inspecting state.</li>
 <li><strong>Raw commands</strong>: If a feature isn't exposed as a dedicated tool, <code>execute_command</code> passes any command directly to x64dbg's command interpreter. See the <a href="https://help.x64dbg.com/en/latest/commands/">x64dbg command reference</a>.</li>
 <li><strong><code>$result</code> means different things per command</strong>: see below before relying on it.</li>
