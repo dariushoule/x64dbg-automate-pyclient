@@ -678,6 +678,18 @@ class TestResponseBudget:
         with pytest.raises(ValueError, match="Invalid format"):
             mcp_mod._encoded_len(16, 0x1000, "rot13")
 
+    @pytest.mark.parametrize("addr", [0xFF0, 0xFFF0, 0xFFFF0, 0xFFFFF0, 0xFFFFFFF0])
+    def test_dump_cap_holds_when_address_gains_a_digit(self, addr):
+        """Lines past a power-of-16 boundary are one char longer."""
+        cap = mcp_mod._max_bytes_for("dump", addr)
+        assert mcp_mod._encoded_len(cap, addr, "dump") <= mcp_mod.MAX_RESPONSE_CHARS
+
+    @pytest.mark.parametrize("addr", [0xFF0, 0xFFFF0, 0xFFFFFFF0])
+    def test_dump_cap_matches_real_encoder_across_boundary(self, addr, mock_client):
+        cap = mcp_mod._max_bytes_for("dump", addr)
+        actual = len(mcp_mod._encode_memory(bytes(cap), addr, "dump"))
+        assert actual <= mcp_mod.MAX_RESPONSE_CHARS
+
 
 class TestReadableSpan:
     """size=0 must stop at the region edge: DbgMemRead is all-or-nothing across one."""
@@ -766,11 +778,16 @@ class TestReadMemoryMany:
 
     def test_batch_shares_one_budget(self, mock_client):
         """Earlier reads complete; the one that no longer fits is skipped, not cut."""
-        cap = mcp_mod._max_bytes_for("hex", 0x1000)
-        mock_client.read_memory.side_effect = [b"\xAA" * cap, b"\xBB"]
-        result = mcp_mod.read_memory_many([f"0x1000:{cap}", "0x2000:1"])
+        # Size the first read to nearly fill the effective budget, then ask for a
+        # second far larger than the sliver it leaves behind.
+        # Leave enough slack for the per-spec skip notice; below that the batch
+        # switches to the single exhausted-summary line instead.
+        effective = mcp_mod.MAX_RESPONSE_CHARS - mcp_mod._BATCH_TAIL_RESERVE
+        cap = mcp_mod._max_bytes_for("hex", 0x1000, effective - 512)
+        mock_client.read_memory.side_effect = [b"\xAA" * cap, b"\xBB" * 5000]
+        result = mcp_mod.read_memory_many([f"0x1000:{cap}", "0x2000:5000"])
         assert result.startswith("0x1000:%d @0x1000 = AA" % cap)
-        assert "0x2000:1 SKIPPED" in result
+        assert "0x2000:5000 SKIPPED" in result
         # The skipped read must not have been issued.
         assert mock_client.read_memory.call_count == 1
 
@@ -786,6 +803,40 @@ class TestReadMemoryMany:
         result = mcp_mod.read_memory_many(["0x1000:99999999"])
         assert "SKIPPED" in result
         mock_client.read_memory.assert_not_called()
+
+    def test_many_small_reads_stay_within_budget(self, mock_client):
+        """Per-line labels count against the budget, not just the payloads."""
+        mock_client.read_memory.return_value = b"\xAB" * 512
+        specs = [f"0x{i:X}000:512" for i in range(1, 400)]
+        result = mcp_mod.read_memory_many(specs, format="hex")
+        assert len(result) <= mcp_mod.MAX_RESPONSE_CHARS
+
+    def test_dump_batch_stays_within_budget(self, mock_client):
+        mock_client.read_memory.return_value = b"\xAB" * 512
+        specs = [f"0x{i:X}000:512" for i in range(1, 200)]
+        result = mcp_mod.read_memory_many(specs, format="dump")
+        assert len(result) <= mcp_mod.MAX_RESPONSE_CHARS
+
+    @pytest.mark.parametrize("fmt", ["dump", "hex", "base64"])
+    def test_error_and_skip_notices_count_against_budget(self, mock_client, fmt):
+        """Failing reads emit output too, so their notices are charged like payloads."""
+        def flaky(addr, n):
+            if addr % 3 == 0:
+                raise RuntimeError("XERROR_READ_FAILED")
+            return bytes(n)
+
+        mock_client.read_memory.side_effect = flaky
+        specs = ["garbage", ":", "0x2000:notanumber", "0x3000:99999999"]
+        specs += [f"0x{i:X}000:4096" for i in range(1, 300)]
+        result = mcp_mod.read_memory_many(specs, format=fmt)
+        assert len(result) <= mcp_mod.MAX_RESPONSE_CHARS
+
+    def test_exhausted_batch_reports_the_remainder(self, mock_client):
+        mock_client.read_memory.return_value = b"\xAB" * 8192
+        specs = [f"0x{i:X}0000:8192" for i in range(1, 200)]
+        result = mcp_mod.read_memory_many(specs, format="hex")
+        assert "more read(s) skipped" in result
+        assert len(result) <= mcp_mod.MAX_RESPONSE_CHARS
 
 
 class TestWriteMemory:

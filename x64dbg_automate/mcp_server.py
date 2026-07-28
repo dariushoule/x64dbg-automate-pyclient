@@ -36,8 +36,9 @@ mcp = FastMCP(
         "MCP server for controlling the x64dbg debugger via x64dbg-automate. "
         "Use list_sessions or start_session first, then connect before using other tools. "
         "Addresses are hex strings (e.g. '0x7FF6A0001000'). Memory reads return hex dumps "
-        "by default; pass format='hex' or 'base64' for compact output, and use "
-        "read_memory_many to batch scattered struct-field reads."
+        "by default; pass format='hex' or 'base64' for compact output and a larger "
+        "per-call limit, size=0 to read as much as fits, and read_memory_many to batch "
+        "scattered struct-field reads."
     ),
 )
 
@@ -94,17 +95,18 @@ def _format_memory(data: bytes, base: int) -> str:
     return "\n".join(lines)
 
 
-# Only the MCP layer caps reads: the plugin issues an unbounded DbgMemRead and the
-# transport is msgpack bytes. The real ceiling is the MCP client's tool-result limit,
-# so cap the ENCODED response rather than the raw byte count — encoding expands input
-# by 1.33x (base64) to 5.19x (dump), and no single byte cap is correct for all three.
+# Ceiling on the encoded response, in characters. Only the MCP layer caps reads: the
+# plugin issues an unbounded DbgMemRead and the transport is msgpack bytes. The limit
+# applies to encoded output rather than raw bytes because encoding expands input by
+# 1.33x (base64) to 5.19x (dump), so one byte cap cannot suit all three formats.
 #
-# Claude Code defaults to 25k tokens per result, and binary data tokenizes at roughly
-# 2 characters per token, so ~48k characters is the conservative equivalent. Direct
-# observation brackets the true limit only loosely — a 43,692-character response was
-# accepted and a 1,398,117-character one rejected — hence a default near the low end.
-# Point the env var at a larger value for clients with a bigger budget.
+# The default targets Claude Code's 25k-token result limit at roughly 2 characters per
+# token for binary data. Raise it via the env var for clients with a larger budget.
 MAX_RESPONSE_CHARS = int(os.getenv("X64DBG_MCP_MAX_RESPONSE_CHARS", "48000"))
+
+# Held back from a batch's budget so read_memory_many's closing summary and
+# no-debuggee suffix always fit.
+_BATCH_TAIL_RESERVE = 256
 
 NO_DEBUGGEE_MSG = (
     "No debuggee: nothing is attached (not started, or exited/terminated). "
@@ -208,12 +210,9 @@ def _no_debuggee_hint(client) -> str:
 
 
 def _encoded_len(nbytes: int, addr: int, format: str) -> int:
-    """Length of the encoded output, computed without performing the read.
+    """Exact length of the encoded output, computed without performing the read.
 
-    Exact rather than estimated: every encoding is a closed-form function of the byte
-    count and, for 'dump', the address width. A short read returns fewer bytes than
-    requested, so this can only over-estimate — the budget check never lets an
-    oversized response through.
+    A short read yields fewer bytes than requested, so this only ever over-estimates.
     """
     if format == "hex":
         return nbytes * 2
@@ -244,26 +243,34 @@ def _max_bytes_for(format: str, addr: int, budget: int | None = None) -> int:
     if format == "dump":
         # address + 2 spaces + 48-char hex column + 2 spaces + 16 ASCII + newline
         per_line = len(_format_address(addr)) + 2 + 48 + 2 + 16 + 1
-        return (budget // per_line) * 16
+        nbytes = (budget // per_line) * 16
+        # An address gains a digit at each power-of-16 boundary, lengthening every
+        # line past it, so confirm against the exact cost and shrink if needed.
+        while nbytes > 0 and _encoded_len(nbytes, addr, format) > budget:
+            nbytes -= 16
+        return nbytes
     raise ValueError(f"Invalid format '{format}': expected 'dump', 'hex', or 'base64'")
 
 
-def _readable_span(client, addr: int) -> int:
-    """Bytes from addr to the end of its committed region, or 0 if that is unknown.
+def _batch_exhausted(remaining: int) -> str:
+    """Closing line for a batch that ran out of response budget."""
+    return (f"[{remaining} more read(s) skipped: response budget exhausted. "
+            f"Request them in smaller batches.]")
 
-    DbgMemRead is all-or-nothing across region boundaries: a read running past the end
-    of a region fails outright rather than returning a short read. size=0 therefore has
-    to be bounded by the region as well as by the response budget, or it would fail on
-    any region smaller than the budget — which is most stack and heap regions.
+
+def _readable_span(client, addr: int) -> int:
+    """Readable bytes from addr to the end of its region, or 0 if that is unknown.
+
+    DbgMemRead is all-or-nothing across a region boundary: a read running past the end
+    of a region fails rather than returning a short read.
     """
     try:
         for page in client.memmap():
             if page.base_address <= addr < page.base_address + page.region_size:
-                # Committed is not sufficient — a NOACCESS region is unreadable.
-                # PAGE_GUARD is deliberately not excluded: x64dbg folds a stack's
-                # guard page into the region's reported protection, so skipping
-                # guarded regions would rule out most stacks, and ReadProcessMemory
-                # does not trip guard semantics the way an in-process access does.
+                # Committed alone is not enough — a NOACCESS region is unreadable.
+                # PAGE_GUARD stays eligible: x64dbg reports a stack's guard page as
+                # part of the whole region, and ReadProcessMemory does not trip guard
+                # semantics, so excluding it would rule out most stacks.
                 if page.state != MEM_COMMIT or not _protect_matches(page.protect, "r"):
                     return 0
                 return page.base_address + page.region_size - addr
@@ -703,16 +710,14 @@ def trace_over(
 def read_memory(address: str, size: int = 256, format: str = "dump") -> str:
     """Read memory from the debuggee.
 
-    A response is never truncated: a read too large to encode is refused before it is
-    issued, naming the limit for that format. Pass size=0 to read the most that fits.
+    Results are never truncated. A read too large to encode is refused before it is
+    issued, naming the limit for the chosen format.
 
     Args:
         address: Address — hex ('0x7FF6A0001000'), register ('RSP'), symbol, or expression ('rsp+0x20')
         size: Number of bytes to read, or 0 for the largest readable run that fits in
-              one response — the simplest way to pull a region without guessing a
-              limit. Stops at the end of the containing memory region, since reads
-              spanning a region boundary fail outright.
-        format: Output encoding, which also decides how many bytes fit per response:
+              one response, stopping at the end of the containing memory region.
+        format: Output encoding, which also sets how many bytes fit per response:
             'dump'   — hex dump with ASCII sidebar (default; human-readable, ~9 KB)
             'hex'    — contiguous uppercase hex, no separators (~24 KB)
             'base64' — most compact, best for bulk reads (~36 KB)
@@ -750,8 +755,8 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
     Each read is resolved and reported independently: one failing address does not
     abort the others, so a partially-mapped structure still yields its readable fields.
 
-    The batch shares one response budget. A read that no longer fits is skipped whole
-    and reported as such — every returned read is complete, none is ever truncated.
+    The batch shares one response budget. A read that does not fit in what remains is
+    skipped whole and reported as such — every returned read is complete.
 
     Args:
         reads: Ranges as '<address>:<size>' strings, e.g. ['0x1000:16', 'esi+0x10:4'].
@@ -774,29 +779,44 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
 
     lines = []
     failed = False
-    budget = MAX_RESPONSE_CHARS
-    for spec in reads:
+    # Every emitted line counts against the budget — payloads, labels, skip notices and
+    # error notices alike — with a reserve kept back for the tail.
+    budget = MAX_RESPONSE_CHARS - _BATCH_TAIL_RESERVE
+    for index, spec in enumerate(reads):
         try:
             addr_part, _, size_part = spec.rpartition(":")
             if not addr_part:
                 raise ValueError("expected '<address>:<size>'")
             addr = _parse_address_or_expression(addr_part)
             size = max(0, int(size_part, 0))
-            if _encoded_len(size, addr, format) > budget:
-                lines.append(
+            prefix = f"{spec} @{_format_address(addr)} ="
+            overhead = len(prefix) + 2  # separator + newline
+            if _encoded_len(size, addr, format) + overhead > budget:
+                room = _max_bytes_for(format, addr, max(0, budget - overhead))
+                note = (
                     f"{spec} SKIPPED: {size:,} bytes exceeds the remaining response "
-                    f"budget (room for {_max_bytes_for(format, addr, budget):,} more bytes). "
-                    f"Request it separately."
+                    f"budget (room for {room:,} more bytes). Request it separately."
                 )
+                if len(note) + 1 > budget:
+                    lines.append(_batch_exhausted(len(reads) - index))
+                    break
+                lines.append(note)
+                budget -= len(note) + 1
                 continue
             data = client.read_memory(addr, size)
             encoded = _encode_memory(data, addr, format)
             separator = "\n" if format == "dump" else " "
-            lines.append(f"{spec} @{_format_address(addr)} ={separator}{encoded}")
-            budget -= len(encoded)
+            line = f"{prefix}{separator}{encoded}"
+            lines.append(line)
+            budget -= len(line) + 1
         except Exception as e:
             failed = True
-            lines.append(f"{spec} ERROR: {e}")
+            note = f"{spec} ERROR: {e}"
+            if len(note) + 1 > budget:
+                lines.append(_batch_exhausted(len(reads) - index))
+                break
+            lines.append(note)
+            budget -= len(note) + 1
 
     # Probe for a debuggee once, and only if something failed, so a fully
     # successful batch costs no extra round trip — same rule as read_memory.
