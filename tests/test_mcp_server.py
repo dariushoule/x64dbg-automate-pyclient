@@ -452,33 +452,26 @@ class TestGetDebuggerStatus:
 
 
 class TestEvalExpressionNoDebuggee:
-    """x64dbg resolves memory/registers/flags to 0 and reports SUCCESS with no debuggee."""
+    """x64dbg fabricates results with no debuggee, so nothing is evaluated without one."""
 
-    def test_memory_deref_refused(self, mock_client):
+    # Every one of these returns (0, SUCCESS) with no debuggee attached, verified live.
+    # The last four are why the expression is not inspected: they read debuggee state
+    # without naming a register, a flag, or a dereference.
+    @pytest.mark.parametrize("expr", [
+        "[0x400000]",
+        "eax",
+        "_zf",
+        "peb()",
+        "$pid",
+        "mod.main()",
+        "arg.get(0)",
+    ])
+    def test_refused_without_debuggee(self, mock_client, expr):
         mock_client.is_debugging.return_value = False
         mock_client.eval_sync.return_value = (0, True)  # what x64dbg actually returns
-        result = mcp_mod.eval_expression("[0x400000]")
-        assert "memory dereference" in result
-        assert "no debuggee" in result
+        result = mcp_mod.eval_expression(expr)
+        assert "no debuggee attached" in result
         mock_client.eval_sync.assert_not_called()
-
-    def test_register_refused(self, mock_client):
-        mock_client.is_debugging.return_value = False
-        mock_client.eval_sync.return_value = (0, True)
-        result = mcp_mod.eval_expression("eax")
-        assert "register 'eax'" in result
-        mock_client.eval_sync.assert_not_called()
-
-    def test_flag_refused(self, mock_client):
-        mock_client.is_debugging.return_value = False
-        mock_client.eval_sync.return_value = (0, True)
-        assert "flag '_zf'" in mcp_mod.eval_expression("_zf")
-
-    def test_arithmetic_still_works_without_debuggee(self, mock_client):
-        # Pure arithmetic does not touch the debuggee, so it must not be refused.
-        mock_client.is_debugging.return_value = False
-        mock_client.eval_sync.return_value = (0x1235, True)
-        assert mcp_mod.eval_expression("0x1234+1") == "0x1234+1 = 0x1235"
 
     def test_evaluated_normally_when_debugging(self, mock_client):
         mock_client.is_debugging.return_value = True
@@ -490,31 +483,17 @@ class TestEvalExpressionNoDebuggee:
         mock_client.eval_sync.return_value = (0, False)
         assert "Evaluation failed" in mcp_mod.eval_expression("[0x1]")
 
-    def test_symbol_not_mistaken_for_register(self, mock_client):
-        # 'CreateFileA' contains 'al'; 'kernel32' contains no register token either.
-        # Whole-identifier matching must not trip on these.
+    def test_address_resolution_refused_without_debuggee(self, mock_client):
+        # Same guard covers every tool taking an address, via _parse_address_or_expression.
         mock_client.is_debugging.return_value = False
-        mock_client.eval_sync.return_value = (0x7FF600001000, True)
-        result = mcp_mod.eval_expression("kernel32:CreateFileA")
-        assert "0x7FF600001000" in result
+        mock_client.eval_sync.return_value = (0, True)
+        assert "no debuggee attached" in mcp_mod.read_memory("rsp")
+        mock_client.eval_sync.assert_not_called()
 
-    def test_no_extra_roundtrip_for_pure_arithmetic(self, mock_client):
-        mock_client.eval_sync.return_value = (5, True)
-        mcp_mod.eval_expression("2+3")
+    def test_literal_address_does_not_consult_debuggee(self, mock_client):
+        # Literals never reach the evaluator, so they cost no round trip.
+        assert mcp_mod._parse_address_or_expression("0x400000") == 0x400000
         mock_client.is_debugging.assert_not_called()
-
-    @pytest.mark.parametrize("expr,expected", [
-        ("[0x400000]", ["memory dereference"]),
-        ("eax", ["register 'eax'"]),
-        ("RAX", ["register 'RAX'"]),          # case-insensitive
-        ("_zf", ["flag '_zf'"]),
-        ("cip", ["register 'cip'"]),          # architecture-agnostic alias
-        ("2+3", []),
-        ("kernel32:CreateFileA", []),
-        ("0xDEADBEEF", []),
-    ])
-    def test_detector(self, expr, expected):
-        assert mcp_mod._debuggee_state_tokens(expr) == expected
 
 
 class TestNoDebuggeeDisambiguation:
