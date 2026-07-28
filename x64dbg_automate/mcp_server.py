@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import struct
 import sys
 from pathlib import Path
@@ -27,6 +28,7 @@ from x64dbg_automate.models import (
     MEM_PRIVATE,
     MEM_RESERVE,
     MemoryBreakpointType,
+    MutableRegister,
     PAGE_GUARD,
 )
 
@@ -71,6 +73,7 @@ def _parse_address_or_expression(s: str) -> int:
         pass
     # Fall back to x64dbg expression evaluator
     client = _require_client()
+    _assert_expression_evaluable(client, s)
     val, success = client.eval_sync(s)
     if not success:
         raise ValueError(f"Cannot resolve address: {s}")
@@ -168,6 +171,60 @@ def _named_filter_value(value: str, names: dict[int, str], label: str) -> int | 
         if name == value:
             return num
     raise ValueError(f"Invalid {label} filter '{value}': expected one of {sorted(names.values())} or a hex literal")
+
+
+# x64dbg's expression evaluator resolves a memory dereference, a register, or a flag to
+# 0 and reports SUCCESS when nothing is being debugged — see the three
+# `if(!DbgIsDebugging()) { *value = 0; return true; }` branches in dbg/value.cpp. It is
+# silent by default, so a dead debuggee is indistinguishable from a legitimate zero.
+# These are the token classes that trigger it; pure arithmetic is unaffected.
+_REGISTER_TOKENS = frozenset(r.value for r in MutableRegister) | frozenset({
+    # x64dbg's architecture-agnostic aliases, which are not in MutableRegister.
+    "cax", "cbx", "ccx", "cdx", "csi", "cdi", "cbp", "csp", "cip", "cflags",
+})
+_FLAG_TOKENS = frozenset(
+    "_" + f for f in
+    ("cf", "pf", "af", "zf", "sf", "tf", "if", "df", "of", "rf", "vm", "ac", "vif", "vip", "id")
+)
+_IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _debuggee_state_tokens(expression: str) -> list[str]:
+    """Return the parts of an expression that read live debuggee state.
+
+    Used to refuse evaluation rather than hand back x64dbg's fabricated 0. Matches
+    whole identifiers only, so 'kernel32:CreateFileA' is not mistaken for the 'al'
+    register.
+    """
+    found = []
+    if "[" in expression:
+        found.append("memory dereference")
+    for token in _IDENTIFIER_RE.findall(expression):
+        lowered = token.lower()
+        if lowered in _REGISTER_TOKENS:
+            found.append(f"register '{token}'")
+        elif lowered in _FLAG_TOKENS:
+            found.append(f"flag '{token}'")
+    return found
+
+
+def _assert_expression_evaluable(client, expression: str) -> None:
+    """Raise if the expression reads debuggee state and there is no debuggee.
+
+    Raises:
+        ValueError: When evaluation would silently yield 0 instead of failing.
+    """
+    touches = _debuggee_state_tokens(expression)
+    if not touches:
+        return
+    if client.is_debugging():
+        return
+    raise ValueError(
+        f"{expression} reads live debuggee state ({', '.join(sorted(set(touches)))}) "
+        f"but no debuggee is attached. x64dbg would evaluate this to 0 and report "
+        f"success, so the result would be indistinguishable from a real zero. "
+        f"Use get_debugger_status to confirm."
+    )
 
 
 def _no_debuggee_hint(client) -> str:
@@ -892,11 +949,16 @@ def get_all_registers() -> str:
 def eval_expression(expression: str) -> str:
     """Evaluate an x64dbg expression. Supports symbols, registers, arithmetic.
 
+    Expressions that read live debuggee state — memory dereferences, registers, flags —
+    are refused when no debuggee is attached. x64dbg evaluates those to 0 and reports
+    success in that situation, which is indistinguishable from a genuine zero.
+
     Args:
         expression: Expression to evaluate (e.g. 'kernel32:CreateFileA', 'rax+0x10')
     """
     try:
         client = _require_client()
+        _assert_expression_evaluable(client, expression)
         val, success = client.eval_sync(expression)
         if not success:
             return f"Evaluation failed for: {expression}"
