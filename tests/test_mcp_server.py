@@ -481,11 +481,38 @@ class TestNoDebuggeeDisambiguation:
         mcp_mod.read_memory("0x10000", 4)
         mock_client.is_debugging.assert_not_called()
 
-    def test_read_many_refuses_without_debuggee(self, mock_client):
+    def test_read_many_failure_names_no_debuggee(self, mock_client):
         mock_client.is_debugging.return_value = False
+        mock_client.read_memory.side_effect = RuntimeError("XERROR_READ_FAILED")
         result = mcp_mod.read_memory_many(["0x1000:4"])
+        assert "XERROR_READ_FAILED" in result
         assert "No debuggee" in result
-        mock_client.read_memory.assert_not_called()
+
+    def test_read_many_hint_is_appended_once_for_many_failures(self, mock_client):
+        mock_client.is_debugging.return_value = False
+        mock_client.read_memory.side_effect = RuntimeError("XERROR_READ_FAILED")
+        result = mcp_mod.read_memory_many(["0x1000:4", "0x2000:4", "0x3000:4"])
+        assert result.count("No debuggee") == 1
+        mock_client.is_debugging.assert_called_once()
+
+    def test_successful_batch_costs_no_extra_roundtrip(self, mock_client):
+        mock_client.read_memory.return_value = b"\x90" * 4
+        mcp_mod.read_memory_many(["0x1000:4", "0x2000:4"])
+        mock_client.is_debugging.assert_not_called()
+
+    def test_read_many_failure_with_debuggee_is_bad_address(self, mock_client):
+        mock_client.is_debugging.return_value = True
+        mock_client.read_memory.side_effect = RuntimeError("XERROR_READ_FAILED")
+        result = mcp_mod.read_memory_many(["0x1:4"])
+        assert "XERROR_READ_FAILED" in result
+        assert "No debuggee" not in result
+
+    def test_memmap_reports_absence_before_complaining_about_filters(self, mock_client):
+        # A detached session must say so rather than rejecting the filter arguments.
+        mock_client.is_debugging.return_value = False
+        result = mcp_mod.get_memory_map(state="bogus")
+        assert "No debuggee" in result
+        mock_client.memmap.assert_not_called()
 
 
 class TestGo:
