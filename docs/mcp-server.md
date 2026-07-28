@@ -189,6 +189,7 @@ Claude will call `disconnect`, leaving x64dbg running for manual inspection, or 
 - **Memory reads are capped**: `read_memory` is limited to 1 MiB per call and `disassemble` to 100 instructions. Ask for multiple reads if you need more.
 - **Compact output for bulk reads**: `read_memory` defaults to a hex dump with an ASCII sidebar, which costs roughly 3x the raw bytes. Pass `format='hex'` or `format='base64'` when reading structures repeatedly.
 - **Batch scattered reads**: When walking linked structures, `read_memory_many(['esi+0x10:4', '0x1000:16'])` fetches several ranges in one call. A read that fails is reported inline, so a partially-mapped structure still yields its readable fields.
+- **"No debuggee" is reported distinctly**: x64dbg returns the same `XERROR_READ_FAILED` for a bad address and for a dead debuggee, and its memory map is a cache that survives detach — so a detached session would otherwise return a stale map that looks like a successful result. The memory tools check for a debuggee and say so explicitly instead.
 - **Events for synchronization**: Use `wait_for_event` to wait for breakpoints, DLL loads, or other debug events before inspecting state.
 - **Raw commands**: If a feature isn't exposed as a dedicated tool, `execute_command` passes any command directly to x64dbg's command interpreter. See the [x64dbg command reference](https://help.x64dbg.com/en/latest/commands/).
 - **`$result` means different things per command**: see below before relying on it.
