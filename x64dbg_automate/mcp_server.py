@@ -95,8 +95,16 @@ def _format_memory(data: bytes, base: int) -> str:
 
 
 # Only the MCP layer caps reads: the plugin issues an unbounded DbgMemRead and the
-# transport is msgpack bytes, so this is purely a response-size guard.
-MAX_READ_BYTES = 1024 * 1024
+# transport is msgpack bytes. The real ceiling is the MCP client's tool-result limit,
+# so cap the ENCODED response rather than the raw byte count — encoding expands input
+# by 1.33x (base64) to 5.19x (dump), and no single byte cap is correct for all three.
+#
+# Claude Code defaults to 25k tokens per result, and binary data tokenizes at roughly
+# 2 characters per token, so ~48k characters is the conservative equivalent. Direct
+# observation brackets the true limit only loosely — a 43,692-character response was
+# accepted and a 1,398,117-character one rejected — hence a default near the low end.
+# Point the env var at a larger value for clients with a bigger budget.
+MAX_RESPONSE_CHARS = int(os.getenv("X64DBG_MCP_MAX_RESPONSE_CHARS", "48000"))
 
 NO_DEBUGGEE_MSG = (
     "No debuggee: nothing is attached (not started, or exited/terminated). "
@@ -197,6 +205,71 @@ def _no_debuggee_hint(client) -> str:
         return "" if client.is_debugging() else f" — {NO_DEBUGGEE_MSG}"
     except Exception:
         return ""
+
+
+def _encoded_len(nbytes: int, addr: int, format: str) -> int:
+    """Length of the encoded output, computed without performing the read.
+
+    Exact rather than estimated: every encoding is a closed-form function of the byte
+    count and, for 'dump', the address width. A short read returns fewer bytes than
+    requested, so this can only over-estimate — the budget check never lets an
+    oversized response through.
+    """
+    if format == "hex":
+        return nbytes * 2
+    if format == "base64":
+        return 4 * ((nbytes + 2) // 3)
+    if format == "dump":
+        # Every dump line costs more than one character per byte, so a byte count
+        # already past the budget cannot fit — skip the per-line walk.
+        if nbytes > MAX_RESPONSE_CHARS:
+            return nbytes
+        total = 0
+        for offset in range(0, nbytes, 16):
+            n = min(16, nbytes - offset)
+            total += len(_format_address(addr + offset)) + 2 + max(48, n * 3 - 1) + 2 + n
+        return total + max(0, (nbytes + 15) // 16 - 1)  # newlines between lines
+    raise ValueError(f"Invalid format '{format}': expected 'dump', 'hex', or 'base64'")
+
+
+def _max_bytes_for(format: str, addr: int, budget: int | None = None) -> int:
+    """Largest byte count whose encoded form fits the response budget."""
+    budget = MAX_RESPONSE_CHARS if budget is None else budget
+    if budget <= 0:
+        return 0
+    if format == "hex":
+        return budget // 2
+    if format == "base64":
+        return (budget // 4) * 3
+    if format == "dump":
+        # address + 2 spaces + 48-char hex column + 2 spaces + 16 ASCII + newline
+        per_line = len(_format_address(addr)) + 2 + 48 + 2 + 16 + 1
+        return (budget // per_line) * 16
+    raise ValueError(f"Invalid format '{format}': expected 'dump', 'hex', or 'base64'")
+
+
+def _readable_span(client, addr: int) -> int:
+    """Bytes from addr to the end of its committed region, or 0 if that is unknown.
+
+    DbgMemRead is all-or-nothing across region boundaries: a read running past the end
+    of a region fails outright rather than returning a short read. size=0 therefore has
+    to be bounded by the region as well as by the response budget, or it would fail on
+    any region smaller than the budget — which is most stack and heap regions.
+    """
+    try:
+        for page in client.memmap():
+            if page.base_address <= addr < page.base_address + page.region_size:
+                # Committed is not sufficient — a NOACCESS region is unreadable.
+                # PAGE_GUARD is deliberately not excluded: x64dbg folds a stack's
+                # guard page into the region's reported protection, so skipping
+                # guarded regions would rule out most stacks, and ReadProcessMemory
+                # does not trip guard semantics the way an in-process access does.
+                if page.state != MEM_COMMIT or not _protect_matches(page.protect, "r"):
+                    return 0
+                return page.base_address + page.region_size - addr
+    except Exception:
+        return 0
+    return 0
 
 
 def _encode_memory(data: bytes, addr: int, format: str) -> str:
@@ -630,18 +703,37 @@ def trace_over(
 def read_memory(address: str, size: int = 256, format: str = "dump") -> str:
     """Read memory from the debuggee.
 
+    A response is never truncated: a read too large to encode is refused before it is
+    issued, naming the limit for that format. Pass size=0 to read the most that fits.
+
     Args:
         address: Address — hex ('0x7FF6A0001000'), register ('RSP'), symbol, or expression ('rsp+0x20')
-        size: Number of bytes to read (max 1048576)
-        format: Output encoding:
-            'dump'   — hex dump with ASCII sidebar (default; human-readable, ~3x the raw bytes)
-            'hex'    — contiguous uppercase hex, no separators
-            'base64' — base64, most compact for bulk reads
+        size: Number of bytes to read, or 0 for the largest readable run that fits in
+              one response — the simplest way to pull a region without guessing a
+              limit. Stops at the end of the containing memory region, since reads
+              spanning a region boundary fail outright.
+        format: Output encoding, which also decides how many bytes fit per response:
+            'dump'   — hex dump with ASCII sidebar (default; human-readable, ~9 KB)
+            'hex'    — contiguous uppercase hex, no separators (~24 KB)
+            'base64' — most compact, best for bulk reads (~36 KB)
     """
     try:
         client = _require_client()
         addr = _parse_address_or_expression(address)
-        size = max(0, min(size, MAX_READ_BYTES))
+        cap = _max_bytes_for(format, addr)
+        if size <= 0:
+            # Bounded by the region as well as the budget — see _readable_span.
+            span = _readable_span(client, addr)
+            size = min(cap, span) if span else cap
+        elif _encoded_len(size, addr, format) > MAX_RESPONSE_CHARS:
+            alt = ""
+            if format != "base64":
+                alt = f", or format='base64' to fit {_max_bytes_for('base64', addr):,}"
+            return (
+                f"Error: {size:,} bytes as '{format}' would exceed the response limit. "
+                f"Read at most {cap:,} bytes in this format{alt}. "
+                f"Pass size=0 for the largest read that fits."
+            )
         try:
             data = client.read_memory(addr, size)
         except Exception as e:
@@ -658,14 +750,19 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
     Each read is resolved and reported independently: one failing address does not
     abort the others, so a partially-mapped structure still yields its readable fields.
 
+    The batch shares one response budget. A read that no longer fits is skipped whole
+    and reported as such — every returned read is complete, none is ever truncated.
+
     Args:
         reads: Ranges as '<address>:<size>' strings, e.g. ['0x1000:16', 'esi+0x10:4'].
-               The address accepts the same forms as read_memory.
+               The address accepts the same forms as read_memory. Sizes are literal
+               here; the size=0 shorthand is read_memory only.
         format: Output encoding per read — 'hex' (default), 'base64', or 'dump'.
 
     Returns:
-        One line per read: '<spec> @<resolved address> = <encoded bytes>', or
-        '<spec> ERROR: <reason>' for reads that could not be satisfied.
+        One line per read: '<spec> @<resolved address> = <encoded bytes>',
+        '<spec> ERROR: <reason>' for reads that could not be satisfied, or
+        '<spec> SKIPPED: ...' for reads dropped to stay within the response budget.
     """
     try:
         client = _require_client()
@@ -677,17 +774,26 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
 
     lines = []
     failed = False
+    budget = MAX_RESPONSE_CHARS
     for spec in reads:
         try:
             addr_part, _, size_part = spec.rpartition(":")
             if not addr_part:
                 raise ValueError("expected '<address>:<size>'")
             addr = _parse_address_or_expression(addr_part)
-            size = max(0, min(int(size_part, 0), MAX_READ_BYTES))
+            size = max(0, int(size_part, 0))
+            if _encoded_len(size, addr, format) > budget:
+                lines.append(
+                    f"{spec} SKIPPED: {size:,} bytes exceeds the remaining response "
+                    f"budget (room for {_max_bytes_for(format, addr, budget):,} more bytes). "
+                    f"Request it separately."
+                )
+                continue
             data = client.read_memory(addr, size)
             encoded = _encode_memory(data, addr, format)
             separator = "\n" if format == "dump" else " "
             lines.append(f"{spec} @{_format_address(addr)} ={separator}{encoded}")
+            budget -= len(encoded)
         except Exception as e:
             failed = True
             lines.append(f"{spec} ERROR: {e}")

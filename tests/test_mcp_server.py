@@ -620,15 +620,112 @@ class TestReadMemory:
         assert "0x1000" in result
         assert "90" in result
 
-    def test_size_capped(self, mock_client):
-        mock_client.read_memory.return_value = b"\x00"
-        mcp_mod.read_memory("0x1000", 99_999_999)
-        mock_client.read_memory.assert_called_once_with(0x1000, mcp_mod.MAX_READ_BYTES)
+    def test_oversized_refused_without_reading(self, mock_client):
+        """Too large to encode is refused up front — never truncated, never issued."""
+        result = mcp_mod.read_memory("0x1000", 99_999_999)
+        assert "would exceed the response limit" in result
+        assert "Read at most" in result
+        mock_client.read_memory.assert_not_called()
+
+    def test_oversized_suggests_base64(self, mock_client):
+        result = mcp_mod.read_memory("0x1000", 99_999_999, format="hex")
+        assert "format='base64'" in result
+
+    def test_oversized_in_base64_does_not_suggest_itself(self, mock_client):
+        result = mcp_mod.read_memory("0x1000", 99_999_999, format="base64")
+        assert "format='base64'" not in result
 
     def test_size_below_cap_passed_through(self, mock_client):
         mock_client.read_memory.return_value = b"\x00" * 9999
-        mcp_mod.read_memory("0x1000", 9999)
+        mcp_mod.read_memory("0x1000", 9999, format="base64")
         mock_client.read_memory.assert_called_once_with(0x1000, 9999)
+
+    def test_size_zero_reads_the_most_that_fits(self, mock_client):
+        mock_client.read_memory.return_value = b"\x00"
+        mcp_mod.read_memory("0x1000", 0, format="base64")
+        expected = mcp_mod._max_bytes_for("base64", 0x1000)
+        mock_client.read_memory.assert_called_once_with(0x1000, expected)
+
+    def test_size_zero_result_fits_budget(self, mock_client):
+        for fmt in ("dump", "hex", "base64"):
+            cap = mcp_mod._max_bytes_for(fmt, 0x7FFEF0E9D7BE)
+            mock_client.read_memory.return_value = b"\xAB" * cap
+            out = mcp_mod.read_memory("0x7FFEF0E9D7BE", 0, format=fmt)
+            assert len(out) <= mcp_mod.MAX_RESPONSE_CHARS, f"{fmt} overflowed: {len(out)}"
+
+
+class TestResponseBudget:
+    """Encoded size is exact, so the budget can be enforced before the read happens."""
+
+    @pytest.mark.parametrize("fmt", ["dump", "hex", "base64"])
+    @pytest.mark.parametrize("nbytes", [0, 1, 2, 3, 15, 16, 17, 255, 4096])
+    @pytest.mark.parametrize("addr", [0x401000, 0x7FFEF0E9D7BE])
+    def test_predicted_length_is_exact(self, fmt, nbytes, addr):
+        predicted = mcp_mod._encoded_len(nbytes, addr, fmt)
+        actual = len(mcp_mod._encode_memory(bytes(nbytes), addr, fmt))
+        assert predicted == actual
+
+    @pytest.mark.parametrize("fmt", ["dump", "hex", "base64"])
+    @pytest.mark.parametrize("addr", [0x401000, 0x7FFEF0E9D7BE])
+    def test_max_bytes_fits_and_is_maximal(self, fmt, addr):
+        cap = mcp_mod._max_bytes_for(fmt, addr)
+        assert mcp_mod._encoded_len(cap, addr, fmt) <= mcp_mod.MAX_RESPONSE_CHARS
+        # One more line/unit must not fit, or the cap is leaving room on the table.
+        step = 16 if fmt == "dump" else 3
+        assert mcp_mod._encoded_len(cap + step, addr, fmt) > mcp_mod.MAX_RESPONSE_CHARS
+
+    def test_invalid_format_rejected(self):
+        with pytest.raises(ValueError, match="Invalid format"):
+            mcp_mod._encoded_len(16, 0x1000, "rot13")
+
+
+class TestReadableSpan:
+    """size=0 must stop at the region edge: DbgMemRead is all-or-nothing across one."""
+
+    @staticmethod
+    def _page(base, size, protect=0x04, state=None):
+        from x64dbg_automate.models import MEM_COMMIT
+        p = MagicMock()
+        p.base_address, p.region_size = base, size
+        p.protect, p.state = protect, MEM_COMMIT if state is None else state
+        return p
+
+    def test_span_stops_at_region_end(self, mock_client):
+        mock_client.memmap.return_value = [self._page(0x1000, 0x2000)]
+        assert mcp_mod._readable_span(mock_client, 0x1800) == 0x1800
+
+    def test_unmapped_address_reports_unknown(self, mock_client):
+        mock_client.memmap.return_value = [self._page(0x1000, 0x1000)]
+        assert mcp_mod._readable_span(mock_client, 0x9999) == 0
+
+    def test_noaccess_region_is_not_readable(self, mock_client):
+        mock_client.memmap.return_value = [self._page(0x1000, 0x1000, protect=0x01)]
+        assert mcp_mod._readable_span(mock_client, 0x1000) == 0
+
+    def test_guarded_stack_still_readable(self, mock_client):
+        """x64dbg folds a stack's guard page into the region; excluding it broke stacks."""
+        from x64dbg_automate.models import PAGE_GUARD
+        mock_client.memmap.return_value = [self._page(0x1000, 0x8000, protect=0x04 | PAGE_GUARD)]
+        assert mcp_mod._readable_span(mock_client, 0x1000) == 0x8000
+
+    def test_reserved_region_is_not_readable(self, mock_client):
+        from x64dbg_automate.models import MEM_RESERVE
+        mock_client.memmap.return_value = [self._page(0x1000, 0x1000, state=MEM_RESERVE)]
+        assert mcp_mod._readable_span(mock_client, 0x1000) == 0
+
+    def test_size_zero_clamps_to_region(self, mock_client):
+        """A region smaller than the budget must not produce an over-long request."""
+        mock_client.memmap.return_value = [self._page(0x1000, 0x1000)]
+        mock_client.read_memory.return_value = b"\x00" * 0x800
+        mcp_mod.read_memory("0x1800", 0, format="base64")
+        mock_client.read_memory.assert_called_once_with(0x1800, 0x800)
+
+    def test_size_zero_uses_budget_when_span_unknown(self, mock_client):
+        mock_client.memmap.side_effect = RuntimeError("no map")
+        mock_client.read_memory.return_value = b"\x00"
+        mcp_mod.read_memory("0x1000", 0, format="base64")
+        expected = mcp_mod._max_bytes_for("base64", 0x1000)
+        mock_client.read_memory.assert_called_once_with(0x1000, expected)
 
     def test_format_hex(self, mock_client):
         mock_client.read_memory.return_value = b"\xde\xad\xbe\xef"
@@ -666,6 +763,29 @@ class TestReadMemoryMany:
 
     def test_empty(self, mock_client):
         assert "No reads requested" in mcp_mod.read_memory_many([])
+
+    def test_batch_shares_one_budget(self, mock_client):
+        """Earlier reads complete; the one that no longer fits is skipped, not cut."""
+        cap = mcp_mod._max_bytes_for("hex", 0x1000)
+        mock_client.read_memory.side_effect = [b"\xAA" * cap, b"\xBB"]
+        result = mcp_mod.read_memory_many([f"0x1000:{cap}", "0x2000:1"])
+        assert result.startswith("0x1000:%d @0x1000 = AA" % cap)
+        assert "0x2000:1 SKIPPED" in result
+        # The skipped read must not have been issued.
+        assert mock_client.read_memory.call_count == 1
+
+    def test_batch_stays_within_budget(self, mock_client):
+        cap = mcp_mod._max_bytes_for("base64", 0x1000)
+        mock_client.read_memory.return_value = b"\xAB" * cap
+        result = mcp_mod.read_memory_many([f"0x{i}000:{cap}" for i in range(1, 6)],
+                                          format="base64")
+        assert len(result) <= mcp_mod.MAX_RESPONSE_CHARS * 1.1  # + skip notices
+        assert "SKIPPED" in result
+
+    def test_oversized_single_read_skipped_not_truncated(self, mock_client):
+        result = mcp_mod.read_memory_many(["0x1000:99999999"])
+        assert "SKIPPED" in result
+        mock_client.read_memory.assert_not_called()
 
 
 class TestWriteMemory:
