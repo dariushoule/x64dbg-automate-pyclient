@@ -150,6 +150,17 @@ Show me the memory map and read 256 bytes at RSP
 
 Claude will call `get_memory_map` and `read_memory`, returning a hex dump with ASCII sidebar.
 
+`get_memory_map` lists committed regions by default and can be narrowed further — a full
+map is typically ~1000 regions and too large for one response:
+
+```
+Show me the committed private read-write regions larger than 64KB
+```
+
+Claude will call `get_memory_map` with `mem_type='private'`, `protect='rw'`, and
+`min_size=65536`. Pass `state=''` to include reserved and free regions, `as_json=True`
+for a machine-readable form, and `offset`/`limit` to page through large results.
+
 **Step 3: Set breakpoints and run**
 
 ```
