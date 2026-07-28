@@ -14,10 +14,10 @@ Issues = "https://github.com/dariushoule/x64dbg-automate-pyclient/issues"
 [tool.poetry.dependencies]
 python = "^3.10"
 pyzmq = "^27.1.0"
-msgpack = "^1.1.0"
+msgpack = "^1.2.1"
 pydantic = "^2.10.6"
 psutil = "^6.1.1"
-mcp = {version = "^1.26.0", optional = true}
+mcp = {version = "^1.28.1", optional = true}
 
 [tool.poetry.extras]
 mcp = ["mcp"]
