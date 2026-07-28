@@ -315,6 +315,13 @@ PubSubPort=50001</code></p>
 <pre><code>Show me the memory map and read 256 bytes at RSP
 </code></pre>
 <p>Claude will call <code>get_memory_map</code> and <code>read_memory</code>, returning a hex dump with ASCII sidebar.</p>
+<p><code>get_memory_map</code> lists committed regions by default and can be narrowed further — a full
+map is typically ~1000 regions and too large for one response:</p>
+<pre><code>Show me the committed private read-write regions larger than 64KB
+</code></pre>
+<p>Claude will call <code>get_memory_map</code> with <code>mem_type='private'</code>, <code>protect='rw'</code>, and
+<code>min_size=65536</code>. Pass <code>state=''</code> to include reserved and free regions, <code>as_json=True</code>
+for a machine-readable form, and <code>offset</code>/<code>limit</code> to page through large results.</p>
 <p><strong>Step 3: Set breakpoints and run</strong></p>
 <pre><code>Set a breakpoint on MessageBoxA and resume execution
 </code></pre>
