@@ -23,11 +23,6 @@ PAGE_EXECUTE_READWRITE = 0x40
 PAGE_EXECUTE_WRITECOPY = 0x80
 PAGE_GUARD = 0x100
 
-# Copy-on-write pages count as writable.
-WRITABLE_PROTECTIONS = frozenset({
-    PAGE_READWRITE, PAGE_WRITECOPY, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY,
-})
-
 
 class DebugSession(BaseModel):
     """

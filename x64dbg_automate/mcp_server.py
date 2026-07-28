@@ -655,10 +655,11 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
     except Exception as e:
         return f"Error: {e}"
 
-    if not client.is_debugging():
-        return NO_DEBUGGEE_MSG
+    if not reads:
+        return "No reads requested."
 
     lines = []
+    failed = False
     for spec in reads:
         try:
             addr_part, _, size_part = spec.rpartition(":")
@@ -671,8 +672,13 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
             separator = "\n" if format == "dump" else " "
             lines.append(f"{spec} @{_format_address(addr)} ={separator}{encoded}")
         except Exception as e:
+            failed = True
             lines.append(f"{spec} ERROR: {e}")
-    return "\n".join(lines) if lines else "No reads requested."
+
+    # Probe for a debuggee once, and only if something failed, so a fully
+    # successful batch costs no extra round trip — same rule as read_memory.
+    suffix = _no_debuggee_hint(client).lstrip(" —") if failed else ""
+    return "\n".join(lines) + (f"\n{suffix}" if suffix else "")
 
 
 @mcp.tool()
@@ -760,14 +766,17 @@ def get_memory_map(
     """
     try:
         client = _require_client()
-        want_state = _named_filter_value(state, _STATE_NAMES, "state")
-        want_type = _named_filter_value(mem_type, _TYPE_NAMES, "mem_type")
 
         # DbgMemMap copies x64dbg's memoryPages cache with no debuggee check, and that
         # cache is only refreshed on debug events. With nothing attached it returns the
         # dead process's map, which looks like a successful result. Fail loudly instead.
+        # Checked before the filters are parsed so a detached session reports the
+        # absence rather than a complaint about the filter arguments.
         if not client.is_debugging():
             return NO_DEBUGGEE_MSG
+
+        want_state = _named_filter_value(state, _STATE_NAMES, "state")
+        want_type = _named_filter_value(mem_type, _TYPE_NAMES, "mem_type")
 
         pages = client.memmap()
         total = len(pages)
