@@ -71,6 +71,7 @@ def _parse_address_or_expression(s: str) -> int:
         pass
     # Fall back to x64dbg expression evaluator
     client = _require_client()
+    _assert_expression_evaluable(client, s)
     val, success = client.eval_sync(s)
     if not success:
         raise ValueError(f"Cannot resolve address: {s}")
@@ -168,6 +169,22 @@ def _named_filter_value(value: str, names: dict[int, str], label: str) -> int | 
         if name == value:
             return num
     raise ValueError(f"Invalid {label} filter '{value}': expected one of {sorted(names.values())} or a hex literal")
+
+
+def _assert_expression_evaluable(client, expression: str) -> None:
+    """Raise if there is no debuggee to evaluate the expression against.
+
+    With nothing attached, x64dbg resolves registers, flags and memory dereferences to
+    0 and reports SUCCESS, and expression functions such as peb() and mod.base() either
+    do the same or return values cached from the exited process. Which expressions are
+    affected cannot be decided from the string — the evaluator's grammar is open and
+    plugins extend it — so nothing is evaluated without a debuggee.
+
+    Raises:
+        ValueError: When no debuggee is attached.
+    """
+    if not client.is_debugging():
+        raise ValueError(f"Cannot evaluate '{expression}': no debuggee attached")
 
 
 def _no_debuggee_hint(client) -> str:
@@ -892,11 +909,15 @@ def get_all_registers() -> str:
 def eval_expression(expression: str) -> str:
     """Evaluate an x64dbg expression. Supports symbols, registers, arithmetic.
 
+    Requires a debuggee. With nothing attached x64dbg resolves registers, flags and
+    memory reads to 0 and reports success, which is indistinguishable from a real zero.
+
     Args:
         expression: Expression to evaluate (e.g. 'kernel32:CreateFileA', 'rax+0x10')
     """
     try:
         client = _require_client()
+        _assert_expression_evaluable(client, expression)
         val, success = client.eval_sync(expression)
         if not success:
             return f"Evaluation failed for: {expression}"
