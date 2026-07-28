@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import os
 import struct
 import sys
@@ -26,7 +27,9 @@ mcp = FastMCP(
     instructions=(
         "MCP server for controlling the x64dbg debugger via x64dbg-automate. "
         "Use list_sessions or start_session first, then connect before using other tools. "
-        "Addresses are hex strings (e.g. '0x7FF6A0001000'). Memory reads return hex dumps."
+        "Addresses are hex strings (e.g. '0x7FF6A0001000'). Memory reads return hex dumps "
+        "by default; pass format='hex' or 'base64' for compact output, and use "
+        "read_memory_many to batch scattered struct-field reads."
     ),
 )
 
@@ -80,6 +83,22 @@ def _format_memory(data: bytes, base: int) -> str:
         ascii_part = "".join(chr(b) if 0x20 <= b < 0x7F else "." for b in chunk)
         lines.append(f"{_format_address(base + offset)}  {hex_part:<48s}  {ascii_part}")
     return "\n".join(lines)
+
+
+# Only the MCP layer caps reads: the plugin issues an unbounded DbgMemRead and the
+# transport is msgpack bytes, so this is purely a response-size guard.
+MAX_READ_BYTES = 1024 * 1024
+
+
+def _encode_memory(data: bytes, addr: int, format: str) -> str:
+    """Render read bytes in the requested output format."""
+    if format == "dump":
+        return _format_memory(data, addr)
+    if format == "hex":
+        return data.hex().upper()
+    if format == "base64":
+        return base64.b64encode(data).decode("ascii")
+    raise ValueError(f"Invalid format '{format}': expected 'dump', 'hex', or 'base64'")
 
 
 def _pe_bitness(exe_path: str) -> int:
@@ -495,21 +514,63 @@ def trace_over(
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
-def read_memory(address: str, size: int = 256) -> str:
-    """Read memory from the debuggee. Returns hex dump with ASCII sidebar.
+def read_memory(address: str, size: int = 256, format: str = "dump") -> str:
+    """Read memory from the debuggee.
 
     Args:
         address: Address — hex ('0x7FF6A0001000'), register ('RSP'), symbol, or expression ('rsp+0x20')
-        size: Number of bytes to read (max 4096)
+        size: Number of bytes to read (max 1048576)
+        format: Output encoding:
+            'dump'   — hex dump with ASCII sidebar (default; human-readable, ~3x the raw bytes)
+            'hex'    — contiguous uppercase hex, no separators
+            'base64' — base64, most compact for bulk reads
     """
     try:
         client = _require_client()
         addr = _parse_address_or_expression(address)
-        size = min(size, 4096)
+        size = max(0, min(size, MAX_READ_BYTES))
         data = client.read_memory(addr, size)
-        return _format_memory(data, addr)
+        return _encode_memory(data, addr, format)
     except Exception as e:
         return f"Error: {e}"
+
+
+@mcp.tool()
+def read_memory_many(reads: list[str], format: str = "hex") -> str:
+    """Read several memory ranges in one call — for walking scattered struct fields.
+
+    Each read is resolved and reported independently: one failing address does not
+    abort the others, so a partially-mapped structure still yields its readable fields.
+
+    Args:
+        reads: Ranges as '<address>:<size>' strings, e.g. ['0x1000:16', 'esi+0x10:4'].
+               The address accepts the same forms as read_memory.
+        format: Output encoding per read — 'hex' (default), 'base64', or 'dump'.
+
+    Returns:
+        One line per read: '<spec> @<resolved address> = <encoded bytes>', or
+        '<spec> ERROR: <reason>' for reads that could not be satisfied.
+    """
+    try:
+        client = _require_client()
+    except Exception as e:
+        return f"Error: {e}"
+
+    lines = []
+    for spec in reads:
+        try:
+            addr_part, _, size_part = spec.rpartition(":")
+            if not addr_part:
+                raise ValueError("expected '<address>:<size>'")
+            addr = _parse_address_or_expression(addr_part)
+            size = max(0, min(int(size_part, 0), MAX_READ_BYTES))
+            data = client.read_memory(addr, size)
+            encoded = _encode_memory(data, addr, format)
+            separator = "\n" if format == "dump" else " "
+            lines.append(f"{spec} @{_format_address(addr)} ={separator}{encoded}")
+        except Exception as e:
+            lines.append(f"{spec} ERROR: {e}")
+    return "\n".join(lines) if lines else "No reads requested."
 
 
 @mcp.tool()

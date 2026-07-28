@@ -492,8 +492,50 @@ class TestReadMemory:
 
     def test_size_capped(self, mock_client):
         mock_client.read_memory.return_value = b"\x00"
+        mcp_mod.read_memory("0x1000", 99_999_999)
+        mock_client.read_memory.assert_called_once_with(0x1000, mcp_mod.MAX_READ_BYTES)
+
+    def test_size_below_cap_passed_through(self, mock_client):
+        mock_client.read_memory.return_value = b"\x00" * 9999
         mcp_mod.read_memory("0x1000", 9999)
-        mock_client.read_memory.assert_called_once_with(0x1000, 4096)
+        mock_client.read_memory.assert_called_once_with(0x1000, 9999)
+
+    def test_format_hex(self, mock_client):
+        mock_client.read_memory.return_value = b"\xde\xad\xbe\xef"
+        assert mcp_mod.read_memory("0x1000", 4, format="hex") == "DEADBEEF"
+
+    def test_format_base64(self, mock_client):
+        mock_client.read_memory.return_value = b"\xde\xad\xbe\xef"
+        assert mcp_mod.read_memory("0x1000", 4, format="base64") == "3q2+7w=="
+
+    def test_format_dump_is_default(self, mock_client):
+        mock_client.read_memory.return_value = b"\xde\xad\xbe\xef"
+        assert mcp_mod.read_memory("0x1000", 4) == mcp_mod.read_memory("0x1000", 4, format="dump")
+
+    def test_invalid_format(self, mock_client):
+        mock_client.read_memory.return_value = b"\x00"
+        assert "Error" in mcp_mod.read_memory("0x1000", 1, format="yaml")
+
+
+class TestReadMemoryMany:
+    def test_batch(self, mock_client):
+        mock_client.read_memory.side_effect = [b"\xaa\xbb", b"\xcc"]
+        result = mcp_mod.read_memory_many(["0x1000:2", "0x2000:1"])
+        assert "0x1000:2 @0x1000 = AABB" in result
+        assert "0x2000:1 @0x2000 = CC" in result
+
+    def test_one_failure_does_not_abort_others(self, mock_client):
+        mock_client.read_memory.side_effect = [RuntimeError("XERROR_READ_FAILED"), b"\xcc"]
+        result = mcp_mod.read_memory_many(["0x1000:2", "0x2000:1"])
+        assert "0x1000:2 ERROR: XERROR_READ_FAILED" in result
+        assert "0x2000:1 @0x2000 = CC" in result
+
+    def test_malformed_spec(self, mock_client):
+        result = mcp_mod.read_memory_many(["garbage"])
+        assert "ERROR" in result
+
+    def test_empty(self, mock_client):
+        assert "No reads requested" in mcp_mod.read_memory_many([])
 
 
 class TestWriteMemory:

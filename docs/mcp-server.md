@@ -84,7 +84,7 @@ The MCP server provides ~40 tools organized into the following groups:
 |-------|-------|-------------|
 | Session | `list_sessions`, `start_session`, `connect_to_session`, `connect_remote`, `disconnect`, `terminate_session` | Manage debugger instances |
 | Debug Control | `go`, `pause`, `step_into`, `step_over`, `skip_instruction`, `run_to_return`, `get_debugger_status` | Control execution |
-| Memory | `read_memory`, `write_memory`, `allocate_memory`, `free_memory`, `get_memory_map` | Read/write debuggee memory |
+| Memory | `read_memory`, `read_memory_many`, `write_memory`, `allocate_memory`, `free_memory`, `get_memory_map` | Read/write debuggee memory |
 | Registers | `get_register`, `set_register`, `get_all_registers` | Register access |
 | Expressions | `eval_expression`, `execute_command` | x64dbg expression evaluator and raw commands |
 | Breakpoints | `set_breakpoint`, `clear_breakpoint`, `toggle_breakpoint`, `list_breakpoints` | Software, hardware, and memory breakpoints |
@@ -186,7 +186,9 @@ Claude will call `disconnect`, leaving x64dbg running for manual inspection, or 
 
 - **Let Claude drive**: Describe your analysis goal in plain language. Claude can chain multiple tools together to investigate, set breakpoints, read memory, and modify state.
 - **Expressions work everywhere**: Any tool that takes an address also accepts registers, symbols, and arithmetic expressions — just like the x64dbg command bar.
-- **Memory reads are capped**: `read_memory` is limited to 4096 bytes per call and `disassemble` to 100 instructions. Ask for multiple reads if you need more.
+- **Memory reads are capped**: `read_memory` is limited to 1 MiB per call and `disassemble` to 100 instructions. Ask for multiple reads if you need more.
+- **Compact output for bulk reads**: `read_memory` defaults to a hex dump with an ASCII sidebar, which costs roughly 3x the raw bytes. Pass `format='hex'` or `format='base64'` when reading structures repeatedly.
+- **Batch scattered reads**: When walking linked structures, `read_memory_many(['esi+0x10:4', '0x1000:16'])` fetches several ranges in one call. A read that fails is reported inline, so a partially-mapped structure still yields its readable fields.
 - **Events for synchronization**: Use `wait_for_event` to wait for breakpoints, DLL loads, or other debug events before inspecting state.
 - **Raw commands**: If a feature isn't exposed as a dedicated tool, `execute_command` passes any command directly to x64dbg's command interpreter. See the [x64dbg command reference](https://help.x64dbg.com/en/latest/commands/).
 - **`$result` means different things per command**: see below before relying on it.
