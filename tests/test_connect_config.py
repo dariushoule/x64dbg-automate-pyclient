@@ -1,4 +1,5 @@
 import os
+import pytest
 import subprocess
 from tests.conftest import TEST_BITNESS, X64DBG_PATH
 from x64dbg_automate import X64DbgClient
@@ -18,6 +19,23 @@ def test_reconnect(client: X64DbgClient):
 def test_compat_version(client: X64DbgClient):
     client.start_session()
     client._assert_connection_compat()
+
+
+def test_incompatible_version_closes_connection():
+    class Client:
+        closed = False
+
+        def _get_xauto_compat_version(self):
+            return "old_version"
+
+        def _close_connection(self):
+            self.closed = True
+
+    client = Client()
+    with pytest.raises(AssertionError, match="Incompatible x64dbg plugin and client versions"):
+        X64DbgClient._assert_connection_compat(client)
+
+    assert client.closed
 
 
 def test_bitness(client: X64DbgClient):

@@ -170,7 +170,9 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
 
     def _assert_connection_compat(self) -> None:
         v = self._get_xauto_compat_version()
-        assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
+        if v != COMPAT_VERSION:
+            self._close_connection()
+            raise AssertionError(f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}")
         
     def _launch_x64dbg(self) -> int:
         if self.x64dbg_path is None:
