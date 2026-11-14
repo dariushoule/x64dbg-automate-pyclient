@@ -49,6 +49,14 @@ async def a2():
 print("=== 4. local_patch_info ===")
 print("  " + LE.local_patch_info().replace("\n", "\n  "))
 
+print("=== 4b. find_bytes 的 covered 不重复计 chunk 重叠 ===")
+class _All:
+    def read_memory(self, a, n): return b"\x90" * n
+    def memmap(self): return []
+_hits, _covered, _trunc = LE._scan_bytes(_All(), 0x1000, 0x30000, [0xCC], [0xFF], 1)
+print(f"  covered={_covered:#x} expected=0x30000")
+assert _covered == 0x30000, f"covered double-counts the {1} byte overlap: {_covered:#x}"
+
 print("=== 5. xref 修好的实现（假 client，三类 RIP 相对）===")
 BASE = 0x140000000
 buf = bytearray(b"\x90" * 0x2000)

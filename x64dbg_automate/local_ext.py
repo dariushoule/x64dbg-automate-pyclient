@@ -28,7 +28,7 @@ import sys
 MEM_IMAGE = 0x1000000
 _MAX_SCAN = 64 * 1024 * 1024
 
-PATCH = "0.9.2+local.3"
+PATCH = "0.9.2+local.4"
 LOCAL_TOOLS: list[str] = []
 
 
@@ -119,6 +119,7 @@ def _scan_bytes(client, start: int, size: int, vals, masks, max_hits: int):
     truncated = size > _MAX_SCAN
     end = start + capped
     covered = 0
+    prev_end = None
     first_byte = None
     fixed = all(masks)
     if fixed:
@@ -132,7 +133,12 @@ def _scan_bytes(client, start: int, size: int, vals, masks, max_hits: int):
         except Exception:
             addr += chunk
             continue
-        covered += len(buf)
+        # chunks overlap by plen-1 bytes so a match spanning the boundary is not
+        # missed; count only the newly covered part (p2 counted the overlap too,
+        # so a 6.4 MB module reported 6,400,388 bytes scanned).
+        overlap = 0 if prev_end is None else max(0, prev_end - addr)
+        covered += len(buf) - overlap
+        prev_end = addr + len(buf)
         limit = len(buf) - plen
         pos = 0
         while pos <= limit:

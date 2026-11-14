@@ -33,7 +33,7 @@ from x64dbg_automate.models import (
 # Local patch marker. Base package is 0.9.2 (poetry version unchanged on purpose;
 # see pyproject [project].version = 0.9.2+local.3). Bump the trailing counter on
 # every further local edit so changes stay diffable against upstream.
-_XAUTO_MCP_PATCH = "0.9.2+local.3"
+_XAUTO_MCP_PATCH = "0.9.2+local.4"
 
 mcp = FastMCP(
     "x64dbg-automate",
