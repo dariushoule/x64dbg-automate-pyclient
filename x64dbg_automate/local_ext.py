@@ -291,18 +291,12 @@ def _console_call(pid: int, mode: str, payload: str = "") -> dict:
 # ---------------------------------------------------------------------------
 
 def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) -> str:
-    """跳过当前 call 指令并设置 rax，用于 fgets/scanf/IsDebuggerPresent 等调用。
+    """
+    跳过当前 call 并写入返回值（x64 写 rax / x86 写 eax）。
 
-    Args:
-        return_value: 写入返回值寄存器（x64: rax / x86: eax）的值（十进制，可为负）
-        mode: "call"   — 断在 call 指令上（默认）：ip += 指令长度，sp 不变
-              "return" — 断在被调函数入口：[sp] 为返回地址，弹出并跳转
-        force: True 时允许跳过非 call 指令（默认拒绝，防止误改 ip）
-
-    32 位调试对象自动用 eip/esp/read_dword/eax（local.5 起：此前硬编码 rip，
-    在 x32dbg 下直接 `Failed to evaluate register rip`）。
-
-    Since: local.3 (32-bit handling: local.5)
+    mode="call"（默认）：断在 call 指令上，ip 前进、sp 不变。
+    mode="return"：断在被调函数入口，弹出返回地址再跳。
+    非 call 指令默认拒绝；确需跳过传 force=True。
     """
     if mode not in ("call", "return"):
         return f"Error: mode 只能是 'call' 或 'return'，收到 {mode!r}"
@@ -340,13 +334,10 @@ def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) ->
 
 
 def send_stdin(text: str, newline: bool = True) -> str:
-    """向调试对象的控制台注入键盘输入（仅控制台程序）。
+    """
+    向调试对象的控制台注入键盘输入（仅控制台程序）。
 
-    Args:
-        text: 要输入的文本，可含 \\n
-        newline: 末尾是否自动补回车（fgets 需要）
-
-    Since: local.3
+    newline=True 时末尾自动补回车（fgets/scanf 需要）。
     """
     try:
         pid = _client().debugee_pid()
@@ -362,12 +353,8 @@ def send_stdin(text: str, newline: bool = True) -> str:
 
 
 def read_console(max_chars: int = 6000) -> str:
-    """读取调试对象控制台屏幕内容（仅当前屏，不含回滚历史）。
-
-    Args:
-        max_chars: 只返回尾部这么多字符（0 = 全屏）
-
-    Since: local.3
+    """
+    读调试对象控制台的当前屏内容（不含回滚历史）。
     """
     try:
         pid = _client().debugee_pid()
@@ -388,15 +375,10 @@ def read_console(max_chars: int = 6000) -> str:
 
 
 def find_bytes(pattern: str, start: str = "", size: int = 0, max_hits: int = 16) -> str:
-    """在调试对象内存中搜索字节模式，支持 ?? 通配。
+    """
+    在内存里搜字节模式，支持 ?? 通配（如 "48 8B ?? 05"）。
 
-    Args:
-        pattern: '48 8D 05 ?? ?? ?? ??' 或 '488D05????????'
-        start: 起始地址/表达式，留空则扫描主模块
-        size: 扫描长度，0 表示到主模块结尾（上限 64 MB，超出会标注 truncated）
-        max_hits: 最多返回命中数
-
-    Since: local.3
+    留空 start/size 扫主模块；单次上限 64 MB，超出时返回会标 truncated。
     """
     try:
         vals, masks = _parse_pattern(pattern)
@@ -414,9 +396,8 @@ def find_bytes(pattern: str, start: str = "", size: int = 0, max_hits: int = 16)
 
 def find_string(text: str, encoding: str = "utf-8", start: str = "",
                 size: int = 0, max_hits: int = 16) -> str:
-    """在调试对象内存中搜索字符串（utf-8 / utf-16le / ascii）。
-
-    Since: local.3
+    """
+    按编码（ascii / utf16le）在内存里搜字符串。
     """
     enc = {"ascii": "ascii", "utf-8": "utf-8", "utf8": "utf-8",
            "utf-16le": "utf-16le", "utf16": "utf-16le"}.get(encoding.lower())
@@ -482,31 +463,12 @@ def _xref_deep(client, lo: int, length: int, tgt: int, max_hits: int):
 
 def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
          deep: bool = False) -> str:
-    """查找引用某地址的指令。
+    """
+    查找引用某地址的指令（x64 的 RIP 相对寻址）。
 
-    两种模式：
-      * ``deep=False``（默认，快路径）：按字节特征扫 RIP 相对寻址，只认单字节
-        opcode + ``FF 15/FF 25``，扫全模块秒级以内。命中 `lea/mov/cmp/call/jmp [rip+d]`。
-      * ``deep=True``（流式反汇编）：逐条 ``disassemble_at``，用反汇编结果里的内存
-        操作数匹配，因此**覆盖 0F 系**（``movzx`` 0F B6/B7、SSE ``movaps/movups``
-        0F 28/29/10/11 等），32 位目标下也能匹配绝对地址操作数。
-
-    Args:
-        target: 被引用的地址/表达式
-        start/size: 扫描范围，留空扫描主模块
-        max_hits: 最多返回条数
-        deep: True 走流式反汇编。**性能**（2026-11-14 实测，本地 ZMQ + x64dbg dev）：
-            freedom.exe 主模块 80 KB → **7.8 s**；cmd.exe 主模块 300 KB → **39 s**
-            （约 3 千条指令/秒，每条指令一次往返）。同区间 fast 路径是 110 ms /
-            630 ms，即 deep 慢 10~70 倍。所以只对关心的区间开 deep（给 ``start`` +
-            ``size``），或先 ``find_bytes`` 定位候选段；64 MB 全量开 deep 不可接受
-            （小时级）。
-
-    32 位目标：快路径没有意义（x86 没有 RIP 相对寻址），会直接提示改 deep。
-
-    Change log:
-        local.3 修 p2 的 FF 15/FF 25 死分支与 0xC7 imm32 长度（快路径）
-        local.5 增加 deep 模式与 32 位守卫
+    deep=False：快路径，只认单字节 opcode + FF 15/FF 25，秒级。
+    deep=True：流式反汇编，覆盖 0F 系（movzx/movaps 等），32 位目标的绝对地址也能匹配；
+        慢 10~70 倍，务必用 start/size 限定区间，别对全模块开。
     """
     try:
         client = _client()
@@ -522,14 +484,22 @@ def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
                 pass
         lo, length = _default_range(client, start, size)
         if deep:
+            import time
+            _t0 = time.time()
             hits = _xref_deep(client, lo, length, tgt, max_hits)
+            _elapsed = time.time() - _t0
+            # 慢的时候别只给结果，顺手教一次怎么变快（这类提示不该写进 docstring）
+            _hint = ""
+            if _elapsed >= 10:
+                _hint = (f"\n[deep 扫了 {_elapsed:.0f}s / {length:,} 字节 —— 下次用 "
+                         f"start+size 限定区间，或先 find_bytes 定位候选段]")
             if not hits:
-                return f"No xref to {_fmt(tgt)} in {_fmt(lo)}+{length:,} (deep)"
+                return f"No xref to {_fmt(tgt)} in {_fmt(lo)}+{length:,} (deep){_hint}"
             lines = [f"{len(hits)} xref(s) to {_fmt(tgt)} (deep):"]
             for va in hits:
                 ins = client.disassemble_at(va)
                 lines.append(f"  {_fmt(va)}  {ins.symbolized_instruction if ins else '???'}")
-            return "\n".join(lines)
+            return "\n".join(lines) + _hint
         hits, seen = [], set()
         chunk = 0x10000
         addr = lo
@@ -600,9 +570,8 @@ def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
 
 
 def modules() -> str:
-    """列出调试对象已加载的模块（映像页按分配基址聚合）。
-
-    Since: local.3
+    """
+    列出已加载模块（基址 / 大小 / 名称）。
     """
     try:
         client = _client()
@@ -641,14 +610,8 @@ def modules() -> str:
 
 
 def disasm_json(address: str, count: int = 25, skip: int = 0) -> str:
-    """分页反汇编，返回 JSON（便于大段代码分段读取，避免被响应上限截断）。
-
-    Args:
-        address: 起始地址/表达式
-        count: 返回条数（<=200）
-        skip: 先跳过多少条再开始返回
-
-    Since: local.3
+    """
+    反汇编 N 条指令，返回结构化 JSON（每条含 addr/size/text，另有 next 指针）。
     """
     try:
         client = _client()
@@ -676,13 +639,8 @@ def disasm_json(address: str, count: int = 25, skip: int = 0) -> str:
 
 
 def exec_command_out(command: str, log_lines: int = 8) -> str:
-    """执行 x64dbg 命令；失败时附带最近日志，便于定位原因。
-
-    Args:
-        command: 要执行的命令
-        log_lines: 失败时附带多少行日志尾巴
-
-    Since: local.3 — 只取日志尾部（先量出总数再定位），不再整条缓冲搬回来。
+    """
+    执行 x64dbg 命令；失败时附带最近 log_lines 行日志，便于定位原因。
     """
     try:
         client = _client()
@@ -707,10 +665,8 @@ def exec_command_out(command: str, log_lines: int = 8) -> str:
 
 
 def local_patch_info() -> str:
-    """报告本地补丁版本与已注册的扩展工具（确认补丁是否真的加载）。
-
-    返回值里的 patch 就是当前 PATCH 常量；本描述刻意不写版本号，
-    否则每次 bump 都会漂移（历史上就这么显示过 local.3）。
+    """
+    返回本地补丁版本、包路径与已注册的本地扩展工具（确认补丁是否加载）。
     """
     import x64dbg_automate
     return "\n".join([

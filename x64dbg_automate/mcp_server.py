@@ -647,22 +647,10 @@ def trace_into(
     swallow_exceptions: bool = False,
     wait_timeout: int = 60,
 ) -> str:
-    """Trace into (single-step into calls) until a condition is met.
+    """
+    单步跟踪，跟进 call，直到 break_condition 非零或达到 max_steps。
 
-    Steps one instruction at a time, following into calls, until break_condition
-    evaluates to non-zero or max_steps is reached. Optionally logs each step.
-
-    Args:
-        break_condition: x64dbg expression that stops the trace when non-zero (e.g. 'cip == 0x401000')
-        max_steps: Maximum steps before giving up (default 50000)
-        log_text: Formatted text to log each step (e.g. '{p:cip} {i:cip}')
-        log_condition: Expression controlling when log_text is printed
-        command_text: x64dbg command to execute each step
-        command_condition: Expression controlling when command_text runs
-        log_file: Path to redirect trace log output to a file
-        pass_exceptions: Pass exceptions to the debuggee
-        swallow_exceptions: Swallow exceptions
-        wait_timeout: Max seconds to wait for trace completion
+    log_text 用 {p:cip} {i:cip} 这类格式。失败时返回会附最近日志尾。
     """
     try:
         client = _require_client()
@@ -702,22 +690,10 @@ def trace_over(
     swallow_exceptions: bool = False,
     wait_timeout: int = 60,
 ) -> str:
-    """Trace over (single-step over calls) until a condition is met.
+    """
+    单步跟踪，跨过 call，直到 break_condition 非零或达到 max_steps。
 
-    Steps one instruction at a time, stepping over calls, until break_condition
-    evaluates to non-zero or max_steps is reached. Optionally logs each step.
-
-    Args:
-        break_condition: x64dbg expression that stops the trace when non-zero (e.g. 'cip == 0x401000')
-        max_steps: Maximum steps before giving up (default 50000)
-        log_text: Formatted text to log each step (e.g. '{p:cip} {i:cip}')
-        log_condition: Expression controlling when log_text is printed
-        command_text: x64dbg command to execute each step
-        command_condition: Expression controlling when command_text runs
-        log_file: Path to redirect trace log output to a file
-        pass_exceptions: Pass exceptions to the debuggee
-        swallow_exceptions: Swallow exceptions
-        wait_timeout: Max seconds to wait for trace completion
+    log_text 用 {p:cip} {i:cip} 这类格式。失败时返回会附最近日志尾。
     """
     try:
         client = _require_client()
@@ -1113,30 +1089,12 @@ def execute_command(command: str) -> str:
 
 @mcp.tool()
 def run_python(code: str) -> str:
-    """Execute an arbitrary Python snippet against the connected x64dbg.
+    """
+    在已连接的 x64dbg 上执行任意 Python 片段。
 
-    The connected client is bound to `dbg` (alias `client`), so everything the
-    x64dbg-automate pyclient exposes is available — dbg.read_memory, dbg.write_memory,
-    dbg.get_reg / dbg.set_reg / dbg.get_regs, dbg.memmap, dbg.disassemble_at,
-    dbg.assemble_at, dbg.cmd_sync, dbg.eval_sync, dbg.wait_for_debug_event,
-    dbg.set_breakpoint, ... This collapses loops, struct walks and multi-step patches
-    into a single call instead of many tool round-trips.
-
-    Also in scope: parse_addr(str)->int (accepts '0x..', registers like 'RIP', symbols,
-    and expressions like 'rsp+0x20'), fmt(int)->'0x..'. Standard library imports
-    (struct, ctypes, re, ...) work, and model constants are importable
-    (e.g. `from x64dbg_automate.models import BreakpointType`).
-
-    Return value: everything the snippet prints to stdout, plus `result = <repr>` if
-    you assign a variable named `result`. On exception, the traceback is returned.
-
-    Note: the snippet runs synchronously on the server thread, so blocking calls
-    (long wait_for_debug_event, unbounded loops) hold this tool until they finish.
-
-    Args:
-        code: Python source to execute.
-
-    Local patch: 0.9.2+local.p1
+    客户端绑定为 dbg（别名 client），可用本库全部接口（read_memory / get_reg /
+    cmd_sync / disassemble_at / set_breakpoint ...）。stdout 与 result 变量原样返回。
+    同步执行：阻塞调用会一直占住这个工具。
     """
     import io
     import contextlib
@@ -1255,18 +1213,10 @@ def clear_breakpoint(address: str | None = None, bp_type: str = "software") -> s
 @mcp.tool()
 def toggle_breakpoint(address: str | None = None, bp_type: str = "software",
                       enable: bool | None = None, on: bool | None = None) -> str:
-    """Enable or disable breakpoint(s).
+    """
+    启用 / 禁用断点（address 可为地址、符号或地址列表）。
 
-    Args:
-        address: Hex address or symbol (None toggles all of this type)
-        bp_type: 'software', 'hardware', or 'memory'
-        enable: True to enable, False to disable
-        on: Alias for ``enable``. The Python client spells this parameter ``on``
-            (``X64DbgClient.toggle_breakpoint(on=...)``), so a caller copying that
-            style used to have the value silently dropped by FastMCP argument
-            validation while ``enable`` stayed at its default ``True`` — the tool
-            then *enabled* the breakpoint and still reported "Enabled breakpoint(s).".
-            Local patch (local.3).
+    参数名 enable 与 on 等价（库侧叫 on，历史 MCP 侧叫 enable）；两个都传且矛盾时会报错。
     """
     if enable is None:
         enable = True if on is None else on
@@ -1568,22 +1518,12 @@ def get_latest_event() -> str:
 
 @mcp.tool()
 def wait_for_event(event_type: str, timeout: int = 5, drain_first: bool = False) -> str:
-    """Wait for a specific debug event type.
+    """
+    等待指定类型的调试事件。
 
-    Args:
-        event_type: Event type name (e.g. 'EVENT_BREAKPOINT', 'EVENT_LOAD_DLL')
-        timeout: Max seconds to wait
-        drain_first: Drop already-queued events of this type *before* waiting.
-            ``X64DbgClient.wait_for_debug_event`` returns "the latest event of the
-            specified type, which may have occurred before the method was called",
-            so a stale BREAKPOINT from an earlier step can be returned as if it just
-            fired. Default **False**: draining is destructive in the normal
-            ``go -> wait`` pattern, because the breakpoint hits while the call is in
-            flight and whatever is queued when the wait starts is a legitimate
-            result. Measured 2026-11-14 on freedom.exe — with ``drain_first=True``
-            the freshly hit TLS-callback breakpoint was dropped and the wait timed
-            out; with ``False`` it returned immediately. Pass True only when stale
-            events are known to be queued (e.g. after a long trace).
+    drain_first=False（默认）：队列里已有该类型事件就直接返回，这是 go→wait 的正常用法。
+    drain_first=True：先清队列再等；会丢掉 go 期间已命中的断点（实测导致超时），
+    只在确认有陈旧事件时用。
     """
     try:
         client = _require_client()
@@ -1592,7 +1532,22 @@ def wait_for_event(event_type: str, timeout: int = 5, drain_first: bool = False)
             client.clear_debug_events(et)
         event = client.wait_for_debug_event(et, timeout=timeout)
         if event is None:
-            return f"Timed out waiting for {event_type}."
+            # 超时信息要能自解释：数一下队列里还压着多少条同类型事件，
+            # 这比在 docstring 里长篇解释 drain_first 有用得多。
+            pending = 0
+            try:
+                q = getattr(client, "_debug_events_q", None)
+                if q is not None:
+                    pending = sum(1 for e in list(q) if getattr(e, "event_type", None) == et)
+            except Exception:
+                pending = 0
+            msg = f"Timed out waiting for {event_type} after {timeout}s."
+            if pending:
+                msg += (f" 队列里还有 {pending} 条该类型的未读事件 —— 先用 get_latest_event "
+                        f"弹空，或本次直接传 drain_first=True。")
+            elif drain_first:
+                msg += " 已按 drain_first 清过队列，说明这期间确实没有新事件。"
+            return msg
         data_str = ""
         if event.event_data is not None:
             data_str = "\n" + "\n".join(
