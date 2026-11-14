@@ -35,6 +35,25 @@ C:\Python314\python.exe -c "import x64dbg_automate as m; print(m.__file__)"
 # 必须是 D:\od\x64dbg-automate-fork\x64dbg_automate\__init__.py
 ```
 
+## ⚠️ 重装/升级时会被 exe 锁坑（实测两次）
+
+宿主（WorkBuddy / Trae）会自动拉起 `x64dbg-automate-mcp.exe` 并**锁定该文件**，于是
+`pip install -e .` 在卸载阶段报 `WinError 32`，而元数据此时已被删掉 → `PackageNotFoundError`，
+工具全掉。**杀进程没用**，宿主立刻重启它。
+
+两个可用办法：
+
+1. **先退出 MCP 客户端**（或把该 server 停用），再 `pip install -e .`，装完重启客户端。
+2. **绕开 console script**：临时删掉 `pyproject.toml` 的 `[project.scripts]` 段 → 安装 → 恢复该段。
+   已存在的 `x64dbg-automate-mcp.exe` 只是 launcher（`x64dbg_automate.mcp_server_local:main`），
+   源码改了它照样生效，不用重新生成。
+
+装完用 `local_patch_info` 或下面这条确认版本：
+
+```bash
+C:\Python314\python.exe -c "import importlib.metadata as m; print(m.version('x64dbg_automate'))"
+```
+
 ## 回滚（恢复到 pip 官方 0.9.2 + p2 猴补丁）
 
 ```powershell
