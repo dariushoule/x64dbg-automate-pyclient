@@ -177,7 +177,19 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
             raise RuntimeError("Cannot launch x64dbg in remote mode — no x64dbg_path configured")
         self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
         self.session_pid = self.proc.pid
-        self.attach_session(self.session_pid)
+        try:
+            self.attach_session(self.session_pid)
+        except BaseException:
+            # attach 失败时别把空跑的调试器留在后台。典型场景：把 x96dbg.exe
+            # 这个 launcher 当成本体传进来（它不会自己去连 ZMQ），
+            # attach_session 等锁文件超时抛 TimeoutError，进程却还活着。
+            # Local patch 0.9.2+local.6.
+            try:
+                self.proc.kill()
+                self.proc.wait(timeout=5)
+            except Exception:
+                pass
+            raise
 
     def start_session(self, target_exe: str = "", cmdline: str = "", current_dir: str = "") -> int:
         """

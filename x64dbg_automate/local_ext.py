@@ -28,7 +28,7 @@ import sys
 MEM_IMAGE = 0x1000000
 _MAX_SCAN = 64 * 1024 * 1024
 
-PATCH = "0.9.2+local.4"
+PATCH = "0.9.2+local.6"
 LOCAL_TOOLS: list[str] = []
 
 
@@ -293,12 +293,15 @@ def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) ->
     """跳过当前 call 指令并设置 rax，用于 fgets/scanf/IsDebuggerPresent 等调用。
 
     Args:
-        return_value: 写入 rax 的返回值（十进制，可为负）
-        mode: "call"   — 断在 call 指令上（默认）：rip += 指令长度，rsp 不变
-              "return" — 断在被调函数入口：[rsp] 为返回地址，弹出并跳转
-        force: True 时允许跳过非 call 指令（默认拒绝，防止误改 rip）
+        return_value: 写入返回值寄存器（x64: rax / x86: eax）的值（十进制，可为负）
+        mode: "call"   — 断在 call 指令上（默认）：ip += 指令长度，sp 不变
+              "return" — 断在被调函数入口：[sp] 为返回地址，弹出并跳转
+        force: True 时允许跳过非 call 指令（默认拒绝，防止误改 ip）
 
-    Patch: 0.9.2+local.3
+    32 位调试对象自动用 eip/esp/read_dword/eax（local.4 修：此前硬编码 rip，
+    在 x32dbg 下直接 `Failed to evaluate register rip`）。
+
+    Patch: 0.9.2+local.6
     """
     if mode not in ("call", "return"):
         return f"Error: mode 只能是 'call' 或 'return'，收到 {mode!r}"
@@ -306,27 +309,31 @@ def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) ->
         client = _client()
         if client.is_running():
             return "Error: 调试对象正在运行，先 pause 或下断点"
-        rip = client.get_reg("rip")
-        rsp = client.get_reg("rsp")
-        value = return_value & 0xFFFFFFFFFFFFFFFF
+        is64 = client.debugee_bitness() != 32
+        ip_reg, sp_reg, ax_reg = ("rip", "rsp", "rax") if is64 else ("eip", "esp", "eax")
+        ptr = 8 if is64 else 4
+        mask = (1 << (ptr * 8)) - 1
+        ip = client.get_reg(ip_reg)
+        sp = client.get_reg(sp_reg)
+        value = return_value & mask
         if mode == "return":
-            ret = client.read_qword(rsp)
-            client.set_reg("rip", ret)
-            client.set_reg("rsp", rsp + 8)
-            client.set_reg("rax", value)
-            return (f"Returned from call: {_fmt(rip)} -> {_fmt(ret)}, "
-                    f"rsp={_fmt(rsp + 8)}, rax={_fmt(value)}")
-        ins = client.disassemble_at(rip)
+            ret = client.read_qword(sp) if is64 else client.read_dword(sp)
+            client.set_reg(ip_reg, ret)
+            client.set_reg(sp_reg, sp + ptr)
+            client.set_reg(ax_reg, value)
+            return (f"Returned from call: {_fmt(ip)} -> {_fmt(ret)}, "
+                    f"{sp_reg}={_fmt(sp + ptr)}, {ax_reg}={_fmt(value)}")
+        ins = client.disassemble_at(ip)
         if ins is None:
-            return f"Error: 无法反汇编 {_fmt(rip)}"
+            return f"Error: 无法反汇编 {_fmt(ip)}"
         if not ins.instruction.lower().startswith("call") and not force:
-            return (f"Error: {_fmt(rip)} 不是 call 指令（{ins.symbolized_instruction}）；"
+            return (f"Error: {_fmt(ip)} 不是 call 指令（{ins.symbolized_instruction}）；"
                     f"确实要跳过请传 force=True")
-        new_rip = rip + ins.instr_size
-        client.set_reg("rip", new_rip)
-        client.set_reg("rax", value)
-        return (f"Skipped {ins.symbolized_instruction} at {_fmt(rip)} -> {_fmt(new_rip)}, "
-                f"rax={_fmt(value)}")
+        new_ip = ip + ins.instr_size
+        client.set_reg(ip_reg, new_ip)
+        client.set_reg(ax_reg, value)
+        return (f"Skipped {ins.symbolized_instruction} at {_fmt(ip)} -> {_fmt(new_ip)}, "
+                f"{ax_reg}={_fmt(value)}")
     except Exception as e:
         return f"Error: {e}"
 
@@ -431,23 +438,96 @@ _RIP_OP_IMM = {
 }
 _RIP_FIRST = bytes(sorted(set(list(_RIP_OP_IMM) + [0xFF] + list(range(0x40, 0x50)))))
 
+# 反汇编文本里的绝对内存操作数：[0x140000117] / [7FF6C2E30250] / 32 位 [00404040]
+# 不匹配 [rsp+0x20]、[rax+8] 这类寄存器相对寻址（那不是静态引用，本来就不算 xref）
+_ABS_MEM_RE = re.compile(r"\[\s*(?:0x)?([0-9A-Fa-f]{8,16})\s*\]")
 
-def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32) -> str:
-    """查找 RIP 相对寻址引用某地址的指令（lea/mov/cmp/call/jmp [rip+d]）。
+
+def _xref_deep(client, lo: int, length: int, tgt: int, max_hits: int):
+    """流式反汇编找引用：覆盖所有 opcode（含 0F 系），代价是每指令一次 IPC。
+
+    判定依据优先用 ``Instruction.arg`` 里 type=Memory 的解析值（x64dbg 已把
+    RIP 相对算成绝对地址），取不到再回退正则解析 symbolized_instruction。
+    """
+    from x64dbg_automate.models import DisasmArgType
+
+    hits = []
+    cur = lo
+    end = lo + min(length, _MAX_SCAN)
+    while cur < end and len(hits) < max_hits:
+        try:
+            ins = client.disassemble_at(cur)
+        except Exception:
+            cur += 1
+            continue
+        if ins is None:
+            cur += 1
+            continue
+        matched = False
+        for a in (ins.arg or []):
+            if a.type == DisasmArgType.Memory and a.value == tgt:
+                matched = True
+                break
+        if not matched:
+            for m in _ABS_MEM_RE.finditer(ins.symbolized_instruction or ""):
+                if int(m.group(1), 16) == tgt:
+                    matched = True
+                    break
+        if matched:
+            hits.append(cur)
+        cur += max(1, ins.instr_size)
+    return hits
+
+
+def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
+         deep: bool = False) -> str:
+    """查找引用某地址的指令。
+
+    两种模式：
+      * ``deep=False``（默认，快路径）：按字节特征扫 RIP 相对寻址，只认单字节
+        opcode + ``FF 15/FF 25``，扫全模块秒级以内。命中 `lea/mov/cmp/call/jmp [rip+d]`。
+      * ``deep=True``（流式反汇编）：逐条 ``disassemble_at``，用反汇编结果里的内存
+        操作数匹配，因此**覆盖 0F 系**（``movzx`` 0F B6/B7、SSE ``movaps/movups``
+        0F 28/29/10/11 等），32 位目标下也能匹配绝对地址操作数。
 
     Args:
         target: 被引用的地址/表达式
         start/size: 扫描范围，留空扫描主模块
         max_hits: 最多返回条数
+        deep: True 走流式反汇编。**性能**（2026-11-14 实测，本地 ZMQ + x64dbg dev）：
+            freedom.exe 主模块 80 KB → **7.8 s**；cmd.exe 主模块 300 KB → **39 s**
+            （约 3 千条指令/秒，每条指令一次往返）。同区间 fast 路径是 110 ms /
+            630 ms，即 deep 慢 10~70 倍。所以只对关心的区间开 deep（给 ``start`` +
+            ``size``），或先 ``find_bytes`` 定位候选段；64 MB 全量开 deep 不可接受
+            （小时级）。
 
-    Patch: 0.9.2+local.3 — 修 p2 的两处漏检：FF 15/FF 25 分支把 ModRM 位置写成
-    opcode 下标（恒被 mod/rm 检查拒掉，call/jmp [rip+d] 永远查不到）；0xC7 带
-    imm32 时按 7 字节算长度（实际 11），RIP 相对基址少算 4 字节。
+    32 位目标：快路径没有意义（x86 没有 RIP 相对寻址），会直接提示改 deep。
+
+    Patch: 0.9.2+local.3 修 p2 的 FF 15/FF 25 死分支与 0xC7 imm32 长度；
+    0.9.2+local.6 增加 deep 模式与 32 位守卫。
     """
     try:
         client = _client()
         tgt = _addr(target)
+        # 快路径依赖 RIP 相对编码，x86 下算出的目标是错的 → 明说，别给假结论
+        if not deep:
+            try:
+                if client.debugee_bitness() == 32:
+                    return ("xref 快路径只解析 x64 的 RIP 相对寻址；当前调试对象是 32 位。"
+                            "32 位请用 deep=True（按反汇编结果匹配绝对地址操作数），"
+                            f"或 find_bytes 搜 {tgt & 0xFFFFFFFF:08X} 的小端字节。")
+            except Exception:
+                pass
         lo, length = _default_range(client, start, size)
+        if deep:
+            hits = _xref_deep(client, lo, length, tgt, max_hits)
+            if not hits:
+                return f"No xref to {_fmt(tgt)} in {_fmt(lo)}+{length:,} (deep)"
+            lines = [f"{len(hits)} xref(s) to {_fmt(tgt)} (deep):"]
+            for va in hits:
+                ins = client.disassemble_at(va)
+                lines.append(f"  {_fmt(va)}  {ins.symbolized_instruction if ins else '???'}")
+            return "\n".join(lines)
         hits, seen = [], set()
         chunk = 0x10000
         addr = lo

@@ -16,6 +16,29 @@ import x64dbg_automate.mcp_server_local as _entry  # noqa: F401  触发 register
 from x64dbg_automate.models import MemPage
 from mcp.shared.memory import create_connected_server_and_client_session as cc
 
+print("=== 0. 安装健康检查（防 D13：装一半 / namespace 遮蔽）===")
+import importlib.metadata as md
+import pathlib
+import tomllib
+
+import x64dbg_automate as _pkg
+
+assert _pkg.__file__ is not None, (
+    "x64dbg_automate.__file__ 是 None —— 包被 site-packages 里的残留目录遮蔽成 "
+    "namespace package（D13），本地扩展根本没加载。清理后重装。")
+_here = pathlib.Path(_pkg.__file__).resolve().parent
+_dist = md.version("x64dbg_automate")
+_proj = tomllib.loads((_here.parent / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+print(f"  path      : {_here}")
+print(f"  dist      : {_dist}")
+print(f"  pyproject : {_proj}")
+print(f"  PATCH     : {LE.PATCH}")
+print(f"  mcp layer : {S._XAUTO_MCP_PATCH}")
+assert _dist == _proj == LE.PATCH == S._XAUTO_MCP_PATCH, (
+    f"版本不一致: dist={_dist} pyproject={_proj} PATCH={LE.PATCH} mcp={S._XAUTO_MCP_PATCH}")
+assert "site-packages" not in str(_here).lower(), (
+    f"包路径落在 site-packages（{_here}）而不是 fork 目录 —— 装的是旧副本")
+
 print("=== 1. 工具总数（上游 + 本地）===")
 async def tools():
     async with cc(S.mcp._mcp_server) as c:

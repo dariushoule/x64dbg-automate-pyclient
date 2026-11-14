@@ -33,7 +33,7 @@ from x64dbg_automate.models import (
 # Local patch marker. Base package is 0.9.2 (poetry version unchanged on purpose;
 # see pyproject [project].version = 0.9.2+local.3). Bump the trailing counter on
 # every further local edit so changes stay diffable against upstream.
-_XAUTO_MCP_PATCH = "0.9.2+local.4"
+_XAUTO_MCP_PATCH = "0.9.2+local.6"
 
 mcp = FastMCP(
     "x64dbg-automate",
@@ -96,6 +96,21 @@ def _parse_address_or_expression(s: str) -> int:
 def _format_address(addr: int) -> str:
     """Format an integer address as a hex string."""
     return f"0x{addr:X}"
+
+
+def _log_tail(client, want: int = 6) -> str:
+    """最近 want 行日志（先量总数再定位尾巴，不整条缓冲搬回来）。
+
+    给「只返回 failed 不说原因」的工具补上上下文。Local patch 0.9.2+local.6.
+    """
+    try:
+        _, first, remaining, _ = client.get_log(0, 1, "")
+        total = len(first) + max(0, remaining)
+        _, msgs, _, _ = client.get_log(max(0, total - want), 0, "")
+    except Exception:
+        return ""
+    lines = [ln for m in msgs for ln in m.splitlines() if ln.strip()]
+    return "\n".join(lines[-want:])
 
 
 def _format_memory(data: bytes, base: int) -> str:
@@ -662,7 +677,13 @@ def trace_into(
             swallow_exceptions=swallow_exceptions,
             wait_timeout=wait_timeout,
         )
-        return "Trace into completed." if result else "Trace into failed."
+        if result:
+            return "Trace into completed."
+        tail = _log_tail(client)
+        if tail:
+            return f"Trace into failed.\n最近日志:\n{tail}"
+        return ("Trace into failed. (插件未回原因、日志也为空：确认目标已暂停、"
+                "break_condition 是合法表达式、且没有残留断点在挡步进)")
     except Exception as e:
         return f"Error: {e}"
 
@@ -711,7 +732,13 @@ def trace_over(
             swallow_exceptions=swallow_exceptions,
             wait_timeout=wait_timeout,
         )
-        return "Trace over completed." if result else "Trace over failed."
+        if result:
+            return "Trace over completed."
+        tail = _log_tail(client)
+        if tail:
+            return f"Trace over failed.\n最近日志:\n{tail}"
+        return ("Trace over failed. (插件未回原因、日志也为空：确认目标已暂停、"
+                "break_condition 是合法表达式、且没有残留断点在挡步进)")
     except Exception as e:
         return f"Error: {e}"
 
