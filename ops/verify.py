@@ -139,3 +139,35 @@ r = X64DbgClient.pause(NoDebuggee())
 print("  is_debugging=False ->", r)
 assert r is False, f"pause returned {r!r}, p2 returned True here (false success)"
 
+print("=== 8. wait_for_event 超时提示要报出队列积压 ===")
+from x64dbg_automate.events import EventType
+
+
+class _Evt:
+    event_type = EventType.EVENT_BREAKPOINT
+
+
+class QueueFake:
+    """队列里压着 2 条同类型事件，wait 却超时 —— 提示必须点出来。"""
+    _debug_events_q = [_Evt(), _Evt()]
+    def wait_for_debug_event(self, et, timeout=5): return None
+    def clear_debug_events(self, et): pass
+    def is_running(self): return False
+    def is_debugging(self): return True
+
+
+S._client = QueueFake()
+
+
+async def a8():
+    async with cc(S.mcp._mcp_server) as c:
+        r = await c.call_tool("wait_for_event",
+                              {"event_type": "EVENT_BREAKPOINT", "timeout": 1})
+        txt = [x.text for x in r.content][0]
+        print("  " + txt.replace("\n", " "))
+        assert "2 条" in txt, f"超时提示没报队列积压: {txt!r}"
+        assert "drain_first" in txt, f"超时提示没给下一步动作: {txt!r}"
+
+
+asyncio.run(a8())
+
