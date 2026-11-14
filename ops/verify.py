@@ -39,6 +39,16 @@ assert _dist == _proj == LE.PATCH == S._XAUTO_MCP_PATCH, (
 assert "site-packages" not in str(_here).lower(), (
     f"包路径落在 site-packages（{_here}）而不是 fork 目录 —— 装的是旧副本")
 
+# 防版本漂移：MCP 客户端显示的「工具描述」来自 docstring，里面写死版本号会一直
+# 骗人（历史上 local_patch_info 的描述就停在 local.3，而实际早到 local.7）。
+_desc = LE.local_patch_info.__doc__ or ""
+assert "0.9.2+local." not in _desc, (
+    f"local_patch_info 的描述里写死了版本号，会与实际 PATCH 不一致：{_desc!r}")
+for _mod in (LE, S):
+    _src = pathlib.Path(_mod.__file__).read_text(encoding="utf-8")
+    assert "Patch: 0.9.2+" not in _src, (
+        f"{_mod.__file__} 里仍有 `Patch: <固定版本>` 写法，改成 `Since: local.N`")
+
 print("=== 1. 工具总数（上游 + 本地）===")
 async def tools():
     async with cc(S.mcp._mcp_server) as c:

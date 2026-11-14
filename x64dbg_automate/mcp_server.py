@@ -31,9 +31,10 @@ from x64dbg_automate.models import (
 )
 
 # Local patch marker. Base package is 0.9.2 (poetry version unchanged on purpose;
-# see pyproject [project].version = 0.9.2+local.3). Bump the trailing counter on
-# every further local edit so changes stay diffable against upstream.
-_XAUTO_MCP_PATCH = "0.9.2+local.7"
+# the local revision lives in pyproject [project].version and must equal this
+# constant — ops/verify.py enforces it). Bump the trailing counter on every
+# further local edit so changes stay diffable against upstream.
+_XAUTO_MCP_PATCH = "0.9.2+local.8"
 
 mcp = FastMCP(
     "x64dbg-automate",
@@ -79,7 +80,7 @@ def _parse_address_or_expression(s: str) -> int:
     # `if s.startswith("0x"): return int(s, 16)`, so every arithmetic expression
     # ("0x140000000+0x1F0") raised ValueError from int() and never reached the
     # expression fallback below, rejecting input the docstring promises to accept.
-    # Local patch 0.9.2+local.3.
+    # Local patch (local.3).
     try:
         return int(s, 16)
     except ValueError:
@@ -101,7 +102,7 @@ def _format_address(addr: int) -> str:
 def _log_tail(client, want: int = 6) -> str:
     """最近 want 行日志（先量总数再定位尾巴，不整条缓冲搬回来）。
 
-    给「只返回 failed 不说原因」的工具补上上下文。Local patch 0.9.2+local.7.
+    给「只返回 failed 不说原因」的工具补上上下文。Local patch (local.7).
     """
     try:
         _, first, remaining, _ = client.get_log(0, 1, "")
@@ -1265,7 +1266,7 @@ def toggle_breakpoint(address: str | None = None, bp_type: str = "software",
             style used to have the value silently dropped by FastMCP argument
             validation while ``enable`` stayed at its default ``True`` — the tool
             then *enabled* the breakpoint and still reported "Enabled breakpoint(s).".
-            Local patch 0.9.2+local.3.
+            Local patch (local.3).
     """
     if enable is None:
         enable = True if on is None else on

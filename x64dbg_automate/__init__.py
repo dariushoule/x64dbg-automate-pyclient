@@ -36,7 +36,7 @@ all_instances: list['X64DbgClient'] = []
 # 裸 Popen(x96dbg.exe) 不会拉起任何连 ZMQ 的实体，只会挂着空跑 —— 而 launcher 的
 # PID 也不是 debugger 的 PID，attach_session 等锁文件必然超时。
 # 所以这里按目标位数直接把 launcher 解析成 x64dbg.exe / x32dbg.exe 再启动。
-# Local patch 0.9.2+local.7.
+# Local patch (local.7).
 # ---------------------------------------------------------------------------
 
 _LAUNCHER_NAMES = ("x96dbg.exe", "x96dbg")
@@ -253,7 +253,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         except BaseException:
             # attach 失败时别把空跑的调试器留在后台（launcher 解析不到、插件缺失、
             # 或本机已有同名会话等），否则 tasklist 里全是僵尸。
-            # Local patch 0.9.2+local.6.
+            # Local patch (local.6).
             try:
                 self.proc.kill()
                 self.proc.wait(timeout=5)

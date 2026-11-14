@@ -2,7 +2,7 @@
 
     python -m x64dbg_automate.mcp_server_local
 
-Since 0.9.2+local.3 this module is a thin registrar — the tools themselves live in
+Since local.3 this module is a thin registrar — the tools themselves live in
 ``local_ext.py`` and every former monkey-patch now lives in the source it belongs to:
 
 * address/expression parsing fix -> ``mcp_server._parse_address_or_expression``

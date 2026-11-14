@@ -316,7 +316,7 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         no debug event in between. When the debuggee is blocked in a kernel wait
         (console ``ReadFile``, a syscall) a single ``pause`` therefore never returns.
         This implementation issues the second pause itself instead of leaving that to
-        every caller. Local patch 0.9.2+local.3.
+        every caller. Local patch (local.3).
 
         Returns:
             True if successful, False otherwise

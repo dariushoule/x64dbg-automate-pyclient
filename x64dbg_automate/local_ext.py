@@ -14,7 +14,8 @@ into real source. What changed vs p2:
 * ``find_bytes`` reports when the 64 MB scan cap truncated the range;
 * ``parse_addr`` helper honours the same expression fallback as the MCP tools.
 
-Patch: 0.9.2+local.3
+Patch set: local.3 → local.8. The authoritative current value is the ``PATCH``
+constant below — version numbers written in prose drift, this one did.
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ import sys
 MEM_IMAGE = 0x1000000
 _MAX_SCAN = 64 * 1024 * 1024
 
-PATCH = "0.9.2+local.7"
+PATCH = "0.9.2+local.8"
 LOCAL_TOOLS: list[str] = []
 
 
@@ -298,10 +299,10 @@ def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) ->
               "return" — 断在被调函数入口：[sp] 为返回地址，弹出并跳转
         force: True 时允许跳过非 call 指令（默认拒绝，防止误改 ip）
 
-    32 位调试对象自动用 eip/esp/read_dword/eax（local.4 修：此前硬编码 rip，
+    32 位调试对象自动用 eip/esp/read_dword/eax（local.5 起：此前硬编码 rip，
     在 x32dbg 下直接 `Failed to evaluate register rip`）。
 
-    Patch: 0.9.2+local.7
+    Since: local.3 (32-bit handling: local.5)
     """
     if mode not in ("call", "return"):
         return f"Error: mode 只能是 'call' 或 'return'，收到 {mode!r}"
@@ -345,7 +346,7 @@ def send_stdin(text: str, newline: bool = True) -> str:
         text: 要输入的文本，可含 \\n
         newline: 末尾是否自动补回车（fgets 需要）
 
-    Patch: 0.9.2+local.3
+    Since: local.3
     """
     try:
         pid = _client().debugee_pid()
@@ -366,7 +367,7 @@ def read_console(max_chars: int = 6000) -> str:
     Args:
         max_chars: 只返回尾部这么多字符（0 = 全屏）
 
-    Patch: 0.9.2+local.3
+    Since: local.3
     """
     try:
         pid = _client().debugee_pid()
@@ -395,7 +396,7 @@ def find_bytes(pattern: str, start: str = "", size: int = 0, max_hits: int = 16)
         size: 扫描长度，0 表示到主模块结尾（上限 64 MB，超出会标注 truncated）
         max_hits: 最多返回命中数
 
-    Patch: 0.9.2+local.3
+    Since: local.3
     """
     try:
         vals, masks = _parse_pattern(pattern)
@@ -415,7 +416,7 @@ def find_string(text: str, encoding: str = "utf-8", start: str = "",
                 size: int = 0, max_hits: int = 16) -> str:
     """在调试对象内存中搜索字符串（utf-8 / utf-16le / ascii）。
 
-    Patch: 0.9.2+local.3
+    Since: local.3
     """
     enc = {"ascii": "ascii", "utf-8": "utf-8", "utf8": "utf-8",
            "utf-16le": "utf-16le", "utf16": "utf-16le"}.get(encoding.lower())
@@ -503,8 +504,9 @@ def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
 
     32 位目标：快路径没有意义（x86 没有 RIP 相对寻址），会直接提示改 deep。
 
-    Patch: 0.9.2+local.3 修 p2 的 FF 15/FF 25 死分支与 0xC7 imm32 长度；
-    0.9.2+local.7 增加 deep 模式与 32 位守卫。
+    Change log:
+        local.3 修 p2 的 FF 15/FF 25 死分支与 0xC7 imm32 长度（快路径）
+        local.5 增加 deep 模式与 32 位守卫
     """
     try:
         client = _client()
@@ -600,7 +602,7 @@ def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
 def modules() -> str:
     """列出调试对象已加载的模块（映像页按分配基址聚合）。
 
-    Patch: 0.9.2+local.3
+    Since: local.3
     """
     try:
         client = _client()
@@ -646,7 +648,7 @@ def disasm_json(address: str, count: int = 25, skip: int = 0) -> str:
         count: 返回条数（<=200）
         skip: 先跳过多少条再开始返回
 
-    Patch: 0.9.2+local.3
+    Since: local.3
     """
     try:
         client = _client()
@@ -680,7 +682,7 @@ def exec_command_out(command: str, log_lines: int = 8) -> str:
         command: 要执行的命令
         log_lines: 失败时附带多少行日志尾巴
 
-    Patch: 0.9.2+local.3 — 只取日志尾部（先量出总数再定位），不再整条缓冲搬回来。
+    Since: local.3 — 只取日志尾部（先量出总数再定位），不再整条缓冲搬回来。
     """
     try:
         client = _client()
@@ -707,7 +709,8 @@ def exec_command_out(command: str, log_lines: int = 8) -> str:
 def local_patch_info() -> str:
     """报告本地补丁版本与已注册的扩展工具（确认补丁是否真的加载）。
 
-    Patch: 0.9.2+local.3
+    返回值里的 patch 就是当前 PATCH 常量；本描述刻意不写版本号，
+    否则每次 bump 都会漂移（历史上就这么显示过 local.3）。
     """
     import x64dbg_automate
     return "\n".join([
