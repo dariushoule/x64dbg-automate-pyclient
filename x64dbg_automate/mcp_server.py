@@ -34,7 +34,7 @@ from x64dbg_automate.models import (
 # the local revision lives in pyproject [project].version and must equal this
 # constant — ops/verify.py enforces it). Bump the trailing counter on every
 # further local edit so changes stay diffable against upstream.
-_XAUTO_MCP_PATCH = "0.9.2+local.9"
+_XAUTO_MCP_PATCH = "0.9.2+local.10"
 
 mcp = FastMCP(
     "x64dbg-automate",
@@ -647,10 +647,9 @@ def trace_into(
     swallow_exceptions: bool = False,
     wait_timeout: int = 60,
 ) -> str:
-    """
-    单步跟踪，跟进 call，直到 break_condition 非零或达到 max_steps。
+    """Step into calls until break_condition is non-zero or max_steps is hit.
 
-    log_text 用 {p:cip} {i:cip} 这类格式。失败时返回会附最近日志尾。
+    log_text uses the "{p:cip} {i:cip}" format. Failures include the log tail.
     """
     try:
         client = _require_client()
@@ -690,10 +689,9 @@ def trace_over(
     swallow_exceptions: bool = False,
     wait_timeout: int = 60,
 ) -> str:
-    """
-    单步跟踪，跨过 call，直到 break_condition 非零或达到 max_steps。
+    """Step over calls until break_condition is non-zero or max_steps is hit.
 
-    log_text 用 {p:cip} {i:cip} 这类格式。失败时返回会附最近日志尾。
+    log_text uses the "{p:cip} {i:cip}" format. Failures include the log tail.
     """
     try:
         client = _require_client()
@@ -1089,12 +1087,11 @@ def execute_command(command: str) -> str:
 
 @mcp.tool()
 def run_python(code: str) -> str:
-    """
-    在已连接的 x64dbg 上执行任意 Python 片段。
+    """Execute a Python snippet against the connected x64dbg.
 
-    客户端绑定为 dbg（别名 client），可用本库全部接口（read_memory / get_reg /
-    cmd_sync / disassemble_at / set_breakpoint ...）。stdout 与 result 变量原样返回。
-    同步执行：阻塞调用会一直占住这个工具。
+    Bound as dbg (alias client) with the whole library available (read_memory,
+    get_reg, cmd_sync, disassemble_at, set_breakpoint, ...). stdout and a variable
+    named result are returned. Synchronous: a blocking call holds this tool.
     """
     import io
     import contextlib
@@ -1213,10 +1210,10 @@ def clear_breakpoint(address: str | None = None, bp_type: str = "software") -> s
 @mcp.tool()
 def toggle_breakpoint(address: str | None = None, bp_type: str = "software",
                       enable: bool | None = None, on: bool | None = None) -> str:
-    """
-    启用 / 禁用断点（address 可为地址、符号或地址列表）。
+    """Enable or disable breakpoints (address may be an address, symbol or list).
 
-    参数名 enable 与 on 等价（库侧叫 on，历史 MCP 侧叫 enable）；两个都传且矛盾时会报错。
+    enable and on are aliases (the library uses on, the historic MCP tool used
+    enable); passing both with conflicting values is an error.
     """
     if enable is None:
         enable = True if on is None else on
@@ -1518,12 +1515,12 @@ def get_latest_event() -> str:
 
 @mcp.tool()
 def wait_for_event(event_type: str, timeout: int = 5, drain_first: bool = False) -> str:
-    """
-    等待指定类型的调试事件。
+    """Wait for a debug event of the given type.
 
-    drain_first=False（默认）：队列里已有该类型事件就直接返回，这是 go→wait 的正常用法。
-    drain_first=True：先清队列再等；会丢掉 go 期间已命中的断点（实测导致超时），
-    只在确认有陈旧事件时用。
+    drain_first=False (default): return an already-queued event of that type -- the
+        normal go -> wait flow.
+    drain_first=True: clear the queue first; drops events that fired while the call
+        was in flight (measured to time out). Use only when stale events are known.
     """
     try:
         client = _require_client()

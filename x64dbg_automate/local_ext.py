@@ -14,7 +14,7 @@ into real source. What changed vs p2:
 * ``find_bytes`` reports when the 64 MB scan cap truncated the range;
 * ``parse_addr`` helper honours the same expression fallback as the MCP tools.
 
-Patch set: local.3 → local.9. The authoritative current value is the ``PATCH``
+Patch set: local.3 → local.10. The authoritative current value is the ``PATCH``
 constant below — version numbers written in prose drift, this one did.
 """
 
@@ -29,7 +29,7 @@ import sys
 MEM_IMAGE = 0x1000000
 _MAX_SCAN = 64 * 1024 * 1024
 
-PATCH = "0.9.2+local.9"
+PATCH = "0.9.2+local.10"
 LOCAL_TOOLS: list[str] = []
 
 
@@ -291,12 +291,11 @@ def _console_call(pid: int, mode: str, payload: str = "") -> dict:
 # ---------------------------------------------------------------------------
 
 def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) -> str:
-    """
-    跳过当前 call 并写入返回值（x64 写 rax / x86 写 eax）。
+    """Skip the call at ip and set the return value (rax on x64, eax on x86).
 
-    mode="call"（默认）：断在 call 指令上，ip 前进、sp 不变。
-    mode="return"：断在被调函数入口，弹出返回地址再跳。
-    非 call 指令默认拒绝；确需跳过传 force=True。
+    mode="call" (default): stopped on the call; ip advances past it.
+    mode="return": stopped at the callee entry; pops [sp] as the return address.
+    Non-call instructions are refused unless force=True.
     """
     if mode not in ("call", "return"):
         return f"Error: mode 只能是 'call' 或 'return'，收到 {mode!r}"
@@ -334,10 +333,8 @@ def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) ->
 
 
 def send_stdin(text: str, newline: bool = True) -> str:
-    """
-    向调试对象的控制台注入键盘输入（仅控制台程序）。
-
-    newline=True 时末尾自动补回车（fgets/scanf 需要）。
+    """Inject keyboard input into the debuggee console (console apps only).
+    newline=True appends CR, as fgets/scanf expect.
     """
     try:
         pid = _client().debugee_pid()
@@ -353,8 +350,7 @@ def send_stdin(text: str, newline: bool = True) -> str:
 
 
 def read_console(max_chars: int = 6000) -> str:
-    """
-    读调试对象控制台的当前屏内容（不含回滚历史）。
+    """Read the debuggee console's current screen (no scrollback).
     """
     try:
         pid = _client().debugee_pid()
@@ -375,10 +371,10 @@ def read_console(max_chars: int = 6000) -> str:
 
 
 def find_bytes(pattern: str, start: str = "", size: int = 0, max_hits: int = 16) -> str:
-    """
-    在内存里搜字节模式，支持 ?? 通配（如 "48 8B ?? 05"）。
+    """Search memory for a byte pattern; ?? wildcard allowed ("48 8B ?? 05").
 
-    留空 start/size 扫主模块；单次上限 64 MB，超出时返回会标 truncated。
+    Empty start/size scans the main module. 64 MB cap per scan; the result says
+    "truncated" when the cap was hit.
     """
     try:
         vals, masks = _parse_pattern(pattern)
@@ -396,8 +392,7 @@ def find_bytes(pattern: str, start: str = "", size: int = 0, max_hits: int = 16)
 
 def find_string(text: str, encoding: str = "utf-8", start: str = "",
                 size: int = 0, max_hits: int = 16) -> str:
-    """
-    按编码（ascii / utf16le）在内存里搜字符串。
+    """Search memory for a string (ascii or utf16le).
     """
     enc = {"ascii": "ascii", "utf-8": "utf-8", "utf8": "utf-8",
            "utf-16le": "utf-16le", "utf16": "utf-16le"}.get(encoding.lower())
@@ -463,12 +458,12 @@ def _xref_deep(client, lo: int, length: int, tgt: int, max_hits: int):
 
 def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
          deep: bool = False) -> str:
-    """
-    查找引用某地址的指令（x64 的 RIP 相对寻址）。
+    """Find instructions that reference an address (x64 RIP-relative).
 
-    deep=False：快路径，只认单字节 opcode + FF 15/FF 25，秒级。
-    deep=True：流式反汇编，覆盖 0F 系（movzx/movaps 等），32 位目标的绝对地址也能匹配；
-        慢 10~70 倍，务必用 start/size 限定区间，别对全模块开。
+    deep=False (default): byte-pattern scan; only single-byte opcodes + FF 15/FF 25
+        (lea/mov/cmp/call/jmp [rip+d]). Fast.
+    deep=True: streaming disassembly, also covers the 0F family (movzx, movaps, ...)
+        and absolute operands on 32-bit targets. 10-70x slower; narrow with start/size.
     """
     try:
         client = _client()
@@ -570,8 +565,7 @@ def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
 
 
 def modules() -> str:
-    """
-    列出已加载模块（基址 / 大小 / 名称）。
+    """List loaded modules (base / size / name).
     """
     try:
         client = _client()
@@ -610,8 +604,7 @@ def modules() -> str:
 
 
 def disasm_json(address: str, count: int = 25, skip: int = 0) -> str:
-    """
-    反汇编 N 条指令，返回结构化 JSON（每条含 addr/size/text，另有 next 指针）。
+    """Disassemble N instructions to JSON (addr/size/text per item, plus next).
     """
     try:
         client = _client()
@@ -639,8 +632,7 @@ def disasm_json(address: str, count: int = 25, skip: int = 0) -> str:
 
 
 def exec_command_out(command: str, log_lines: int = 8) -> str:
-    """
-    执行 x64dbg 命令；失败时附带最近 log_lines 行日志，便于定位原因。
+    """Run an x64dbg command; on failure append the last log_lines log entries.
     """
     try:
         client = _client()
@@ -665,8 +657,7 @@ def exec_command_out(command: str, log_lines: int = 8) -> str:
 
 
 def local_patch_info() -> str:
-    """
-    返回本地补丁版本、包路径与已注册的本地扩展工具（确认补丁是否加载）。
+    """Report the local patch version, package path and registered local tools.
     """
     import x64dbg_automate
     return "\n".join([
