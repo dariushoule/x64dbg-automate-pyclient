@@ -1,12 +1,23 @@
 # 拉上游新版本并把 local.3 变基上去，重装并验证
-# 用法: powershell -ExecutionPolicy Bypass -File ops\upgrade_upstream.ps1 [-Ref origin/master]
-param([string]$Ref = "origin/master")
+# 用法: powershell -ExecutionPolicy Bypass -File ops\upgrade_upstream.ps1 [-Ref origin/main]
+param([string]$Ref = "")
 $ErrorActionPreference = "Stop"
 $py = "C:\Python314\python.exe"
 Set-Location "D:\od\x64dbg-automate-fork"
 
-Write-Host "[1/5] fetch $Ref"
+Write-Host "[1/5] fetch origin"
 git fetch origin
+
+# 上游分支名是 main（不是 master）。不传 -Ref 时自动挑一个存在的。
+if ([string]::IsNullOrWhiteSpace($Ref)) {
+  foreach ($cand in @("origin/main", "origin/master")) {
+    git rev-parse --verify --quiet $cand | Out-Null
+    if ($LASTEXITCODE -eq 0) { $Ref = $cand; break }
+  }
+}
+if ([string]::IsNullOrWhiteSpace($Ref)) { throw "找不到上游分支（origin/main 或 origin/master）" }
+Write-Host "      using $Ref"
+
 $stamp = Get-Date -Format "yyyyMMdd-HHmm"
 $newBranch = "local.3+$stamp"
 

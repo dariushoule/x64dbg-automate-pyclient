@@ -34,7 +34,7 @@ from x64dbg_automate.models import (
 # the local revision lives in pyproject [project].version and must equal this
 # constant — ops/verify.py enforces it). Bump the trailing counter on every
 # further local edit so changes stay diffable against upstream.
-_XAUTO_MCP_PATCH = "0.9.2+local.8"
+_XAUTO_MCP_PATCH = "0.9.2+local.9"
 
 mcp = FastMCP(
     "x64dbg-automate",

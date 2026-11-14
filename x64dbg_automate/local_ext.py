@@ -14,7 +14,7 @@ into real source. What changed vs p2:
 * ``find_bytes`` reports when the 64 MB scan cap truncated the range;
 * ``parse_addr`` helper honours the same expression fallback as the MCP tools.
 
-Patch set: local.3 → local.8. The authoritative current value is the ``PATCH``
+Patch set: local.3 → local.9. The authoritative current value is the ``PATCH``
 constant below — version numbers written in prose drift, this one did.
 """
 
@@ -29,7 +29,7 @@ import sys
 MEM_IMAGE = 0x1000000
 _MAX_SCAN = 64 * 1024 * 1024
 
-PATCH = "0.9.2+local.8"
+PATCH = "0.9.2+local.9"
 LOCAL_TOOLS: list[str] = []
 
 

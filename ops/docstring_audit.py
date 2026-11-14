@@ -40,6 +40,9 @@ async def main() -> int:
     limit = None
     if "--assert" in sys.argv:
         limit = int(sys.argv[sys.argv.index("--assert") + 1])
+    limit_all = None
+    if "--assert-all" in sys.argv:
+        limit_all = int(sys.argv[sys.argv.index("--assert-all") + 1])
 
     print(f"{'tool':24s} {'before':>7s} {'after':>6s} {'drop':>7s}  lines")
     before_total = after_total = 0
@@ -66,10 +69,17 @@ async def main() -> int:
     if pct < 75:
         print(f"FAIL: 降幅 {pct:.1f}% < 75%")
         rc = 1
+    # --assert 只看本轮约定的 15 个；纯上游工具按设计不动（压它们只会扩大
+    # upgrade_upstream 的 rebase 冲突面），要查全量用 --assert-all。
     if limit is not None:
-        over = [(n, v) for n, v in sizes.items() if v > limit]
+        over = [(n, sizes.get(n, 0)) for n in TARGETS if sizes.get(n, 0) > limit]
         if over:
-            print(f"FAIL: 超过 {limit} 字符的工具: {over}")
+            print(f"FAIL: 约定的 15 个里有超过 {limit} 字符的: {over}")
+            rc = 1
+    if limit_all is not None:
+        over = [(n, v) for n, v in sizes.items() if v > limit_all]
+        if over:
+            print(f"WARN: 全量里超过 {limit_all} 字符的（多为纯上游工具，未动）: {over}")
             rc = 1
     print("PASS" if rc == 0 else "FAILED")
     return rc
