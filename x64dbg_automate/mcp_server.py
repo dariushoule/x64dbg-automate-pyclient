@@ -33,7 +33,7 @@ from x64dbg_automate.models import (
 # Local patch marker. Base package is 0.9.2 (poetry version unchanged on purpose;
 # see pyproject [project].version = 0.9.2+local.3). Bump the trailing counter on
 # every further local edit so changes stay diffable against upstream.
-_XAUTO_MCP_PATCH = "0.9.2+local.6"
+_XAUTO_MCP_PATCH = "0.9.2+local.7"
 
 mcp = FastMCP(
     "x64dbg-automate",
@@ -101,7 +101,7 @@ def _format_address(addr: int) -> str:
 def _log_tail(client, want: int = 6) -> str:
     """最近 want 行日志（先量总数再定位尾巴，不整条缓冲搬回来）。
 
-    给「只返回 failed 不说原因」的工具补上上下文。Local patch 0.9.2+local.6.
+    给「只返回 failed 不说原因」的工具补上上下文。Local patch 0.9.2+local.7.
     """
     try:
         _, first, remaining, _ = client.get_log(0, 1, "")

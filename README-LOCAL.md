@@ -1,4 +1,4 @@
-# x64dbg-automate 本地 fork（local.6）
+# x64dbg-automate 本地 fork（local.7）
 
 不是重写，是把原先住在 `site-packages` 里的猴补丁**上抬成源码**，再用可编辑安装挂回运行时。
 来源：`github.com/dariushoule/x64dbg-automate-pyclient` @ `v0.9.2-ghost_fungus` + 本地分支 `local.3`
@@ -27,7 +27,7 @@ D:\od\x64dbg-automate-fork\      <- 本目录（git 分支 local.3）
 ```
 
 安装方式：`pip install -e . --no-build-isolation --no-deps`（setuptools 后端，不联网）。
-包版本：`0.9.2+local.6`（`PATCH` 常量、`_XAUTO_MCP_PATCH`、pyproject 三处同步，`local_patch_info` 现场可核）。
+包版本：`0.9.2+local.7`（`PATCH` 常量、`_XAUTO_MCP_PATCH`、pyproject 三处同步，`local_patch_info` 现场可核）。
 
 ## 现场确认补丁是否加载
 

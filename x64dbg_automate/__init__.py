@@ -27,6 +27,71 @@ logger = logging.getLogger(__name__)
 all_instances: list['X64DbgClient'] = []
 
 
+# ---------------------------------------------------------------------------
+# Launcher resolution
+#
+# x96dbg.exe 是 x64dbg 的 launcher：必须带转发参数才会启动真正的调试器
+#   .\x96dbg.exe x64\x64dbg.exe
+#   .\x96dbg.exe x32\x32dbg.exe
+# 裸 Popen(x96dbg.exe) 不会拉起任何连 ZMQ 的实体，只会挂着空跑 —— 而 launcher 的
+# PID 也不是 debugger 的 PID，attach_session 等锁文件必然超时。
+# 所以这里按目标位数直接把 launcher 解析成 x64dbg.exe / x32dbg.exe 再启动。
+# Local patch 0.9.2+local.7.
+# ---------------------------------------------------------------------------
+
+_LAUNCHER_NAMES = ("x96dbg.exe", "x96dbg")
+
+
+def _pe_bitness(exe_path: str) -> int:
+    """读 PE Machine 字段判断 32/64 位；读不出来时按 64 处理（与 MCP 侧默认一致）。"""
+    import struct
+    try:
+        with open(exe_path, "rb") as f:
+            if f.read(2) != b"MZ":
+                return 64
+            f.seek(0x3C)
+            pe_offset = struct.unpack("<I", f.read(4))[0]
+            f.seek(pe_offset)
+            if f.read(4) != b"PE\x00\x00":
+                return 64
+            machine = struct.unpack("<H", f.read(2))[0]
+    except Exception:
+        return 64
+    return 32 if machine == 0x14C else 64
+
+
+def _process_bitness(pid: int) -> int:
+    """目标进程是 32 位（WOW64）还是 64 位；拿不到时按 64 处理。"""
+    if not _IS_WINDOWS:
+        return 64
+    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    k32 = ctypes.windll.kernel32
+    handle = k32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not handle:
+        return 64
+    try:
+        wow64 = ctypes.c_int(0)
+        if k32.IsWow64Process(handle, ctypes.byref(wow64)) and wow64.value:
+            return 32
+        return 64
+    finally:
+        k32.CloseHandle(handle)
+
+
+def _resolve_launcher(path: Path, bitness: int) -> Path:
+    """x96dbg.exe -> 同目录下的 x64\\x64dbg.exe 或 x32\\x32dbg.exe。"""
+    arch = "x64" if bitness == 64 else "x32"
+    name = "x64dbg.exe" if bitness == 64 else "x32dbg.exe"
+    for candidate in (path.parent / arch / name,
+                      path.parent / name,
+                      path.parent / "release" / arch / name):
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        f"Cannot resolve {path.name} to {arch}\\{name} for a {bitness}-bit target. "
+        f"Pass the debugger binary directly (e.g. {path.parent / arch / name}).")
+
+
 if _IS_WINDOWS:
     def ctrl_c_handler(sig_t: int) -> bool:
         logger.warning(f'Received exit signal {sig_t}, detaching and exiting')
@@ -172,17 +237,22 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         v = self._get_xauto_compat_version()
         assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
         
-    def _launch_x64dbg(self) -> int:
+    def _launch_x64dbg(self, bitness: int = 64) -> int:
         if self.x64dbg_path is None:
             raise RuntimeError("Cannot launch x64dbg in remote mode — no x64dbg_path configured")
-        self.proc = subprocess.Popen([self.x64dbg_path], executable=self.x64dbg_path)
+        launch = self.x64dbg_path
+        configured = Path(launch)
+        if configured.name.lower() in _LAUNCHER_NAMES:
+            launch = str(_resolve_launcher(configured, bitness))
+            logger.info("resolved launcher %s -> %s (%d-bit target)",
+                        self.x64dbg_path, launch, bitness)
+        self.proc = subprocess.Popen([launch], executable=launch)
         self.session_pid = self.proc.pid
         try:
             self.attach_session(self.session_pid)
         except BaseException:
-            # attach 失败时别把空跑的调试器留在后台。典型场景：把 x96dbg.exe
-            # 这个 launcher 当成本体传进来（它不会自己去连 ZMQ），
-            # attach_session 等锁文件超时抛 TimeoutError，进程却还活着。
+            # attach 失败时别把空跑的调试器留在后台（launcher 解析不到、插件缺失、
+            # 或本机已有同名会话等），否则 tasklist 里全是僵尸。
             # Local patch 0.9.2+local.6.
             try:
                 self.proc.kill()
@@ -207,7 +277,9 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         if len(target_exe.strip()) == 0 and (len(cmdline) > 0 or len(current_dir) > 0):
             raise ValueError("cmdline and current_dir cannot be provided without target_exe")
 
-        self._launch_x64dbg()
+        # 给 launcher 解析用：有目标就按它的 PE 位数，没有就默认 64（x96dbg 的默认行为）
+        bitness = _pe_bitness(target_exe.strip()) if target_exe.strip() else 64
+        self._launch_x64dbg(bitness)
 
         if target_exe.strip() != "":
             if not self.load_executable(target_exe.strip(), cmdline, current_dir):
@@ -229,7 +301,7 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         Raises:
             RuntimeError: If attaching to the process fails.
         """
-        self._launch_x64dbg()
+        self._launch_x64dbg(_process_bitness(pid))
 
         if not self.attach(pid):
             self.terminate_session()

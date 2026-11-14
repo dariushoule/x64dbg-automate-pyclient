@@ -28,7 +28,7 @@ import sys
 MEM_IMAGE = 0x1000000
 _MAX_SCAN = 64 * 1024 * 1024
 
-PATCH = "0.9.2+local.6"
+PATCH = "0.9.2+local.7"
 LOCAL_TOOLS: list[str] = []
 
 
@@ -301,7 +301,7 @@ def skip_call(return_value: int = 0, mode: str = "call", force: bool = False) ->
     32 位调试对象自动用 eip/esp/read_dword/eax（local.4 修：此前硬编码 rip，
     在 x32dbg 下直接 `Failed to evaluate register rip`）。
 
-    Patch: 0.9.2+local.6
+    Patch: 0.9.2+local.7
     """
     if mode not in ("call", "return"):
         return f"Error: mode 只能是 'call' 或 'return'，收到 {mode!r}"
@@ -504,7 +504,7 @@ def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
     32 位目标：快路径没有意义（x86 没有 RIP 相对寻址），会直接提示改 deep。
 
     Patch: 0.9.2+local.3 修 p2 的 FF 15/FF 25 死分支与 0xC7 imm32 长度；
-    0.9.2+local.6 增加 deep 模式与 32 位守卫。
+    0.9.2+local.7 增加 deep 模式与 32 位守卫。
     """
     try:
         client = _client()
