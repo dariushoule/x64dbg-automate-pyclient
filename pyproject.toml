@@ -22,7 +22,7 @@ Issues = "https://github.com/dariushoule/x64dbg-automate-pyclient/issues"
 mcp = ["mcp>=1.28.1,<2.0.0"]
 
 [project.scripts]
-x64dbg-automate-mcp = "x64dbg_automate.mcp_server:main"
+x64dbg-automate-mcp = "x64dbg_automate.mcp_server_local:main"
 
 [tool.setuptools]
 packages = ["x64dbg_automate"]
