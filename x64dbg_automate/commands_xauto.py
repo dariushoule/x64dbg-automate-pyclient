@@ -84,6 +84,25 @@ class XAutoCommandsMixin(XAutoClientBase):
             Success
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC_DIRECT, cmd_str)
+
+    def execute_command(self, command: str) -> str:
+        """
+        Execute a raw x64dbg command and return a status string.
+
+        Convenience wrapper around :meth:`cmd_sync` that mirrors the MCP tool
+        ``execute_command`` so the same call style works from Python scripts
+        (e.g. ``client.execute_command("bp kernel32:BaseThreadInitThunk")``).
+
+        See https://help.x64dbg.com/en/latest/commands/ for available commands.
+
+        Args:
+            command: x64dbg command string
+
+        Returns:
+            A status string (``"Command executed. Success: <bool>"``).
+        """
+        result = self.cmd_sync(command)
+        return f"Command executed. Success: {result}"
     
     def is_running(self) -> bool:
         """

@@ -1,4 +1,5 @@
 import os
+import time
 from x64dbg_automate.commands_xauto import XAutoCommandsMixin
 from x64dbg_automate.models import HardwareBreakpointType, MemPage, \
     MemoryBreakpointType, MutableRegister, PageRightsConfiguration, ReferenceViewRef, StandardBreakpointType
@@ -310,12 +311,38 @@ class XAutoHighLevelCommandAbstractionMixin(XAutoCommandsMixin):
         """
         Pauses the debugee. This method will block until the debugee is in the stopped state.
 
+        x64dbg >= 2026-07-15 backs ``cbDebugPause`` with a break-in thread, but only
+        for the *second* pause call that lands >= 2000 ms after the previous one with
+        no debug event in between. When the debuggee is blocked in a kernel wait
+        (console ``ReadFile``, a syscall) a single ``pause`` therefore never returns.
+        This implementation issues the second pause itself instead of leaving that to
+        every caller. Local patch 0.9.2+local.3.
+
         Returns:
             True if successful, False otherwise
         """
-        if not self.cmd_sync(f"pause"):
+        if not self.is_debugging():
             return False
-        return self.wait_until_stopped()
+        if not self.is_running():
+            return True
+        started = time.time()
+        try:
+            self.cmd_sync("pause")
+        except Exception:
+            pass
+        if self.wait_until_stopped(timeout=1.2):
+            return True
+        # The break-in fallback needs ~2 s since the previous pause command.
+        remain = 2.25 - (time.time() - started)
+        if remain > 0:
+            time.sleep(remain)
+        if not self.is_running():
+            return True
+        try:
+            self.cmd_sync("pause")
+        except Exception:
+            pass
+        return bool(self.wait_until_stopped(timeout=3))
     
     def set_breakpoint(self, address_or_symbol: int | str, name: str | None = None, bp_type: StandardBreakpointType = StandardBreakpointType.Short, singleshoot: bool = False) -> bool:
         """

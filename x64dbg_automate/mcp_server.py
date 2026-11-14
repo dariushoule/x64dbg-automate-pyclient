@@ -30,6 +30,11 @@ from x64dbg_automate.models import (
     PAGE_GUARD,
 )
 
+# Local patch marker. Base package is 0.9.2 (poetry version unchanged on purpose;
+# see pyproject [project].version = 0.9.2+local.3). Bump the trailing counter on
+# every further local edit so changes stay diffable against upstream.
+_XAUTO_MCP_PATCH = "0.9.2+local.3"
+
 mcp = FastMCP(
     "x64dbg-automate",
     instructions=(
@@ -38,11 +43,17 @@ mcp = FastMCP(
         "Addresses are hex strings (e.g. '0x7FF6A0001000'). Memory reads return hex dumps "
         "by default; pass format='hex' or 'base64' for compact output and a larger "
         "per-call limit, size=0 to read as much as fits, and read_memory_many to batch "
-        "scattered struct-field reads."
+        "scattered struct-field reads. "
+        f"[local patch {_XAUTO_MCP_PATCH}] run_python executes an arbitrary Python snippet "
+        "against the connected debugger with the full client bound to `dbg`, collapsing "
+        "loops / struct walks / multi-step patches into one call instead of many."
     ),
 )
 
 _client: X64DbgClient | None = None
+
+# Sentinel so run_python can tell "caller set result=None" apart from "no result".
+_UNSET = object()
 
 
 # ---------------------------------------------------------------------------
@@ -64,8 +75,11 @@ def _parse_address_or_expression(s: str) -> int:
     ('kernel32:CreateFileA'), and arithmetic ('rsp+0x20') all work.
     """
     s = s.strip()
-    if s.startswith("0x") or s.startswith("0X"):
-        return int(s, 16)
+    # Plain literals only — do NOT early-return on the "0x" prefix. Upstream did
+    # `if s.startswith("0x"): return int(s, 16)`, so every arithmetic expression
+    # ("0x140000000+0x1F0") raised ValueError from int() and never reached the
+    # expression fallback below, rejecting input the docstring promises to accept.
+    # Local patch 0.9.2+local.3.
     try:
         return int(s, 16)
     except ValueError:
@@ -1069,6 +1083,73 @@ def execute_command(command: str) -> str:
         return f"Error: {e}"
 
 
+@mcp.tool()
+def run_python(code: str) -> str:
+    """Execute an arbitrary Python snippet against the connected x64dbg.
+
+    The connected client is bound to `dbg` (alias `client`), so everything the
+    x64dbg-automate pyclient exposes is available — dbg.read_memory, dbg.write_memory,
+    dbg.get_reg / dbg.set_reg / dbg.get_regs, dbg.memmap, dbg.disassemble_at,
+    dbg.assemble_at, dbg.cmd_sync, dbg.eval_sync, dbg.wait_for_debug_event,
+    dbg.set_breakpoint, ... This collapses loops, struct walks and multi-step patches
+    into a single call instead of many tool round-trips.
+
+    Also in scope: parse_addr(str)->int (accepts '0x..', registers like 'RIP', symbols,
+    and expressions like 'rsp+0x20'), fmt(int)->'0x..'. Standard library imports
+    (struct, ctypes, re, ...) work, and model constants are importable
+    (e.g. `from x64dbg_automate.models import BreakpointType`).
+
+    Return value: everything the snippet prints to stdout, plus `result = <repr>` if
+    you assign a variable named `result`. On exception, the traceback is returned.
+
+    Note: the snippet runs synchronously on the server thread, so blocking calls
+    (long wait_for_debug_event, unbounded loops) hold this tool until they finish.
+
+    Args:
+        code: Python source to execute.
+
+    Local patch: 0.9.2+local.p1
+    """
+    import io
+    import contextlib
+    import traceback
+
+    try:
+        client = _require_client()
+    except Exception as e:
+        return f"Error: {e}"
+
+    buf = io.StringIO()
+    namespace = {
+        "dbg": client,
+        "client": client,
+        "parse_addr": _parse_address_or_expression,
+        "fmt": _format_address,
+        "__name__": "__xauto_run_python__",
+    }
+    try:
+        with contextlib.redirect_stdout(buf):
+            exec(compile(code, "<run_python>", "exec"), namespace)
+    except BaseException:
+        printed = buf.getvalue().rstrip("\n")
+        tb = traceback.format_exc()
+        return (f"{printed}\n" if printed else "") + f"Traceback:\n{tb}"
+
+    printed = buf.getvalue().rstrip("\n")
+    res = namespace.get("result", _UNSET)
+    parts = []
+    if printed:
+        parts.append(printed)
+    if res is not _UNSET:
+        try:
+            parts.append("result = " + repr(res))
+        except Exception as e:  # pragma: no cover - exotic objects
+            parts.append(f"result = <unrepr-able: {e}>")
+    if not parts:
+        parts.append("(no output — print() data or assign `result` to return a value)")
+    return "\n".join(parts)
+
+
 # ---------------------------------------------------------------------------
 # Breakpoints
 # ---------------------------------------------------------------------------
@@ -1144,14 +1225,25 @@ def clear_breakpoint(address: str | None = None, bp_type: str = "software") -> s
 
 
 @mcp.tool()
-def toggle_breakpoint(address: str | None = None, bp_type: str = "software", enable: bool = True) -> str:
+def toggle_breakpoint(address: str | None = None, bp_type: str = "software",
+                      enable: bool | None = None, on: bool | None = None) -> str:
     """Enable or disable breakpoint(s).
 
     Args:
         address: Hex address or symbol (None toggles all of this type)
         bp_type: 'software', 'hardware', or 'memory'
         enable: True to enable, False to disable
+        on: Alias for ``enable``. The Python client spells this parameter ``on``
+            (``X64DbgClient.toggle_breakpoint(on=...)``), so a caller copying that
+            style used to have the value silently dropped by FastMCP argument
+            validation while ``enable`` stayed at its default ``True`` — the tool
+            then *enabled* the breakpoint and still reported "Enabled breakpoint(s).".
+            Local patch 0.9.2+local.3.
     """
+    if enable is None:
+        enable = True if on is None else on
+    elif on is not None and on != enable:
+        return f"Error: enable={enable} conflicts with on={on}; pass only one of them"
     try:
         client = _require_client()
         target: int | str | None = None
@@ -1447,16 +1539,24 @@ def get_latest_event() -> str:
 
 
 @mcp.tool()
-def wait_for_event(event_type: str, timeout: int = 5) -> str:
+def wait_for_event(event_type: str, timeout: int = 5, drain_first: bool = True) -> str:
     """Wait for a specific debug event type.
 
     Args:
         event_type: Event type name (e.g. 'EVENT_BREAKPOINT', 'EVENT_LOAD_DLL')
         timeout: Max seconds to wait
+        drain_first: Drop already-queued events of this type before waiting.
+            ``X64DbgClient.wait_for_debug_event`` returns "the latest event of
+            the specified type, which may have occurred before the method was
+            called", so a stale BREAKPOINT from an earlier step would otherwise
+            be returned as if it just fired. Default True (local patch
+            0.9.2+local.3); pass False for the old raw behaviour.
     """
     try:
         client = _require_client()
         et = EventType(event_type)
+        if drain_first:
+            client.clear_debug_events(et)
         event = client.wait_for_debug_event(et, timeout=timeout)
         if event is None:
             return f"Timed out waiting for {event_type}."
