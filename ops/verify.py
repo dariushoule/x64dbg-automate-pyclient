@@ -38,7 +38,13 @@ async def a2():
     async with cc(S.mcp._mcp_server) as c:
         for t in (await c.list_tools()).tools:
             if t.name == "wait_for_event":
-                print("  props:", sorted(t.inputSchema.get("properties", {})))
+                props = t.inputSchema.get("properties", {})
+                default = props.get("drain_first", {}).get("default")
+                print("  props:", sorted(props), "| drain_first default:", default)
+                assert default is False, (
+                    "drain_first must default to False: with True, a go->wait call "
+                    f"drops the breakpoint that hit while it was in flight (measured "
+                    f"on freedom.exe 2026-11-14). got {default!r}")
 
 print("=== 4. local_patch_info ===")
 print("  " + LE.local_patch_info().replace("\n", "\n  "))
@@ -78,3 +84,17 @@ print("  0x140000000+0x10 ->", hex(S._parse_address_or_expression("0x140000000+0
 asyncio.run(tools())
 asyncio.run(a1())
 asyncio.run(a2())
+
+print("=== 7. pause 不再假成功：无 debuggee 时必须 False ===")
+from x64dbg_automate import X64DbgClient
+
+class NoDebuggee:
+    def is_debugging(self): return False
+    def is_running(self): return False
+    def cmd_sync(self, cmd):
+        raise AssertionError(f"pause must not send a command without a debuggee, got {cmd!r}")
+
+r = X64DbgClient.pause(NoDebuggee())
+print("  is_debugging=False ->", r)
+assert r is False, f"pause returned {r!r}, p2 returned True here (false success)"
+

@@ -1539,18 +1539,23 @@ def get_latest_event() -> str:
 
 
 @mcp.tool()
-def wait_for_event(event_type: str, timeout: int = 5, drain_first: bool = True) -> str:
+def wait_for_event(event_type: str, timeout: int = 5, drain_first: bool = False) -> str:
     """Wait for a specific debug event type.
 
     Args:
         event_type: Event type name (e.g. 'EVENT_BREAKPOINT', 'EVENT_LOAD_DLL')
         timeout: Max seconds to wait
-        drain_first: Drop already-queued events of this type before waiting.
-            ``X64DbgClient.wait_for_debug_event`` returns "the latest event of
-            the specified type, which may have occurred before the method was
-            called", so a stale BREAKPOINT from an earlier step would otherwise
-            be returned as if it just fired. Default True (local patch
-            0.9.2+local.3); pass False for the old raw behaviour.
+        drain_first: Drop already-queued events of this type *before* waiting.
+            ``X64DbgClient.wait_for_debug_event`` returns "the latest event of the
+            specified type, which may have occurred before the method was called",
+            so a stale BREAKPOINT from an earlier step can be returned as if it just
+            fired. Default **False**: draining is destructive in the normal
+            ``go -> wait`` pattern, because the breakpoint hits while the call is in
+            flight and whatever is queued when the wait starts is a legitimate
+            result. Measured 2026-11-14 on freedom.exe — with ``drain_first=True``
+            the freshly hit TLS-callback breakpoint was dropped and the wait timed
+            out; with ``False`` it returned immediately. Pass True only when stale
+            events are known to be queued (e.g. after a long trace).
     """
     try:
         client = _require_client()
