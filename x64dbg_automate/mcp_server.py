@@ -34,7 +34,7 @@ from x64dbg_automate.models import (
 # the local revision lives in pyproject [project].version and must equal this
 # constant — ops/verify.py enforces it). Bump the trailing counter on every
 # further local edit so changes stay diffable against upstream.
-_XAUTO_MCP_PATCH = "0.9.2+local.10"
+_XAUTO_MCP_PATCH = "0.9.2+local.13"
 
 mcp = FastMCP(
     "x64dbg-automate",
@@ -1000,6 +1000,15 @@ def get_register(register: str) -> str:
     """
     try:
         client = _require_client()
+        # Local patch (local.13): A16 guard. Reading registers while the debuggee
+        # is running returns a frozen snapshot from the last stop, which silently
+        # misleads callers. Refuse instead of auto-pausing: pausing changes
+        # debugger state implicitly and is harder to diagnose than a clear error.
+        if client.is_running():
+            return ("Error: debuggee is running, so register values are a frozen snapshot. "
+                    "Call the pause tool first (client.pause() issues the second break-in pause "
+                    "itself, so a single call also works for kernel waits), or use "
+                    "wait_for_event, then read the register.")
         val = client.get_reg(register)
         return f"{register} = {_format_address(val)}"
     except Exception as e:

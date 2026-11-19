@@ -14,7 +14,7 @@ into real source. What changed vs p2:
 * ``find_bytes`` reports when the 64 MB scan cap truncated the range;
 * ``parse_addr`` helper honours the same expression fallback as the MCP tools.
 
-Patch set: local.3 → local.10. The authoritative current value is the ``PATCH``
+Patch set: local.3 → local.13. The authoritative current value is the ``PATCH``
 constant below — version numbers written in prose drift, this one did.
 """
 
@@ -29,7 +29,7 @@ import sys
 MEM_IMAGE = 0x1000000
 _MAX_SCAN = 64 * 1024 * 1024
 
-PATCH = "0.9.2+local.10"
+PATCH = "0.9.2+local.13"
 LOCAL_TOOLS: list[str] = []
 
 
@@ -479,6 +479,21 @@ def xref(target: str, start: str = "", size: int = 0, max_hits: int = 32,
                 pass
         lo, length = _default_range(client, start, size)
         if deep:
+            # 原生分析库优先：一次 RPC 拿全部引用点；未分析/无结果再退回扫描
+            try:
+                native = client.xref_get(tgt)
+            except Exception:
+                native = None
+            if native:
+                kinds = {1: "data", 2: "jmp", 3: "call"}
+                lines = [f"{len(native)} xref(s) to {_fmt(tgt)} (native analysis):"]
+                for from_addr, xref_type in native:
+                    va = int(from_addr)
+                    ins = client.disassemble_at(va)
+                    kind = kinds.get(int(xref_type), "?")
+                    lines.append(f"  {_fmt(va)}  [{kind}]  "
+                                 f"{ins.symbolized_instruction if ins else '???'}")
+                return "\n".join(lines)
             import time
             _t0 = time.time()
             hits = _xref_deep(client, lo, length, tgt, max_hits)
@@ -639,19 +654,117 @@ def exec_command_out(command: str, log_lines: int = 8) -> str:
         ok = client.cmd_sync(command)
         if ok:
             return f"OK: {command}"
-        tail: list[str] = []
         want = max(1, log_lines)
+        evicted = 0
         try:
-            _, first, remaining, _ = client.get_log(0, 1, "")
-            total = len(first) + max(0, remaining)
-            _, msgs, _, _ = client.get_log(max(0, total - want), 0, "")
+            # next_index/remaining are absolute buffer positions; using them (instead
+            # of assuming the returned page starts at index 0) keeps the tail correct
+            # after the buffer has rolled. evicted tells us how much history is gone.
+            next_index, _, remaining, evicted = client.get_log(0, 1, "")
+            end = int(next_index) + max(0, int(remaining))
+            _, msgs, _, _ = client.get_log(max(0, end - want), 0, "")
         except Exception:
             _, msgs, _, _ = client.get_log(0, 0, "")
         lines = [ln for m in msgs for ln in m.splitlines() if ln.strip()]
         tail = lines[-want:]
         out = [f"FAILED: {command}"]
+        if evicted:
+            out.append(f"(日志缓冲已丢弃 {int(evicted)} 条：缓冲区上限，早期输出不可回放)")
         out += tail if tail else ["(无日志可查；可尝试 get_log 或 GUI 日志窗口)"]
         return "\n".join(out)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def analyse_range(target: str, size: int = 0, mode: str = "all",
+                  timeout: int = 20) -> str:
+    """Run x64dbg's own analysis over the memory region containing target.
+
+    Must be called while the debuggee is paused. ``analyse`` fills the function
+    database, ``analxrefs`` fills the cross-reference database; x64dbg derives
+    both from the GUI disassembly selection, so the plugin saves the current
+    selection, points it at ``target``, queues the commands and waits for a
+    barrier before restoring it. After this returns, xref_count_at /
+    xref_get / function_type_at report real analysis data.
+    """
+    try:
+        client = _client()
+        addr = _addr(target)
+        ok, elapsed, detail = client.analyse_range(addr, max(0, int(size)),
+                                                   mode, max(1, int(timeout)))
+        head = "OK" if ok else "TIMEOUT"
+        return f"{head}: analyse_range {_fmt(addr)} size={int(size)} mode={mode} ({elapsed} ms)\n{detail}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def script_load(path: str) -> str:
+    """Load an x64dbg script file (.x64dbg / .x32dbg) into the script engine.
+    """
+    try:
+        ok, msg = _client().script_load(path)
+        return f"{'OK' if ok else 'FAILED'}: {msg}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def script_run(destline: int = 0) -> str:
+    """Run the loaded script starting at destline (0-based).
+    """
+    try:
+        ok, msg = _client().script_run(max(0, int(destline)))
+        return f"{'OK' if ok else 'FAILED'}: {msg}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def script_cmd_exec(command: str) -> str:
+    """Execute one command through the script engine's command executor.
+    """
+    try:
+        ok = _client().script_cmd_exec(command)
+        return f"{'OK' if ok else 'FAILED'}: {command}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def dbg_cmd_exec(command: str, timeout: int = 20) -> str:
+    """Queue a command on the debugger command thread and wait for it to run.
+
+    Unlike cmd_sync (which uses DbgCmdExecDirect and bypasses the command
+    queue), this goes through DbgCmdExec, so commands that need queue semantics
+    (init, analyse scripts, rerun, ...) actually execute. Returns queued /
+    executed / elapsed; "executed" means the sentinel ran after your command,
+    not that the command succeeded — check get_log for its output.
+    """
+    try:
+        queued, executed, elapsed = _client().dbg_cmd_exec(command, max(1, int(timeout)))
+        state = "executed" if executed else ("queued-but-not-finished" if queued else "not-queued")
+        return f"{state}: {command} ({elapsed} ms)"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def get_module_path(target: str) -> str:
+    """Resolve a module's full path from a module name or an address inside it.
+
+    Uses the plugin's native ModPath lookup (no symbol path / no file system scan).
+    """
+    try:
+        client = _client()
+        s = (target or "").strip()
+        if not s:
+            return "Error: 需要模块名或模块内地址（例如 kernel32.dll 或 0x7FF...）"
+        if s.lower().startswith("0x") or s.isdigit():
+            value: int | str = _addr(s)
+        else:
+            value = s
+        path = client.module_path(value)
+        if path:
+            return path
+        return (f"未找到 {target} 的模块路径。"
+                "可先用 modules 或 get_memory_map 确认模块名/地址；"
+                "该接口只查已加载模块，不查磁盘文件。")
     except Exception as e:
         return f"Error: {e}"
 
@@ -672,6 +785,8 @@ def local_patch_info() -> str:
 def register(mcp) -> None:
     """Register every local tool on the given FastMCP instance."""
     for fn in (skip_call, send_stdin, read_console, find_bytes, find_string,
-               xref, modules, disasm_json, exec_command_out, local_patch_info):
+               xref, modules, disasm_json, exec_command_out, get_module_path,
+               analyse_range, script_load, script_run, script_cmd_exec,
+               dbg_cmd_exec, local_patch_info):
         mcp.tool()(fn)
         LOCAL_TOOLS.append(fn.__name__)

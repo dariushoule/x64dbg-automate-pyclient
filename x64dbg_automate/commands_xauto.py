@@ -35,6 +35,17 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_GET_COMMENT = "XAUTO_REQ_GET_COMMENT"
     XAUTO_REQ_GET_SYMBOL = "XAUTO_REQ_GET_SYMBOL"
     XAUTO_REQ_GET_LOG = "XAUTO_REQ_GET_LOG"
+    XAUTO_REQ_XREF_COUNT_AT = "XAUTO_REQ_XREF_COUNT_AT"
+    XAUTO_REQ_XREF_TYPE_AT = "XAUTO_REQ_XREF_TYPE_AT"
+    XAUTO_REQ_XREF_GET = "XAUTO_REQ_XREF_GET"
+    XAUTO_REQ_XREF_ADD = "XAUTO_REQ_XREF_ADD"
+    XAUTO_REQ_FUNCTION_TYPE_AT = "XAUTO_REQ_FUNCTION_TYPE_AT"
+    XAUTO_REQ_MODULE_PATH = "XAUTO_REQ_MODULE_PATH"
+    XAUTO_REQ_ANALYSE_RANGE = "XAUTO_REQ_ANALYSE_RANGE"
+    XAUTO_REQ_SCRIPT_LOAD = "XAUTO_REQ_SCRIPT_LOAD"
+    XAUTO_REQ_SCRIPT_RUN = "XAUTO_REQ_SCRIPT_RUN"
+    XAUTO_REQ_SCRIPT_CMDEXEC = "XAUTO_REQ_SCRIPT_CMDEXEC"
+    XAUTO_REQ_DBG_CMD_EXEC = "XAUTO_REQ_DBG_CMD_EXEC"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -566,3 +577,127 @@ class XAutoCommandsMixin(XAutoClientBase):
             True if the debugger is ready, False otherwise
         """
         return self.wait_until_debugging(timeout) and self.wait_until_stopped(timeout)
+
+    def xref_count_at(self, addr: int) -> int:
+        """
+        Retrieves the number of references to an address from the debugger's analysis database.
+
+        Args:
+            addr: The address to query
+
+        Returns:
+            The number of references known to x64dbg (0 if unanalyzed or unknown)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_COUNT_AT, int(addr))
+
+    def xref_type_at(self, addr: int) -> int:
+        """
+        Retrieves the reference type of an address (XREFTYPE: 0=none, 1=data, 2=jmp, 3=call).
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_TYPE_AT, int(addr))
+
+    def xref_get(self, addr: int) -> list[list[int]]:
+        """
+        Retrieves all references to an address from the debugger's analysis database.
+
+        Args:
+            addr: The address to query
+
+        Returns:
+            A list of [from_addr, xref_type] pairs, empty if unanalyzed or unknown
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_GET, int(addr))
+
+    def xref_add(self, addr: int, from_addr: int) -> bool:
+        """
+        Adds a cross-reference edge to the debugger's analysis database.
+
+        Args:
+            addr: The referenced address
+            from_addr: The instruction address the reference originates from
+
+        Returns:
+            True if the reference was added
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_ADD, int(addr), int(from_addr))
+
+    def function_type_at(self, addr: int) -> int:
+        """
+        Retrieves the function type of an address (FUNCTYPE: 0=none, 1=normal, 2=import, ...).
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_FUNCTION_TYPE_AT, int(addr))
+
+    def module_path(self, addr_or_name: int | str) -> str:
+        """
+        Resolves a module path from a module base address or module name.
+
+        Args:
+            addr_or_name: A module base address (int) or module name (str)
+
+        Returns:
+            The full module path, or an empty string if not found
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_MODULE_PATH, addr_or_name)
+
+    def analyse_range(self, addr: int, size: int = 0, mode: str = "all",
+                      timeout: int = 20) -> tuple[bool, int, str]:
+        """
+        Runs x64dbg's own analysis over the memory region containing addr.
+
+        The plugin saves the GUI disassembly selection, points it at addr, queues
+        ``analyse`` / ``analxrefs`` and waits for a sentinel, then restores the
+        selection. Must be called while the debuggee is paused.
+
+        Args:
+            addr: Any address inside the region to analyse
+            size: Requested range size; 0 = the whole mapped region
+            mode: "analyse", "analxrefs" or "all" (both)
+            timeout: Seconds to wait for the queued commands to finish
+
+        Returns:
+            A tuple of (executed, elapsed_ms, detail)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_ANALYSE_RANGE,
+                                  int(addr), int(size), str(mode), int(timeout))
+
+    def script_load(self, path: str) -> tuple[bool, str]:
+        """
+        Loads an x64dbg script file into the script engine.
+
+        Returns:
+            A tuple of (ok, message)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_SCRIPT_LOAD, str(path))
+
+    def script_run(self, destline: int = 0) -> tuple[bool, str]:
+        """
+        Runs the loaded script starting at destline (0-based).
+
+        Returns:
+            A tuple of (ok, message)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_SCRIPT_RUN, int(destline))
+
+    def script_cmd_exec(self, command: str) -> bool:
+        """
+        Executes one command through the script engine's command executor.
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_SCRIPT_CMDEXEC, str(command))
+
+    def dbg_cmd_exec(self, command: str, timeout: int = 20) -> tuple[bool, bool, int]:
+        """
+        Queues a command with DbgCmdExec (command-thread semantics) and waits
+        for a sentinel command to run after it.
+
+        Unlike ``cmd_sync`` (DbgCmdExecDirect), this does not bypass the command
+        queue, so queue-dependent commands actually execute.
+
+        Args:
+            command: The x64dbg command line to queue
+            timeout: Seconds to wait for the sentinel
+
+        Returns:
+            A tuple of (queued, executed, elapsed_ms)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC,
+                                  str(command), int(timeout))
