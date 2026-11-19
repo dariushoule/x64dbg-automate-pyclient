@@ -4,7 +4,8 @@ import time
 from x64dbg_automate.client_base import XAutoClientBase
 from x64dbg_automate.models import Breakpoint, BreakpointType, Context64, Context32, DisasmArgType, \
     DisasmInstrType, Flags, FpuReg, Instruction, InstructionArg, MemPage, MxcsrFields, RegDump32, RegDump64, \
-    SegmentReg, Symbol, SymbolType, X87ControlWordFields, X87Fpu, X87StatusWordFields
+    SegmentReg, Symbol, SymbolType, X87ControlWordFields, X87Fpu, X87StatusWordFields, \
+    StandardBreakpointType, HardwareBreakpointType, MemoryBreakpointType
 
 
 class XAutoCommand(StrEnum):
@@ -392,7 +393,20 @@ class XAutoCommandsMixin(XAutoClientBase):
         Returns:
             A list of Breakpoint objects
         """
-        resp = self._send_request(XAutoCommand.XAUTO_REQ_GET_BREAKPOINTS, bp_type)
+        # Local patch (local.13): callers naturally pass StandardBreakpointType /
+        # HardwareBreakpointType / MemoryBreakpointType, which are StrEnum and get
+        # encoded as strings; the plugin requires a POSITIVE_INTEGER (BPXTYPE bitmask)
+        # and answers False otherwise, so get_breakpoints() crashed with
+        # "'bool' object is not iterable". Normalise all three enum families.
+        if isinstance(bp_type, HardwareBreakpointType):
+            wire_type = int(BreakpointType.BpHardware)
+        elif isinstance(bp_type, MemoryBreakpointType):
+            wire_type = int(BreakpointType.BpMemory)
+        elif isinstance(bp_type, StandardBreakpointType):
+            wire_type = int(BreakpointType.BpNormal)
+        else:
+            wire_type = int(bp_type)
+        resp = self._send_request(XAutoCommand.XAUTO_REQ_GET_BREAKPOINTS, wire_type)
         return [Breakpoint(
             type=BreakpointType(bp[0]),
             addr=bp[1],
