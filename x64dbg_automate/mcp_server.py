@@ -30,6 +30,12 @@ from x64dbg_automate.models import (
     PAGE_GUARD,
 )
 
+# Local patch marker. Base package is 0.9.2 (poetry version unchanged on purpose;
+# the local revision lives in pyproject [project].version and must equal this
+# constant — ops/verify.py enforces it). Bump the trailing counter on every
+# further local edit so changes stay diffable against upstream.
+_XAUTO_MCP_PATCH = "0.9.2+local.13"
+
 mcp = FastMCP(
     "x64dbg-automate",
     instructions=(
@@ -38,11 +44,17 @@ mcp = FastMCP(
         "Addresses are hex strings (e.g. '0x7FF6A0001000'). Memory reads return hex dumps "
         "by default; pass format='hex' or 'base64' for compact output and a larger "
         "per-call limit, size=0 to read as much as fits, and read_memory_many to batch "
-        "scattered struct-field reads."
+        "scattered struct-field reads. "
+        f"[local patch {_XAUTO_MCP_PATCH}] run_python executes an arbitrary Python snippet "
+        "against the connected debugger with the full client bound to `dbg`, collapsing "
+        "loops / struct walks / multi-step patches into one call instead of many."
     ),
 )
 
 _client: X64DbgClient | None = None
+
+# Sentinel so run_python can tell "caller set result=None" apart from "no result".
+_UNSET = object()
 
 
 # ---------------------------------------------------------------------------
@@ -64,8 +76,11 @@ def _parse_address_or_expression(s: str) -> int:
     ('kernel32:CreateFileA'), and arithmetic ('rsp+0x20') all work.
     """
     s = s.strip()
-    if s.startswith("0x") or s.startswith("0X"):
-        return int(s, 16)
+    # Plain literals only — do NOT early-return on the "0x" prefix. Upstream did
+    # `if s.startswith("0x"): return int(s, 16)`, so every arithmetic expression
+    # ("0x140000000+0x1F0") raised ValueError from int() and never reached the
+    # expression fallback below, rejecting input the docstring promises to accept.
+    # Local patch (local.3).
     try:
         return int(s, 16)
     except ValueError:
@@ -82,6 +97,21 @@ def _parse_address_or_expression(s: str) -> int:
 def _format_address(addr: int) -> str:
     """Format an integer address as a hex string."""
     return f"0x{addr:X}"
+
+
+def _log_tail(client, want: int = 6) -> str:
+    """最近 want 行日志（先量总数再定位尾巴，不整条缓冲搬回来）。
+
+    给「只返回 failed 不说原因」的工具补上上下文。Local patch (local.7).
+    """
+    try:
+        _, first, remaining, _ = client.get_log(0, 1, "")
+        total = len(first) + max(0, remaining)
+        _, msgs, _, _ = client.get_log(max(0, total - want), 0, "")
+    except Exception:
+        return ""
+    lines = [ln for m in msgs for ln in m.splitlines() if ln.strip()]
+    return "\n".join(lines[-want:])
 
 
 def _format_memory(data: bytes, base: int) -> str:
@@ -617,22 +647,9 @@ def trace_into(
     swallow_exceptions: bool = False,
     wait_timeout: int = 60,
 ) -> str:
-    """Trace into (single-step into calls) until a condition is met.
+    """Step into calls until break_condition is non-zero or max_steps is hit.
 
-    Steps one instruction at a time, following into calls, until break_condition
-    evaluates to non-zero or max_steps is reached. Optionally logs each step.
-
-    Args:
-        break_condition: x64dbg expression that stops the trace when non-zero (e.g. 'cip == 0x401000')
-        max_steps: Maximum steps before giving up (default 50000)
-        log_text: Formatted text to log each step (e.g. '{p:cip} {i:cip}')
-        log_condition: Expression controlling when log_text is printed
-        command_text: x64dbg command to execute each step
-        command_condition: Expression controlling when command_text runs
-        log_file: Path to redirect trace log output to a file
-        pass_exceptions: Pass exceptions to the debuggee
-        swallow_exceptions: Swallow exceptions
-        wait_timeout: Max seconds to wait for trace completion
+    log_text uses the "{p:cip} {i:cip}" format. Failures include the log tail.
     """
     try:
         client = _require_client()
@@ -648,7 +665,13 @@ def trace_into(
             swallow_exceptions=swallow_exceptions,
             wait_timeout=wait_timeout,
         )
-        return "Trace into completed." if result else "Trace into failed."
+        if result:
+            return "Trace into completed."
+        tail = _log_tail(client)
+        if tail:
+            return f"Trace into failed.\n最近日志:\n{tail}"
+        return ("Trace into failed. (插件未回原因、日志也为空：确认目标已暂停、"
+                "break_condition 是合法表达式、且没有残留断点在挡步进)")
     except Exception as e:
         return f"Error: {e}"
 
@@ -666,22 +689,9 @@ def trace_over(
     swallow_exceptions: bool = False,
     wait_timeout: int = 60,
 ) -> str:
-    """Trace over (single-step over calls) until a condition is met.
+    """Step over calls until break_condition is non-zero or max_steps is hit.
 
-    Steps one instruction at a time, stepping over calls, until break_condition
-    evaluates to non-zero or max_steps is reached. Optionally logs each step.
-
-    Args:
-        break_condition: x64dbg expression that stops the trace when non-zero (e.g. 'cip == 0x401000')
-        max_steps: Maximum steps before giving up (default 50000)
-        log_text: Formatted text to log each step (e.g. '{p:cip} {i:cip}')
-        log_condition: Expression controlling when log_text is printed
-        command_text: x64dbg command to execute each step
-        command_condition: Expression controlling when command_text runs
-        log_file: Path to redirect trace log output to a file
-        pass_exceptions: Pass exceptions to the debuggee
-        swallow_exceptions: Swallow exceptions
-        wait_timeout: Max seconds to wait for trace completion
+    log_text uses the "{p:cip} {i:cip}" format. Failures include the log tail.
     """
     try:
         client = _require_client()
@@ -697,7 +707,13 @@ def trace_over(
             swallow_exceptions=swallow_exceptions,
             wait_timeout=wait_timeout,
         )
-        return "Trace over completed." if result else "Trace over failed."
+        if result:
+            return "Trace over completed."
+        tail = _log_tail(client)
+        if tail:
+            return f"Trace over failed.\n最近日志:\n{tail}"
+        return ("Trace over failed. (插件未回原因、日志也为空：确认目标已暂停、"
+                "break_condition 是合法表达式、且没有残留断点在挡步进)")
     except Exception as e:
         return f"Error: {e}"
 
@@ -984,6 +1000,15 @@ def get_register(register: str) -> str:
     """
     try:
         client = _require_client()
+        # Local patch (local.13): A16 guard. Reading registers while the debuggee
+        # is running returns a frozen snapshot from the last stop, which silently
+        # misleads callers. Refuse instead of auto-pausing: pausing changes
+        # debugger state implicitly and is harder to diagnose than a clear error.
+        if client.is_running():
+            return ("Error: debuggee is running, so register values are a frozen snapshot. "
+                    "Call the pause tool first (client.pause() issues the second break-in pause "
+                    "itself, so a single call also works for kernel waits), or use "
+                    "wait_for_event, then read the register.")
         val = client.get_reg(register)
         return f"{register} = {_format_address(val)}"
     except Exception as e:
@@ -1069,6 +1094,54 @@ def execute_command(command: str) -> str:
         return f"Error: {e}"
 
 
+@mcp.tool()
+def run_python(code: str) -> str:
+    """Execute a Python snippet against the connected x64dbg.
+
+    Bound as dbg (alias client) with the whole library available (read_memory,
+    get_reg, cmd_sync, disassemble_at, set_breakpoint, ...). stdout and a variable
+    named result are returned. Synchronous: a blocking call holds this tool.
+    """
+    import io
+    import contextlib
+    import traceback
+
+    try:
+        client = _require_client()
+    except Exception as e:
+        return f"Error: {e}"
+
+    buf = io.StringIO()
+    namespace = {
+        "dbg": client,
+        "client": client,
+        "parse_addr": _parse_address_or_expression,
+        "fmt": _format_address,
+        "__name__": "__xauto_run_python__",
+    }
+    try:
+        with contextlib.redirect_stdout(buf):
+            exec(compile(code, "<run_python>", "exec"), namespace)
+    except BaseException:
+        printed = buf.getvalue().rstrip("\n")
+        tb = traceback.format_exc()
+        return (f"{printed}\n" if printed else "") + f"Traceback:\n{tb}"
+
+    printed = buf.getvalue().rstrip("\n")
+    res = namespace.get("result", _UNSET)
+    parts = []
+    if printed:
+        parts.append(printed)
+    if res is not _UNSET:
+        try:
+            parts.append("result = " + repr(res))
+        except Exception as e:  # pragma: no cover - exotic objects
+            parts.append(f"result = <unrepr-able: {e}>")
+    if not parts:
+        parts.append("(no output — print() data or assign `result` to return a value)")
+    return "\n".join(parts)
+
+
 # ---------------------------------------------------------------------------
 # Breakpoints
 # ---------------------------------------------------------------------------
@@ -1144,14 +1217,17 @@ def clear_breakpoint(address: str | None = None, bp_type: str = "software") -> s
 
 
 @mcp.tool()
-def toggle_breakpoint(address: str | None = None, bp_type: str = "software", enable: bool = True) -> str:
-    """Enable or disable breakpoint(s).
+def toggle_breakpoint(address: str | None = None, bp_type: str = "software",
+                      enable: bool | None = None, on: bool | None = None) -> str:
+    """Enable or disable breakpoints (address may be an address, symbol or list).
 
-    Args:
-        address: Hex address or symbol (None toggles all of this type)
-        bp_type: 'software', 'hardware', or 'memory'
-        enable: True to enable, False to disable
+    enable and on are aliases (the library uses on, the historic MCP tool used
+    enable); passing both with conflicting values is an error.
     """
+    if enable is None:
+        enable = True if on is None else on
+    elif on is not None and on != enable:
+        return f"Error: enable={enable} conflicts with on={on}; pass only one of them"
     try:
         client = _require_client()
         target: int | str | None = None
@@ -1447,19 +1523,37 @@ def get_latest_event() -> str:
 
 
 @mcp.tool()
-def wait_for_event(event_type: str, timeout: int = 5) -> str:
-    """Wait for a specific debug event type.
+def wait_for_event(event_type: str, timeout: int = 5, drain_first: bool = False) -> str:
+    """Wait for a debug event of the given type.
 
-    Args:
-        event_type: Event type name (e.g. 'EVENT_BREAKPOINT', 'EVENT_LOAD_DLL')
-        timeout: Max seconds to wait
+    drain_first=False (default): return an already-queued event of that type -- the
+        normal go -> wait flow.
+    drain_first=True: clear the queue first; drops events that fired while the call
+        was in flight (measured to time out). Use only when stale events are known.
     """
     try:
         client = _require_client()
         et = EventType(event_type)
+        if drain_first:
+            client.clear_debug_events(et)
         event = client.wait_for_debug_event(et, timeout=timeout)
         if event is None:
-            return f"Timed out waiting for {event_type}."
+            # 超时信息要能自解释：数一下队列里还压着多少条同类型事件，
+            # 这比在 docstring 里长篇解释 drain_first 有用得多。
+            pending = 0
+            try:
+                q = getattr(client, "_debug_events_q", None)
+                if q is not None:
+                    pending = sum(1 for e in list(q) if getattr(e, "event_type", None) == et)
+            except Exception:
+                pending = 0
+            msg = f"Timed out waiting for {event_type} after {timeout}s."
+            if pending:
+                msg += (f" 队列里还有 {pending} 条该类型的未读事件 —— 先用 get_latest_event "
+                        f"弹空，或本次直接传 drain_first=True。")
+            elif drain_first:
+                msg += " 已按 drain_first 清过队列，说明这期间确实没有新事件。"
+            return msg
         data_str = ""
         if event.event_data is not None:
             data_str = "\n" + "\n".join(

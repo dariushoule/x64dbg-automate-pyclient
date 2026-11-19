@@ -4,7 +4,8 @@ import time
 from x64dbg_automate.client_base import XAutoClientBase
 from x64dbg_automate.models import Breakpoint, BreakpointType, Context64, Context32, DisasmArgType, \
     DisasmInstrType, Flags, FpuReg, Instruction, InstructionArg, MemPage, MxcsrFields, RegDump32, RegDump64, \
-    SegmentReg, Symbol, SymbolType, X87ControlWordFields, X87Fpu, X87StatusWordFields
+    SegmentReg, Symbol, SymbolType, X87ControlWordFields, X87Fpu, X87StatusWordFields, \
+    StandardBreakpointType, HardwareBreakpointType, MemoryBreakpointType
 
 
 class XAutoCommand(StrEnum):
@@ -35,6 +36,16 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_GET_COMMENT = "XAUTO_REQ_GET_COMMENT"
     XAUTO_REQ_GET_SYMBOL = "XAUTO_REQ_GET_SYMBOL"
     XAUTO_REQ_GET_LOG = "XAUTO_REQ_GET_LOG"
+    XAUTO_REQ_XREF_COUNT_AT = "XAUTO_REQ_XREF_COUNT_AT"
+    XAUTO_REQ_XREF_TYPE_AT = "XAUTO_REQ_XREF_TYPE_AT"
+    XAUTO_REQ_XREF_GET = "XAUTO_REQ_XREF_GET"
+    XAUTO_REQ_XREF_ADD = "XAUTO_REQ_XREF_ADD"
+    XAUTO_REQ_FUNCTION_TYPE_AT = "XAUTO_REQ_FUNCTION_TYPE_AT"
+    XAUTO_REQ_MODULE_PATH = "XAUTO_REQ_MODULE_PATH"
+    XAUTO_REQ_ANALYSE_RANGE = "XAUTO_REQ_ANALYSE_RANGE"
+    XAUTO_REQ_SCRIPT_LOAD = "XAUTO_REQ_SCRIPT_LOAD"
+    XAUTO_REQ_SCRIPT_RUN = "XAUTO_REQ_SCRIPT_RUN"
+    XAUTO_REQ_DBG_CMD_EXEC = "XAUTO_REQ_DBG_CMD_EXEC"
 
 
 class XAutoCommandsMixin(XAutoClientBase):
@@ -84,6 +95,25 @@ class XAutoCommandsMixin(XAutoClientBase):
             Success
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC_DIRECT, cmd_str)
+
+    def execute_command(self, command: str) -> str:
+        """
+        Execute a raw x64dbg command and return a status string.
+
+        Convenience wrapper around :meth:`cmd_sync` that mirrors the MCP tool
+        ``execute_command`` so the same call style works from Python scripts
+        (e.g. ``client.execute_command("bp kernel32:BaseThreadInitThunk")``).
+
+        See https://help.x64dbg.com/en/latest/commands/ for available commands.
+
+        Args:
+            command: x64dbg command string
+
+        Returns:
+            A status string (``"Command executed. Success: <bool>"``).
+        """
+        result = self.cmd_sync(command)
+        return f"Command executed. Success: {result}"
     
     def is_running(self) -> bool:
         """
@@ -363,7 +393,20 @@ class XAutoCommandsMixin(XAutoClientBase):
         Returns:
             A list of Breakpoint objects
         """
-        resp = self._send_request(XAutoCommand.XAUTO_REQ_GET_BREAKPOINTS, bp_type)
+        # Local patch (local.13): callers naturally pass StandardBreakpointType /
+        # HardwareBreakpointType / MemoryBreakpointType, which are StrEnum and get
+        # encoded as strings; the plugin requires a POSITIVE_INTEGER (BPXTYPE bitmask)
+        # and answers False otherwise, so get_breakpoints() crashed with
+        # "'bool' object is not iterable". Normalise all three enum families.
+        if isinstance(bp_type, HardwareBreakpointType):
+            wire_type = int(BreakpointType.BpHardware)
+        elif isinstance(bp_type, MemoryBreakpointType):
+            wire_type = int(BreakpointType.BpMemory)
+        elif isinstance(bp_type, StandardBreakpointType):
+            wire_type = int(BreakpointType.BpNormal)
+        else:
+            wire_type = int(bp_type)
+        resp = self._send_request(XAutoCommand.XAUTO_REQ_GET_BREAKPOINTS, wire_type)
         return [Breakpoint(
             type=BreakpointType(bp[0]),
             addr=bp[1],
@@ -547,3 +590,123 @@ class XAutoCommandsMixin(XAutoClientBase):
             True if the debugger is ready, False otherwise
         """
         return self.wait_until_debugging(timeout) and self.wait_until_stopped(timeout)
+
+    def xref_count_at(self, addr: int) -> int:
+        """
+        Retrieves the number of references to an address from the debugger's analysis database.
+
+        Args:
+            addr: The address to query
+
+        Returns:
+            The number of references known to x64dbg (0 if unanalyzed or unknown)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_COUNT_AT, int(addr))
+
+    def xref_type_at(self, addr: int) -> int:
+        """
+        Retrieves the reference type of an address (XREFTYPE: 0=none, 1=data, 2=jmp, 3=call).
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_TYPE_AT, int(addr))
+
+    def xref_get(self, addr: int) -> list[list[int]]:
+        """
+        Retrieves all references to an address from the debugger's analysis database.
+
+        Args:
+            addr: The address to query
+
+        Returns:
+            A list of [from_addr, xref_type] pairs, empty if unanalyzed or unknown
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_GET, int(addr))
+
+    def xref_add(self, addr: int, from_addr: int) -> bool:
+        """
+        Adds a cross-reference edge to the debugger's analysis database.
+
+        Args:
+            addr: The referenced address
+            from_addr: The instruction address the reference originates from
+
+        Returns:
+            True if the reference was added
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_XREF_ADD, int(addr), int(from_addr))
+
+    def function_type_at(self, addr: int) -> int:
+        """
+        Retrieves the function type of an address (FUNCTYPE: 0=none, 1=normal, 2=import, ...).
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_FUNCTION_TYPE_AT, int(addr))
+
+    def module_path(self, addr_or_name: int | str) -> str:
+        """
+        Resolves a module path from a module base address or module name.
+
+        Args:
+            addr_or_name: A module base address (int) or module name (str)
+
+        Returns:
+            The full module path, or an empty string if not found
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_MODULE_PATH, addr_or_name)
+
+    def analyse_range(self, addr: int, size: int = 0, mode: str = "all",
+                      timeout: int = 20) -> tuple[bool, int, str]:
+        """
+        Runs x64dbg's own analysis over the module that contains addr.
+
+        x64dbg's analyse/analxrefs derive their range from the GUI disassembly
+        selection, so the plugin walks the module's executable image regions,
+        moves the view (GuiDisasmAt) and selection to each one, queues the
+        commands and waits for a sentinel before restoring the view. Requires a
+        paused debuggee and the CPU window. size=0 analyses the whole module.
+
+        Args:
+            addr: Any address inside the module to analyse
+            size: Optional window; 0 = the whole module
+            mode: "analyse", "analxrefs" or "all" (both)
+            timeout: Seconds to wait for each queued command batch
+
+        Returns:
+            A tuple of (all_ok, elapsed_ms, detail)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_ANALYSE_RANGE,
+                                  int(addr), int(size), str(mode), int(timeout))
+
+    def script_load(self, path: str) -> tuple[bool, str]:
+        """
+        Loads an x64dbg script file into the script engine.
+
+        Returns:
+            A tuple of (ok, message)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_SCRIPT_LOAD, str(path))
+
+    def script_run(self, destline: int = 0) -> tuple[bool, str]:
+        """
+        Runs the loaded script starting at destline (0-based).
+
+        Returns:
+            A tuple of (ok, message)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_SCRIPT_RUN, int(destline))
+
+    def dbg_cmd_exec(self, command: str, timeout: int = 20) -> tuple[bool, bool, int]:
+        """
+        Queues a command with DbgCmdExec (command-thread semantics) and waits
+        for a sentinel command to run after it.
+
+        Unlike ``cmd_sync`` (DbgCmdExecDirect), this does not bypass the command
+        queue, so queue-dependent commands actually execute.
+
+        Args:
+            command: The x64dbg command line to queue
+            timeout: Seconds to wait for the sentinel
+
+        Returns:
+            A tuple of (queued, executed, elapsed_ms)
+        """
+        return self._send_request(XAutoCommand.XAUTO_REQ_DBG_CMD_EXEC,
+                                  str(command), int(timeout))
