@@ -678,13 +678,13 @@ def exec_command_out(command: str, log_lines: int = 8) -> str:
 
 def analyse_range(target: str, size: int = 0, mode: str = "all",
                   timeout: int = 20) -> str:
-    """Run x64dbg's own analysis over the memory region containing target.
+    """Run x64dbg's own analysis over the module that contains target.
 
-    Must be called while the debuggee is paused. ``analyse`` fills the function
-    database, ``analxrefs`` fills the cross-reference database; x64dbg derives
-    both from the GUI disassembly selection, so the plugin saves the current
-    selection, points it at ``target``, queues the commands and waits for a
-    barrier before restoring it. After this returns, xref_count_at /
+    Must be called while the debuggee is paused, with the CPU window available
+    (x64dbg's analyse/analxrefs read the GUI disassembly selection). The plugin
+    walks every executable image region of the module, moves the disassembly
+    view to it, queues ``analyse``/``analxrefs``, waits for a sentinel, then
+    restores the previous view/selection. After this returns, xref_count_at /
     xref_get / function_type_at report real analysis data.
     """
     try:
@@ -714,16 +714,6 @@ def script_run(destline: int = 0) -> str:
     try:
         ok, msg = _client().script_run(max(0, int(destline)))
         return f"{'OK' if ok else 'FAILED'}: {msg}"
-    except Exception as e:
-        return f"Error: {e}"
-
-
-def script_cmd_exec(command: str) -> str:
-    """Execute one command through the script engine's command executor.
-    """
-    try:
-        ok = _client().script_cmd_exec(command)
-        return f"{'OK' if ok else 'FAILED'}: {command}"
     except Exception as e:
         return f"Error: {e}"
 
@@ -786,7 +776,7 @@ def register(mcp) -> None:
     """Register every local tool on the given FastMCP instance."""
     for fn in (skip_call, send_stdin, read_console, find_bytes, find_string,
                xref, modules, disasm_json, exec_command_out, get_module_path,
-               analyse_range, script_load, script_run, script_cmd_exec,
-               dbg_cmd_exec, local_patch_info):
+               analyse_range, script_load, script_run, dbg_cmd_exec,
+               local_patch_info):
         mcp.tool()(fn)
         LOCAL_TOOLS.append(fn.__name__)

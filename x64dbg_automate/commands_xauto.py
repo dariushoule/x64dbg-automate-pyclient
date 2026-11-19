@@ -44,7 +44,6 @@ class XAutoCommand(StrEnum):
     XAUTO_REQ_ANALYSE_RANGE = "XAUTO_REQ_ANALYSE_RANGE"
     XAUTO_REQ_SCRIPT_LOAD = "XAUTO_REQ_SCRIPT_LOAD"
     XAUTO_REQ_SCRIPT_RUN = "XAUTO_REQ_SCRIPT_RUN"
-    XAUTO_REQ_SCRIPT_CMDEXEC = "XAUTO_REQ_SCRIPT_CMDEXEC"
     XAUTO_REQ_DBG_CMD_EXEC = "XAUTO_REQ_DBG_CMD_EXEC"
 
 
@@ -642,20 +641,22 @@ class XAutoCommandsMixin(XAutoClientBase):
     def analyse_range(self, addr: int, size: int = 0, mode: str = "all",
                       timeout: int = 20) -> tuple[bool, int, str]:
         """
-        Runs x64dbg's own analysis over the memory region containing addr.
+        Runs x64dbg's own analysis over the module that contains addr.
 
-        The plugin saves the GUI disassembly selection, points it at addr, queues
-        ``analyse`` / ``analxrefs`` and waits for a sentinel, then restores the
-        selection. Must be called while the debuggee is paused.
+        x64dbg's analyse/analxrefs derive their range from the GUI disassembly
+        selection, so the plugin walks the module's executable image regions,
+        moves the view (GuiDisasmAt) and selection to each one, queues the
+        commands and waits for a sentinel before restoring the view. Requires a
+        paused debuggee and the CPU window. size=0 analyses the whole module.
 
         Args:
-            addr: Any address inside the region to analyse
-            size: Requested range size; 0 = the whole mapped region
+            addr: Any address inside the module to analyse
+            size: Optional window; 0 = the whole module
             mode: "analyse", "analxrefs" or "all" (both)
-            timeout: Seconds to wait for the queued commands to finish
+            timeout: Seconds to wait for each queued command batch
 
         Returns:
-            A tuple of (executed, elapsed_ms, detail)
+            A tuple of (all_ok, elapsed_ms, detail)
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_ANALYSE_RANGE,
                                   int(addr), int(size), str(mode), int(timeout))
@@ -677,12 +678,6 @@ class XAutoCommandsMixin(XAutoClientBase):
             A tuple of (ok, message)
         """
         return self._send_request(XAutoCommand.XAUTO_REQ_SCRIPT_RUN, int(destline))
-
-    def script_cmd_exec(self, command: str) -> bool:
-        """
-        Executes one command through the script engine's command executor.
-        """
-        return self._send_request(XAutoCommand.XAUTO_REQ_SCRIPT_CMDEXEC, str(command))
 
     def dbg_cmd_exec(self, command: str, timeout: int = 20) -> tuple[bool, bool, int]:
         """
