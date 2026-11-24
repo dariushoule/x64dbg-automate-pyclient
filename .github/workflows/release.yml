@@ -1,0 +1,115 @@
+name: Build and release
+
+# Every push/PR: offline tests + wheel/sdist build (live x64dbg tests skip, as on
+# any machine without tests/local.env).
+#
+# Tag v<version>-<codename> (e.g. v0.9.3-ghost_fungus): also checks the tag against
+# pyproject's version and COMPAT_VERSION, then creates a *draft* GitHub release with
+# the wheel and sdist attached.
+#
+# Publishing that draft is the release button: it uploads exactly the files attached
+# to the release to PyPI via trusted publishing. Nothing reaches PyPI before then.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test and build
+    if: github.event_name != 'release'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Check tag against pyproject version and COMPAT_VERSION
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $version, $codename = ($env:GITHUB_REF_NAME -replace '^v', '') -split '-', 2
+          $pyproject = poetry version --short
+          $init = Get-Content x64dbg_automate/__init__.py -Raw
+          $compat = [regex]::Match($init, 'COMPAT_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+          if ($version -ne $pyproject) { throw "Tag version '$version' does not match pyproject version '$pyproject'" }
+          if ($codename -ne $compat) { throw "Tag codename '$codename' does not match COMPAT_VERSION '$compat'" }
+
+      - name: Install
+        run: poetry install --extras mcp --with dev
+
+      - name: Offline tests
+        run: poetry run pytest -q
+
+      - name: Build wheel and sdist
+        run: poetry build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
+
+  draft-release:
+    name: Draft GitHub release
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+
+      - name: Create or update draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -l dist
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            if [ "$(gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "::error::Release $TAG is already published; refusing to replace its assets"
+              exit 1
+            fi
+            gh release upload "$TAG" dist/* --clobber -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" dist/* --draft --verify-tag --title "$TAG" --generate-notes -R "$GITHUB_REPOSITORY"
+          fi
+
+  publish-pypi:
+    name: Publish to PyPI
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/x64dbg-automate/
+    permissions:
+      contents: read
+      id-token: write  # trusted publishing
+    steps:
+      # Publish the files that sat on the draft (and were smoke tested), not a rebuild.
+      - name: Download the release's wheel and sdist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -D dist -p '*.whl' -p '*.tar.gz'
+          ls -l dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
