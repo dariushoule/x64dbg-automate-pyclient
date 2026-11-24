@@ -11,6 +11,7 @@ from pathlib import Path
 
 try:
     from mcp.server.mcpserver import MCPServer
+    from mcp.server.mcpserver.exceptions import ToolError
 except ImportError:
     # Also reached with an mcp 1.x install, which has no mcp.server.mcpserver.
     print("MCP SDK 2.x not installed. Install with: pip install 'x64dbg_automate[mcp]'", file=sys.stderr)
@@ -55,6 +56,19 @@ def _require_client() -> X64DbgClient:
     if _client is None:
         raise RuntimeError("Not connected to x64dbg. Use connect_to_session or start_session first.")
     return _client
+
+
+def _as_tool_error(e: Exception) -> ToolError:
+    """Convert a tool failure into a ToolError, so the caller gets is_error=True with the message.
+
+    MCPServer reports any other exception as an opaque crash ("Error executing tool <name>")
+    and drops the message, so every tool funnels its failures through here.
+    """
+    if isinstance(e, ToolError):
+        return e
+    err = ToolError(str(e))
+    err.__cause__ = e
+    return err
 
 
 def _parse_address_or_expression(s: str) -> int:
@@ -384,7 +398,7 @@ def list_sessions() -> str:
             )
         return "\n".join(lines)
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -409,7 +423,7 @@ def start_session(x64dbg_path: str = "", target_exe: str = "", cmdline: str = ""
         return f"Session started with {Path(resolved).name}. Debugger PID: {pid}"
     except Exception as e:
         _client = None
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -424,7 +438,7 @@ def connect_to_session(x64dbg_path: str = "", session_pid: int = 0) -> str:
         session_pid: PID of the x64dbg process to attach to
     """
     if not session_pid:
-        return "Error: session_pid is required."
+        raise ToolError("session_pid is required.")
     global _client
     try:
         path = _resolve_x64dbg_path_with_env(x64dbg_path)
@@ -434,7 +448,7 @@ def connect_to_session(x64dbg_path: str = "", session_pid: int = 0) -> str:
         return f"Connected to session PID {session_pid}."
     except Exception as e:
         _client = None
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -456,7 +470,7 @@ def connect_remote(host: str, req_rep_port: int, pub_sub_port: int) -> str:
         return f"Connected to remote x64dbg at {host}:{req_rep_port}."
     except Exception as e:
         _client = None
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -471,7 +485,7 @@ def disconnect() -> str:
         return "Disconnected."
     except Exception as e:
         _client = None
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -485,7 +499,7 @@ def terminate_session() -> str:
         return "Session terminated."
     except Exception as e:
         _client = None
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -515,7 +529,7 @@ def get_debugger_status() -> str:
         parts.append(f"Elevated: {elevated}")
         return "\n".join(parts)
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -529,9 +543,11 @@ def go(pass_exceptions: bool = False, swallow_exceptions: bool = False) -> str:
     try:
         client = _require_client()
         result = client.go(pass_exceptions=pass_exceptions, swallow_exceptions=swallow_exceptions)
-        return "Resumed." if result else "Failed to resume."
+        if not result:
+            raise ToolError("Failed to resume.")
+        return "Resumed."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -540,9 +556,11 @@ def pause() -> str:
     try:
         client = _require_client()
         result = client.pause()
-        return "Paused." if result else "Failed to pause."
+        if not result:
+            raise ToolError("Failed to pause.")
+        return "Paused."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -555,9 +573,11 @@ def step_into(count: int = 1) -> str:
     try:
         client = _require_client()
         result = client.stepi(step_count=count)
-        return f"Stepped into {count} instruction(s)." if result else "Step into failed."
+        if not result:
+            raise ToolError("Step into failed.")
+        return f"Stepped into {count} instruction(s)."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -570,9 +590,11 @@ def step_over(count: int = 1) -> str:
     try:
         client = _require_client()
         result = client.stepo(step_count=count)
-        return f"Stepped over {count} instruction(s)." if result else "Step over failed."
+        if not result:
+            raise ToolError("Step over failed.")
+        return f"Stepped over {count} instruction(s)."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -585,9 +607,11 @@ def skip_instruction(count: int = 1) -> str:
     try:
         client = _require_client()
         result = client.skip(skip_count=count)
-        return f"Skipped {count} instruction(s)." if result else "Skip failed."
+        if not result:
+            raise ToolError("Skip failed.")
+        return f"Skipped {count} instruction(s)."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -600,9 +624,11 @@ def run_to_return(frames: int = 1) -> str:
     try:
         client = _require_client()
         result = client.ret(frames=frames)
-        return "Ran to return." if result else "Run to return failed."
+        if not result:
+            raise ToolError("Run to return failed.")
+        return "Ran to return."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -649,9 +675,11 @@ def trace_into(
             swallow_exceptions=swallow_exceptions,
             wait_timeout=wait_timeout,
         )
-        return "Trace into completed." if result else "Trace into failed."
+        if not result:
+            raise ToolError("Trace into failed.")
+        return "Trace into completed."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -698,9 +726,11 @@ def trace_over(
             swallow_exceptions=swallow_exceptions,
             wait_timeout=wait_timeout,
         )
-        return "Trace over completed." if result else "Trace over failed."
+        if not result:
+            raise ToolError("Trace over failed.")
+        return "Trace over completed."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -735,18 +765,18 @@ def read_memory(address: str, size: int = 256, format: str = "dump") -> str:
             alt = ""
             if format != "base64":
                 alt = f", or format='base64' to fit {_max_bytes_for('base64', addr):,}"
-            return (
-                f"Error: {size:,} bytes as '{format}' would exceed the response limit. "
+            raise ToolError(
+                f"{size:,} bytes as '{format}' would exceed the response limit. "
                 f"Read at most {cap:,} bytes in this format{alt}. "
                 f"Pass size=0 for the largest read that fits."
             )
         try:
             data = client.read_memory(addr, size)
         except Exception as e:
-            return f"Error: {e}{_no_debuggee_hint(client)}"
+            raise ToolError(f"{e}{_no_debuggee_hint(client)}") from e
         return _encode_memory(data, addr, format)
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -773,7 +803,7 @@ def read_memory_many(reads: list[str], format: str = "hex") -> str:
     try:
         client = _require_client()
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
     if not reads:
         return "No reads requested."
@@ -839,9 +869,11 @@ def write_memory(address: str, hex_data: str) -> str:
         cleaned = hex_data.replace(" ", "").replace("\n", "")
         data = bytes.fromhex(cleaned)
         result = client.write_memory(addr, data)
-        return f"Wrote {len(data)} bytes to {_format_address(addr)}." if result else "Write failed."
+        if not result:
+            raise ToolError("Write failed.")
+        return f"Wrote {len(data)} bytes to {_format_address(addr)}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -858,7 +890,7 @@ def allocate_memory(size: int = 4096, address: str = "0") -> str:
         result = client.virt_alloc(n=size, addr=addr)
         return f"Allocated {size} bytes at {_format_address(result)}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -874,7 +906,7 @@ def free_memory(address: str) -> str:
         client.virt_free(addr)
         return f"Freed memory at {_format_address(addr)}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -969,7 +1001,7 @@ def get_memory_map(
             summary += f"; {remaining} more — call again with offset={offset + len(window)}"
         return f"{body}\n{summary}]"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -988,7 +1020,7 @@ def get_register(register: str) -> str:
         val = client.get_reg(register)
         return f"{register} = {_format_address(val)}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1003,9 +1035,11 @@ def set_register(register: str, value: str) -> str:
         client = _require_client()
         val = _parse_address_or_expression(value)
         result = client.set_reg(register, val)
-        return f"Set {register} = {_format_address(val)}." if result else "Failed to set register."
+        if not result:
+            raise ToolError("Failed to set register.")
+        return f"Set {register} = {_format_address(val)}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1025,7 +1059,7 @@ def get_all_registers() -> str:
         lines.append(f"flags    = {' '.join(flag_strs)}")
         return "\n".join(lines)
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1047,10 +1081,10 @@ def eval_expression(expression: str) -> str:
         _assert_expression_evaluable(client, expression)
         val, success = client.eval_sync(expression)
         if not success:
-            return f"Evaluation failed for: {expression}"
+            raise ToolError(f"Evaluation failed for: {expression}")
         return f"{expression} = {_format_address(val)}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1067,7 +1101,7 @@ def execute_command(command: str) -> str:
         result = client.cmd_sync(command)
         return f"Command executed. Success: {result}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1110,9 +1144,11 @@ def set_breakpoint(
         else:
             result = client.set_breakpoint(addr, name=name, singleshoot=singleshot)
 
-        return f"Breakpoint set at {address_or_symbol}." if result else "Failed to set breakpoint."
+        if not result:
+            raise ToolError("Failed to set breakpoint.")
+        return f"Breakpoint set at {address_or_symbol}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1139,9 +1175,11 @@ def clear_breakpoint(address: str | None = None, bp_type: str = "software") -> s
         else:
             result = client.clear_breakpoint(target)
 
-        return "Breakpoint(s) cleared." if result else "Failed to clear breakpoint(s)."
+        if not result:
+            raise ToolError("Failed to clear breakpoint(s).")
+        return "Breakpoint(s) cleared."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1170,9 +1208,11 @@ def toggle_breakpoint(address: str | None = None, bp_type: str = "software", ena
             result = client.toggle_breakpoint(target, on=enable)
 
         action = "Enabled" if enable else "Disabled"
-        return f"{action} breakpoint(s)." if result else f"Failed to {action.lower()} breakpoint(s)."
+        if not result:
+            raise ToolError(f"Failed to {action.lower()} breakpoint(s).")
+        return f"{action} breakpoint(s)."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1202,7 +1242,7 @@ def list_breakpoints(bp_type: str = "software") -> str:
             )
         return "\n".join(lines)
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1232,7 +1272,7 @@ def disassemble(address: str, count: int = 10) -> str:
             current += ins.instr_size
         return "\n".join(lines)
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1248,10 +1288,10 @@ def assemble(address: str, instruction: str) -> str:
         addr = _parse_address_or_expression(address)
         size = client.assemble_at(addr, instruction)
         if size is None:
-            return f"Failed to assemble '{instruction}' at {_format_address(addr)}."
+            raise ToolError(f"Failed to assemble '{instruction}' at {_format_address(addr)}.")
         return f"Assembled '{instruction}' at {_format_address(addr)} ({size} bytes)."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1270,9 +1310,11 @@ def set_label(address: str, text: str) -> str:
         client = _require_client()
         addr = _parse_address_or_expression(address)
         result = client.set_label_at(addr, text)
-        return f"Label set at {_format_address(addr)}." if result else "Failed to set label."
+        if not result:
+            raise ToolError("Failed to set label.")
+        return f"Label set at {_format_address(addr)}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1290,7 +1332,7 @@ def get_label(address: str) -> str:
             return f"No label at {_format_address(addr)}."
         return f"{_format_address(addr)}: {label}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1305,9 +1347,11 @@ def set_comment(address: str, text: str) -> str:
         client = _require_client()
         addr = _parse_address_or_expression(address)
         result = client.set_comment_at(addr, text)
-        return f"Comment set at {_format_address(addr)}." if result else "Failed to set comment."
+        if not result:
+            raise ToolError("Failed to set comment.")
+        return f"Comment set at {_format_address(addr)}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1325,7 +1369,7 @@ def get_comment(address: str) -> str:
             return f"No comment at {_format_address(addr)}."
         return f"{_format_address(addr)}: {comment}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1348,7 +1392,7 @@ def get_symbol(address: str) -> str:
             f"Type: {sym.type}  Ordinal: {sym.ordinal}"
         )
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1369,10 +1413,10 @@ def create_thread(entry_address: str, argument: str = "0") -> str:
         arg = _parse_address_or_expression(argument)
         tid = client.thread_create(addr, arg)
         if tid is None:
-            return "Failed to create thread."
+            raise ToolError("Failed to create thread.")
         return f"Thread created. TID: {tid}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1385,9 +1429,11 @@ def terminate_thread(tid: int) -> str:
     try:
         client = _require_client()
         result = client.thread_terminate(tid)
-        return f"Thread {tid} terminated." if result else f"Failed to terminate thread {tid}."
+        if not result:
+            raise ToolError(f"Failed to terminate thread {tid}.")
+        return f"Thread {tid} terminated."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1402,12 +1448,16 @@ def pause_resume_thread(tid: int, action: str = "pause") -> str:
         client = _require_client()
         if action == "resume":
             result = client.thread_resume(tid)
-            return f"Thread {tid} resumed." if result else f"Failed to resume thread {tid}."
+            if not result:
+                raise ToolError(f"Failed to resume thread {tid}.")
+            return f"Thread {tid} resumed."
         else:
             result = client.thread_pause(tid)
-            return f"Thread {tid} paused." if result else f"Failed to pause thread {tid}."
+            if not result:
+                raise ToolError(f"Failed to pause thread {tid}.")
+            return f"Thread {tid} paused."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1420,9 +1470,11 @@ def switch_thread(tid: int) -> str:
     try:
         client = _require_client()
         result = client.switch_thread(tid)
-        return f"Switched to thread {tid}." if result else f"Failed to switch to thread {tid}."
+        if not result:
+            raise ToolError(f"Failed to switch to thread {tid}.")
+        return f"Switched to thread {tid}."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1444,7 +1496,7 @@ def get_latest_event() -> str:
             )
         return f"Event: {event.event_type}{data_str}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1468,7 +1520,7 @@ def wait_for_event(event_type: str, timeout: int = 5) -> str:
             )
         return f"Event: {event.event_type}{data_str}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1494,7 +1546,7 @@ def get_setting(section: str, name: str, type: str = "string") -> str:
             return f"Setting [{section}]{name} not found."
         return f"[{section}]{name} = {val}"
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1513,9 +1565,11 @@ def set_setting(section: str, name: str, value: str, type: str = "string") -> st
             result = client.set_setting_int(section, name, int(value))
         else:
             result = client.set_setting_str(section, name, value)
-        return f"Setting [{section}]{name} updated." if result else "Failed to update setting."
+        if not result:
+            raise ToolError("Failed to update setting.")
+        return f"Setting [{section}]{name} updated."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -1532,9 +1586,11 @@ def log_message(message: str) -> str:
     try:
         client = _require_client()
         result = client.log(message)
-        return "Message logged." if result else "Failed to log message."
+        if not result:
+            raise ToolError("Failed to log message.")
+        return "Message logged."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1576,7 +1632,7 @@ def get_log(since_index: int = 0, limit: int = 0, filter: str = "") -> str:
         parts.append(f"[next_index={next_index}]")
         return "\n".join(parts)
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 @mcp.tool()
@@ -1585,9 +1641,11 @@ def refresh_gui() -> str:
     try:
         client = _require_client()
         result = client.gui_refresh_views()
-        return "GUI refreshed." if result else "Failed to refresh GUI."
+        if not result:
+            raise ToolError("Failed to refresh GUI.")
+        return "GUI refreshed."
     except Exception as e:
-        return f"Error: {e}"
+        raise _as_tool_error(e)
 
 
 # ---------------------------------------------------------------------------

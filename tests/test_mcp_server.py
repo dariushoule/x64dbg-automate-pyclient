@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 from unittest.mock import MagicMock, patch
 
+from mcp.server.mcpserver.exceptions import ToolError
+
 from x64dbg_automate.mcp_server import (
     _format_address,
     _format_memory,
@@ -331,11 +333,10 @@ class TestListSessions:
         assert "unknown" in result
 
     @patch.object(mcp_mod, "X64DbgClient")
-    def test_exception_returns_error(self, mock_cls):
+    def test_exception_raises_tool_error(self, mock_cls):
         mock_cls.list_sessions.side_effect = NotImplementedError("Windows only")
-        result = mcp_mod.list_sessions()
-        assert "Error" in result
-        assert "Windows only" in result
+        with pytest.raises(ToolError, match="Windows only"):
+            mcp_mod.list_sessions()
 
 
 class TestStartSession:
@@ -362,9 +363,8 @@ class TestStartSession:
 
     def test_no_path_no_env_error(self, monkeypatch):
         monkeypatch.delenv("X64DBG_PATH", raising=False)
-        result = mcp_mod.start_session()
-        assert "Error" in result
-        assert "X64DBG_PATH" in result
+        with pytest.raises(ToolError, match="X64DBG_PATH"):
+            mcp_mod.start_session()
 
 
 class TestConnectToSession:
@@ -389,14 +389,12 @@ class TestConnectToSession:
 
     def test_no_path_no_env_error(self, monkeypatch):
         monkeypatch.delenv("X64DBG_PATH", raising=False)
-        result = mcp_mod.connect_to_session(session_pid=9999)
-        assert "Error" in result
-        assert "X64DBG_PATH" in result
+        with pytest.raises(ToolError, match="X64DBG_PATH"):
+            mcp_mod.connect_to_session(session_pid=9999)
 
     def test_missing_session_pid(self):
-        result = mcp_mod.connect_to_session()
-        assert "Error" in result
-        assert "session_pid" in result
+        with pytest.raises(ToolError, match="session_pid"):
+            mcp_mod.connect_to_session()
 
 
 class TestDisconnect:
@@ -469,8 +467,8 @@ class TestEvalExpressionNoDebuggee:
     def test_refused_without_debuggee(self, mock_client, expr):
         mock_client.is_debugging.return_value = False
         mock_client.eval_sync.return_value = (0, True)  # what x64dbg actually returns
-        result = mcp_mod.eval_expression(expr)
-        assert "no debuggee attached" in result
+        with pytest.raises(ToolError, match="no debuggee attached"):
+            mcp_mod.eval_expression(expr)
         mock_client.eval_sync.assert_not_called()
 
     def test_evaluated_normally_when_debugging(self, mock_client):
@@ -481,13 +479,15 @@ class TestEvalExpressionNoDebuggee:
     def test_genuine_failure_still_reported(self, mock_client):
         mock_client.is_debugging.return_value = True
         mock_client.eval_sync.return_value = (0, False)
-        assert "Evaluation failed" in mcp_mod.eval_expression("[0x1]")
+        with pytest.raises(ToolError, match="Evaluation failed"):
+            mcp_mod.eval_expression("[0x1]")
 
     def test_address_resolution_refused_without_debuggee(self, mock_client):
         # Same guard covers every tool taking an address, via _parse_address_or_expression.
         mock_client.is_debugging.return_value = False
         mock_client.eval_sync.return_value = (0, True)
-        assert "no debuggee attached" in mcp_mod.read_memory("rsp")
+        with pytest.raises(ToolError, match="no debuggee attached"):
+            mcp_mod.read_memory("rsp")
         mock_client.eval_sync.assert_not_called()
 
     def test_literal_address_does_not_consult_debuggee(self, mock_client):
@@ -510,16 +510,18 @@ class TestNoDebuggeeDisambiguation:
     def test_read_memory_failure_names_no_debuggee(self, mock_client):
         mock_client.is_debugging.return_value = False
         mock_client.read_memory.side_effect = RuntimeError("XERROR_READ_FAILED")
-        result = mcp_mod.read_memory("0x10000", 16)
-        assert "XERROR_READ_FAILED" in result
-        assert "No debuggee" in result
+        with pytest.raises(ToolError) as exc:
+            mcp_mod.read_memory("0x10000", 16)
+        assert "XERROR_READ_FAILED" in str(exc.value)
+        assert "No debuggee" in str(exc.value)
 
     def test_read_memory_failure_with_debuggee_is_bad_address(self, mock_client):
         mock_client.is_debugging.return_value = True
         mock_client.read_memory.side_effect = RuntimeError("XERROR_READ_FAILED")
-        result = mcp_mod.read_memory("0x1", 16)
-        assert "XERROR_READ_FAILED" in result
-        assert "No debuggee" not in result
+        with pytest.raises(ToolError) as exc:
+            mcp_mod.read_memory("0x1", 16)
+        assert "XERROR_READ_FAILED" in str(exc.value)
+        assert "No debuggee" not in str(exc.value)
 
     def test_successful_read_costs_no_extra_roundtrip(self, mock_client):
         mock_client.read_memory.return_value = b"\x90" * 4
@@ -568,8 +570,8 @@ class TestGo:
 
     def test_go_failure(self, mock_client):
         mock_client.go.return_value = False
-        result = mcp_mod.go()
-        assert "Failed" in result
+        with pytest.raises(ToolError, match="Failed to resume"):
+            mcp_mod.go()
 
 
 class TestPause:
@@ -622,18 +624,20 @@ class TestReadMemory:
 
     def test_oversized_refused_without_reading(self, mock_client):
         """Too large to encode is refused up front — never truncated, never issued."""
-        result = mcp_mod.read_memory("0x1000", 99_999_999)
-        assert "would exceed the response limit" in result
-        assert "Read at most" in result
+        with pytest.raises(ToolError) as exc:
+            mcp_mod.read_memory("0x1000", 99_999_999)
+        assert "would exceed the response limit" in str(exc.value)
+        assert "Read at most" in str(exc.value)
         mock_client.read_memory.assert_not_called()
 
     def test_oversized_suggests_base64(self, mock_client):
-        result = mcp_mod.read_memory("0x1000", 99_999_999, format="hex")
-        assert "format='base64'" in result
+        with pytest.raises(ToolError, match="format='base64'"):
+            mcp_mod.read_memory("0x1000", 99_999_999, format="hex")
 
     def test_oversized_in_base64_does_not_suggest_itself(self, mock_client):
-        result = mcp_mod.read_memory("0x1000", 99_999_999, format="base64")
-        assert "format='base64'" not in result
+        with pytest.raises(ToolError) as exc:
+            mcp_mod.read_memory("0x1000", 99_999_999, format="base64")
+        assert "format='base64'" not in str(exc.value)
 
     def test_size_below_cap_passed_through(self, mock_client):
         mock_client.read_memory.return_value = b"\x00" * 9999
@@ -753,7 +757,8 @@ class TestReadableSpan:
 
     def test_invalid_format(self, mock_client):
         mock_client.read_memory.return_value = b"\x00"
-        assert "Error" in mcp_mod.read_memory("0x1000", 1, format="yaml")
+        with pytest.raises(ToolError):
+            mcp_mod.read_memory("0x1000", 1, format="yaml")
 
 
 class TestReadMemoryMany:
@@ -939,7 +944,8 @@ class TestGetMemoryMap:
 
     def test_invalid_state_filter(self, mock_client):
         mock_client.memmap.return_value = [_page(0x10000)]
-        assert "Error" in mcp_mod.get_memory_map(state="bogus")
+        with pytest.raises(ToolError):
+            mcp_mod.get_memory_map(state="bogus")
 
 
 class TestProtectDecoding:
@@ -1033,8 +1039,8 @@ class TestEvalExpression:
 
     def test_eval_failure(self, mock_client):
         mock_client.eval_sync.return_value = (0, False)
-        result = mcp_mod.eval_expression("bad_expr")
-        assert "failed" in result.lower()
+        with pytest.raises(ToolError, match="Evaluation failed"):
+            mcp_mod.eval_expression("bad_expr")
 
 
 class TestExecuteCommand:
@@ -1303,18 +1309,17 @@ class TestErrorPaths:
         original = mcp_mod._client
         mcp_mod._client = None
         try:
-            result = mcp_mod.go()
-            assert "Error" in result
-            assert "Not connected" in result
+            with pytest.raises(ToolError, match="Not connected"):
+                mcp_mod.go()
         finally:
             mcp_mod._client = original
 
     def test_invalid_address(self, mock_client):
         mock_client.read_memory.side_effect = RuntimeError("invalid address")
-        result = mcp_mod.read_memory("0xBAD", 16)
-        assert "Error" in result
+        with pytest.raises(ToolError, match="invalid address"):
+            mcp_mod.read_memory("0xBAD", 16)
 
     def test_exception_in_eval(self, mock_client):
         mock_client.eval_sync.side_effect = Exception("eval failed")
-        result = mcp_mod.eval_expression("bad")
-        assert "Error" in result
+        with pytest.raises(ToolError, match="eval failed"):
+            mcp_mod.eval_expression("bad")

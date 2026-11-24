@@ -8,7 +8,7 @@ transport are covered too. No running x64dbg required.
 from __future__ import annotations
 
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from mcp import Client
@@ -50,16 +50,31 @@ async def test_tool_call_round_trips():
     assert result.content[0].text == "No active x64dbg sessions found."
 
 
-async def test_tool_error_comes_back_as_text():
-    """Tools report failures as an 'Error: ...' text result (this server's convention)
-    rather than raising, so the session survives a failed call."""
+async def test_tool_failure_is_an_mcp_error_result():
+    """A failing tool returns is_error=True carrying its own message, which the SDK prefixes
+    with the tool name (a non-ToolError would arrive with the message stripped), and the
+    session survives for the next call."""
     with patch.object(mcp_mod, "_client", None):
         async with Client(mcp_mod.mcp) as client:
             result = await client.call_tool("read_memory", {"address": "0x1000", "size": 16})
-            followup = await client.call_tool("list_sessions", {})
+            with patch.object(mcp_mod.X64DbgClient, "list_sessions", return_value=[]):
+                followup = await client.call_tool("list_sessions", {})
 
-    assert result.content[0].text.startswith("Error: Not connected to x64dbg")
+    assert result.is_error
+    assert result.content[0].text.startswith("Error executing tool read_memory: Not connected to x64dbg")
     assert not followup.is_error
+
+
+async def test_operation_reporting_failure_is_an_mcp_error_result():
+    """A debugger call that returns False (not an exception) is an error result too."""
+    debugger = MagicMock()
+    debugger.go.return_value = False
+    with patch.object(mcp_mod, "_client", debugger):
+        async with Client(mcp_mod.mcp) as client:
+            result = await client.call_tool("go", {})
+
+    assert result.is_error
+    assert result.content[0].text == "Error executing tool go: Failed to resume."
 
 
 @pytest.mark.parametrize("mode", ["auto", "legacy"])
