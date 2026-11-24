@@ -10,9 +10,10 @@ import sys
 from pathlib import Path
 
 try:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server.mcpserver import MCPServer
 except ImportError:
-    print("MCP dependency not installed. Install with: pip install x64dbg_automate[mcp]", file=sys.stderr)
+    # Also reached with an mcp 1.x install, which has no mcp.server.mcpserver.
+    print("MCP SDK 2.x not installed. Install with: pip install 'x64dbg_automate[mcp]'", file=sys.stderr)
     sys.exit(1)
 
 from x64dbg_automate import X64DbgClient
@@ -30,7 +31,7 @@ from x64dbg_automate.models import (
     PAGE_GUARD,
 )
 
-mcp = FastMCP(
+mcp = MCPServer(
     "x64dbg-automate",
     instructions=(
         "MCP server for controlling the x64dbg debugger via x64dbg-automate. "
