@@ -2,22 +2,28 @@
 Functional end-to-end test for a Linux client connecting to a remote x64dbg instance.
 
 Usage:
-    python tests/test_functional_remote.py [host] [req_rep_port] [pub_sub_port]
+    python tests/test_functional_remote.py <host> [req_rep_port] [pub_sub_port]
 
-Defaults: 192.168.145.130:27066/27067
+Arguments fall back to REMOTE_HOST / REMOTE_REQ_PORT / REMOTE_PUB_PORT, then
+ports default to 27066/27067. tests/run_functional_tests.ps1 fills these in
+from tests/local.env.
 
 This is a standalone script, not managed by pytest.
 """
 
+import os
 import sys
 
 from x64dbg_automate import X64DbgClient
 
 
 def main() -> int:
-    host = sys.argv[1] if len(sys.argv) > 1 else "192.168.145.130"
-    req_rep_port = int(sys.argv[2]) if len(sys.argv) > 2 else 27066
-    pub_sub_port = int(sys.argv[3]) if len(sys.argv) > 3 else 27067
+    host = sys.argv[1] if len(sys.argv) > 1 else os.getenv("REMOTE_HOST")
+    if not host:
+        print(__doc__)
+        return 2
+    req_rep_port = int(sys.argv[2] if len(sys.argv) > 2 else os.getenv("REMOTE_REQ_PORT", "27066"))
+    pub_sub_port = int(sys.argv[3] if len(sys.argv) > 3 else os.getenv("REMOTE_PUB_PORT", "27067"))
 
     print(f"Connecting to {host}:{req_rep_port}/{pub_sub_port} ...")
     client = X64DbgClient.connect_remote(host, req_rep_port, pub_sub_port)

@@ -71,12 +71,13 @@ See the [MCP Server documentation](https://dariushoule.github.io/x64dbg-automate
 
 The client's environment is managed with [poetry](https://python-poetry.org/docs/).
 
-Update `tests/conftest.py` or provide the requisite environment to allow tests to pass.
+Tests that drive a live debugger need to know where x64dbg is. Copy `tests/local.env.example` to `tests/local.env` (gitignored) and set `X64DBG_RELEASE_DIR`; without it those tests are skipped and the offline suites still run. Pick the bitness per run with `--bitness 32` / `--bitness 64` (default 64). Environment variables and `--x64dbg-path` also work and take precedence over the file.
 
 ```powershell
 poetry install --extras mcp --with dev
 poetry env activate
-python -m pytest # Test
+python -m pytest                # Test (64-bit)
+python -m pytest --bitness 32   # Test (32-bit)
 python .\examples\assemble_and_disassemble.py C:\<you>\x64dbg\release\x64\x64dbg.exe # Run an example
 ```
 

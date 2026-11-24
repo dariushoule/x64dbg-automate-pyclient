@@ -39,3 +39,6 @@ ENV/
 # docs build output
 site/
 .claude/settings.local.json
+
+# Machine-specific test settings (see tests/local.env.example)
+tests/local.env
