@@ -85,11 +85,17 @@ def pytest_report_header(config: pytest.Config) -> str:
 
 
 @pytest.fixture
-def client():
+def x64dbg_path() -> str:
+    """The configured debugger executable; skips the test when there isn't one."""
     if not X64DBG_PATH:
         pytest.skip("x64dbg not configured: copy tests/local.env.example to tests/local.env, or pass --x64dbg-path")
     if not Path(X64DBG_PATH).is_file():
         pytest.skip(f"x64dbg not found at {X64DBG_PATH}")
-    client = X64DbgClient(x64dbg_path=X64DBG_PATH)
+    return X64DBG_PATH
+
+
+@pytest.fixture
+def client(x64dbg_path: str):
+    client = X64DbgClient(x64dbg_path=x64dbg_path)
     yield client
     client.terminate_session()

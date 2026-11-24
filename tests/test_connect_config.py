@@ -1,8 +1,53 @@
 import os
 import subprocess
+import sys
+from pathlib import Path
+
+import psutil
+import pytest
+
+import x64dbg_automate
 from tests.conftest import TEST_BITNESS, X64DBG_PATH
 from x64dbg_automate import X64DbgClient
 import time
+
+BOGUS_COMPAT_VERSION = "not_a_real_codename"
+
+# Run in a child interpreter so the test observes what a user script does after a
+# rejected handshake: whether the process can exit at all. A leaked non-daemon
+# thread shows up here as a hang, which an in-process test can't see.
+REJECTED_HANDSHAKE_SCRIPT = f"""
+import sys
+import x64dbg_automate
+from x64dbg_automate import X64DbgClient
+
+x64dbg_automate.COMPAT_VERSION = {BOGUS_COMPAT_VERSION!r}
+client = X64DbgClient(x64dbg_path=sys.argv[1])
+try:
+    client.start_session()
+except AssertionError as e:
+    print(e)
+    sys.exit(0)
+print("start_session unexpectedly succeeded")
+sys.exit(1)
+"""
+
+
+def _debugger_pids(exe: str) -> set[int]:
+    target = os.path.normcase(os.path.abspath(exe))
+    pids = set()
+    for p in psutil.process_iter(["pid", "exe"]):
+        if p.info["exe"] and os.path.normcase(p.info["exe"]) == target:
+            pids.add(p.info["pid"])
+    return pids
+
+
+def _kill_all(pids: set[int]) -> None:
+    for pid in pids:
+        try:
+            psutil.Process(pid).kill()
+        except psutil.NoSuchProcess:
+            pass
 
 
 def test_connect(client: X64DbgClient):
@@ -18,6 +63,50 @@ def test_reconnect(client: X64DbgClient):
 def test_compat_version(client: X64DbgClient):
     client.start_session()
     client._assert_connection_compat()
+
+
+def test_rejected_handshake_exits_cleanly(x64dbg_path: str):
+    """start_session() against an incompatible plugin raises, lets the interpreter exit,
+    and doesn't leave the x64dbg it launched running."""
+    before = _debugger_pids(x64dbg_path)
+    leaked: set[int] = set()
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", REJECTED_HANDSHAKE_SCRIPT, x64dbg_path],
+            cwd=Path(__file__).parent.parent, capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail("client process hung after the rejected compat handshake")
+    finally:
+        leaked = _debugger_pids(x64dbg_path) - before
+        _kill_all(leaked)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Incompatible x64dbg plugin and client versions" in result.stdout
+    assert not leaked, f"launched x64dbg left running after rejection: {leaked}"
+
+
+def test_rejected_handshake_on_attach_leaves_debugger_running(client: X64DbgClient, monkeypatch):
+    """Attaching to an x64dbg the caller already had running: a rejected handshake tears down
+    the connection but must not kill that debugger, and the client stays reusable."""
+    proc = subprocess.Popen([X64DBG_PATH])
+    try:
+        client.wait_for_session(proc.pid)
+        monkeypatch.setattr(x64dbg_automate, "COMPAT_VERSION", BOGUS_COMPAT_VERSION)
+        with pytest.raises(AssertionError, match="Incompatible x64dbg plugin and client versions"):
+            client.attach_session(proc.pid)
+
+        assert client.req_socket is None and client.sub_socket is None
+        assert not client.sub_thread.is_alive()
+        time.sleep(1)
+        assert proc.poll() is None, "an x64dbg the client didn't launch must not be terminated"
+
+        monkeypatch.undo()
+        client.attach_session(proc.pid)  # fixture teardown terminates it
+        assert not client.is_debugging()
+    except BaseException:
+        proc.kill()
+        raise
 
 
 def test_bitness(client: X64DbgClient):

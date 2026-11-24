@@ -169,9 +169,38 @@ class X64DbgClient(XAutoHighLevelCommandAbstractionMixin, DebugEventQueueMixin):
         return msg
 
     def _assert_connection_compat(self) -> None:
-        v = self._get_xauto_compat_version()
-        assert v == COMPAT_VERSION, f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}"
-        
+        """Verify the plugin speaks our protocol version, tearing the connection down if not.
+
+        Raises:
+            AssertionError: The plugin's compat version doesn't match the client's.
+        """
+        try:
+            v = self._get_xauto_compat_version()
+        except BaseException:
+            self._abandon_connection()
+            raise
+        if v != COMPAT_VERSION:
+            # Explicit raise rather than `assert`, so the check survives `python -O`.
+            self._abandon_connection()
+            raise AssertionError(f"Incompatible x64dbg plugin and client versions {v} != {COMPAT_VERSION}")
+
+    def _abandon_connection(self) -> None:
+        """Clean up after a connection that can't be used.
+
+        The SUB thread is non-daemon, so leaving it running keeps the interpreter alive after
+        the caller has handled the error. An x64dbg this client launched is killed too: the
+        caller never received its session id, so nothing else could clean it up. A debugger
+        we merely attached to is left running.
+        """
+        proc = self.proc
+        self._close_connection()
+        if proc is not None:
+            proc.kill()
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                logger.warning(f"x64dbg (pid {proc.pid}) did not exit after kill")
+
     def _launch_x64dbg(self) -> int:
         if self.x64dbg_path is None:
             raise RuntimeError("Cannot launch x64dbg in remote mode — no x64dbg_path configured")
